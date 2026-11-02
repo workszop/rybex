@@ -1,0 +1,17 @@
+mockups/
+plans/
+superpowers/
+progress.md
+review*.md
+*.plan.md
+*.draft.*
+scratch/
+node_modules/
+.wrangler/
+.dev.vars
+# local working material
+project_description.md
+project_summary.md
+ux-audit/*
+!ux-audit/regression.mjs
+replay.json
