@@ -261,6 +261,30 @@ try {
     ok('no page errors (log)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
+  // ─── Harder complaints data ───
+  if (run('data')) {
+    console.log('data');
+    const p = await fresh('#/lab/complaints');
+    const d = await p.evaluate(() => {
+      const C = DATA.compl, txt = C.map(c => c.text), low = s => s.toLowerCase();
+      const transport = C.filter(c => /kurier|paleta|w transporcie/i.test(c.text));
+      const mixedSmell = C.filter(c => /dostawa|opóźnieni/i.test(c.text) && /zapach/i.test(c.text));
+      const mixedLabelQuality = C.filter(c => /słon/i.test(c.text) && /daty ważności/i.test(c.text));
+      const keys = Object.keys(C[0]);
+      return { n: C.length, distinct: new Set(txt).size, transport: transport.length, transportOk: transport.every(c => c.category === 'delivery'), transportPool: transport.filter(c => c.id <= 20).length, transportEval: transport.filter(c => c.id > 20 && c.id <= 36).length,
+        mixedSmell: mixedSmell.length && mixedSmell.every(c => c.category === 'smell' && c.hazard), mixedLQ: mixedLabelQuality.length && mixedLabelQuality.every(c => c.category === 'label'),
+        cats: Object.fromEntries(CK.map(k => [k, C.filter(c => c.category === k).length])), keys, safetyAll: cSafetyRecall(C, SAFETY_KW), trap: C.filter(c => /pachniało normalnie/i.test(c.text)).every(c => !c.hazard && !cHazard(c.text, SAFETY_KW)),
+        ruleDev: cEval(C.slice(0, 36), KW).acc, guide: typeof COMPL_GUIDE === 'function' && /transpor/i.test(COMPL_GUIDE()) };
+    });
+    ok('60 distinct complaints in 5 categories', d.n === 60 && d.distinct === 60 && Object.values(d.cats).every(v => v >= 8), JSON.stringify(d.cats));
+    ok('transport damage labelled delivery, present in examples pool and dev 21-36', d.transportOk && d.transportPool >= 2 && d.transportEval >= 2, JSON.stringify(d));
+    ok('mixed complaints follow the priority rule', d.mixedSmell && d.mixedLQ);
+    ok('default safety keywords still catch every hazard; "smelled normal" is no hazard', d.safetyAll === 1 && d.trap);
+    ok('keyword rules no longer near-perfect on dev (< 75%)', d.ruleDev < .75, d.ruleDev);
+    ok('hidden fields not exported (id, product, text, category only)', JSON.stringify(d.keys) === JSON.stringify(['id', 'product', 'text', 'category']));
+    ok('labelling guideline available and shown in the lab', d.guide && /transpor/i.test(await p.$eval('#proto', e => e.textContent)));
+    await p.close();
+  }
   // ─── Final review fixes ───
   if (run('fixes')) {
     console.log('fixes');
