@@ -105,7 +105,7 @@ console.log('\nUX-006 RAG evaluation');
     ok(`006 ${lang} k changes a metric`, by(0)); ok(`006 ${lang} chunk changes a metric`, by(1)); ok(`006 ${lang} threshold changes a metric`, by(2));
     ok(`006 ${lang} defaults report oos separately`, +d.nOos === 3); ok(`006 ${lang} baseline shown`, d.baseOk !== undefined);
     await p.click('#oosQ'); const t = await p.textContent('#chat'); ok(`006 ${lang} oos explained`, /powyżej|above/.test(t)); ok(`006 ${lang} focus back to input`, await p.evaluate(() => document.activeElement.id) === 'qi');
-    await p.evaluate(() => { lab().rag.min = .6; }); const q = await p.evaluate(() => RQ.find(r => r.oos).q[S.lang === 'pl' ? 0 : 1]); await p.fill('#qi', q); await p.keyboard.press('Enter'); const a = await p.$$eval('#chat .msg.a', e => e.at(-1).textContent); ok(`006 ${lang} high threshold refuses, no citation`, /Nie znalazłem|could not find/.test(a) && !/SOP-/.test(a));
+    await p.evaluate(() => { lab().rag.min = .6; }); const q = await p.evaluate(() => RQ.find(r => r.oos).q[S.lang === 'pl' ? 0 : 1]); await p.fill('#qi', q); await p.keyboard.press('Enter'); const a = await p.$$eval('#chat .msg.a', e => e.at(-1).textContent); ok(`006 ${lang} high threshold refuses, no citation`, /Nie znalazłem|could not find/.test(a) && !/PROCES-/.test(a));
     await p.evaluate(() => { lab().rag.min = .12; }); ok(`006 ${lang} no errors`, !p.errs.length, p.errs.join('|')); } }
 
 console.log('\nUX-007 reproducible experiments');

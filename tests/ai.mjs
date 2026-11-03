@@ -1,9 +1,11 @@
 // Probes for the model-backed features. Starts the mock server itself.
-// Usage: cd tests && node ai.mjs [section...]   (sections: core rag compl vision log)
+// Usage: cd tests && node ai.mjs [section...]   (sections: core rag compl vision log data fixes photo file audit)
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import os from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8796, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
@@ -45,7 +47,7 @@ try {
     await connect(p);
     ok('good code -> ready', await aiState(p) === 'ready');
     ok('team spend shown from status', /0[,.]01/.test(await p.$eval('#aiSpend', e => e.textContent)), await p.$eval('#aiSpend', e => e.textContent));
-    const r = await p.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[SOP-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { data: x.data, cost: x.usage.cost, inTok: x.usage.in, ms: x.ms, model: x.model }; });
+    const r = await p.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { data: x.data, cost: x.usage.cost, inTok: x.usage.in, ms: x.ms, model: x.model }; });
     ok('callModel returns parsed JSON + usage', r.data && r.data.answer === 'Szew co 30 minut.' && r.cost > 0 && r.inTok > 0 && r.ms >= 0 && r.model === 'deepseek/deepseek-v4.1-flash', JSON.stringify(r));
     const last = (await mock('calls')).last;
     ok('request asks for JSON and default model', last.response_format && last.response_format.type === 'json_object' && last.model === 'deepseek/deepseek-v4.1-flash');
@@ -57,14 +59,14 @@ try {
     const bad = await p.evaluate(() => callModel({ messages: [{ role: 'user', content: 'y' }], model: 'deepseek' }).then(() => 'resolved', e => e.kind));
     ok('callModel accepts explicit model key', bad === 'resolved');
     // replay fallback: record, then point the app at an unreachable Worker
-    const rec = await p.evaluate(async () => { await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[SOP-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
+    const rec = await p.evaluate(async () => { await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
     await mock('replay', { method: 'POST', body: rec });
     await p.close();
     const ctx = await browser.newContext(); const q = await ctx.newPage(); q.errs = [];
     await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`);
     await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     await q.evaluate(() => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; });
-    const rp = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[SOP-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { replayed: x.replayed, a: x.data && x.data.answer }; });
+    const rp = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { replayed: x.replayed, a: x.data && x.data.answer }; });
     ok('unreachable Worker -> answer from replay.json', rp.replayed === true && rp.a === 'Szew co 30 minut.', JSON.stringify(rp));
     const miss = await q.evaluate(() => callModel({ messages: [{ role: 'user', content: 'never recorded' }] }).then(() => 'resolved', e => e.kind));
     ok('unreachable Worker, not in replay -> network error', miss === 'network', miss);
@@ -73,7 +75,7 @@ try {
     await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`);
     await q3.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     const par = await q3.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek';
-      const msgs = [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[SOP-01 §1] Szew co 30 minut.\nPytanie: jak często?' }];
+      const msgs = [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }];
       const res = await runBatch([1, 2, 3, 4], () => callModel({ messages: msgs })).catch(e => e.kind); return Array.isArray(res) ? res.filter(x => x.ok && x.value.replayed).length : res; });
     ok('unreachable Worker: 4 parallel first calls all answered from replay.json', par === 4, String(par));
     await ctx3.close();
@@ -94,9 +96,9 @@ try {
     await p.click('#proto .chip[data-i="0"]');
     await p.waitForFunction(() => document.querySelectorAll('#chat .msg.a').length >= 1 && !document.querySelector('#chat .msg.a.pending'));
     let st = await mock('calls');
-    ok('chat question -> one model call with SOP passages', st.calls === c0 + 1 && /\[SOP-0\d §/.test(st.last.messages[1].content) && /SOP/.test(st.last.messages[0].content));
+    ok('chat question -> one model call with process passages', st.calls === c0 + 1 && /\[PROCES-0\d §/.test(st.last.messages[1].content) && /opisów procesów/.test(st.last.messages[0].content));
     ok('answer shows model, tokens and cost', /DeepSeek/.test(await p.$eval('#chat .msg.a:last-child .ai-cost', e => e.textContent)));
-    ok('prompt card shows the request actually sent', /\[SOP-0\d §/.test(await p.$eval('#ragPrompt', e => e.textContent)));
+    ok('prompt card shows the request actually sent', /\[PROCES-0\d §/.test(await p.$eval('#ragPrompt', e => e.textContent)));
     await p.$eval('#rm', e => { e.value = '0.6'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     c0 = (await mock('calls')).calls;
     await p.fill('#qi', 'Jaka jest pogoda w Warszawie?'); await p.press('#qi', 'Enter');
@@ -144,7 +146,7 @@ try {
     const nc = await p.evaluate(() => [normCategory('Damaged can'), normCategory('xyz'), normCategory(' SMELL '), normCategory('Dostawa / faktura'), normCategory(null)]);
     ok('normCategory maps names and synonyms, else other', JSON.stringify(nc) === JSON.stringify(['damage', 'other', 'smell', 'delivery', 'other']), JSON.stringify(nc));
     await p.click('#cMethod button[data-m=llm]');
-    ok('method switch -> llm with default prompt mentioning SOP-04', await p.evaluate(() => lab().compl.method) === 'llm' && /SOP-04/.test(await p.$eval('#cPrompt', e => e.value)));
+    ok('method switch -> llm with default prompt mentioning PROCES-04', await p.evaluate(() => lab().compl.method) === 'llm' && /PROCES-04/.test(await p.$eval('#cPrompt', e => e.value)));
     let c0 = (await mock('calls')).calls;
     await p.click('#cRun');
     await p.waitForSelector('#cRes[data-ai-run="done"]', { timeout: 20000 });
@@ -332,7 +334,7 @@ try {
     await p.click('#ragRun'); await p.waitForTimeout(100);
     await p.$eval('#rk', e => { e.value = '5'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     await p.waitForSelector('#ragModelRes[data-ai-run="done"]', { timeout: 20000 });
-    const ks = (await mock('calls')).last.messages[1].content.match(/\[SOP-/g).length;
+    const ks = (await mock('calls')).last.messages[1].content.match(/\[PROCES-/g).length;
     ok('RAG run uses settings from its start (k=2) and is marked stale', ks <= 2 && await p.$eval('#ragModelRes', e => e.dataset.stale) === 'true', `passages=${ks}`);
     ok('no page errors (fixes)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -365,6 +367,38 @@ try {
     ok('a threshold set on the photo features survives reload', await p.evaluate(() => Math.abs(visTh().d - VIS.rng.dent[0]) < 1e-9));
     ok('no page errors (photo)', !p.errs.length, p.errs.join(' | '));
     await p.close();
+  }
+  // ─── Opened straight from disk (file://) ───
+  if (run('file')) {
+    console.log('file');
+    const ROOT_DIR = path.join(HERE, '..');
+    const visState = () => ({ status: document.body.dataset.visionStatus, src: VIS.featureSource, n: VIS.photoCount, key: VIS.datasetKey, reason: VIS.fallbackReason,
+      f1: visEval(VIS.val, visTh()).f1, broken: [...VIS.train, ...VIS.val, ...VIS.test].filter(i => !String(i.url).startsWith('data:image/')).length });
+    const openVision = async url => {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage(); p.errs = [];
+      p.on('pageerror', e => p.errs.push(e.message));
+      await p.goto(url + '#/lab/vision');
+      await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+      return p;
+    };
+    const h = await openVision(APP()); const viaHttp = await h.evaluate(visState); await h.close();
+    const p = await openVision(pathToFileURL(path.join(ROOT_DIR, 'rybex-ai-workshop.html')).href);
+    const viaFile = await p.evaluate(visState);
+    ok('file:// loads all 210 photos and measures them', viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
+    ok('file:// photos are the same bytes as the served JPEGs (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
+    ok('file:// rules score the same as over HTTP', Math.abs(viaFile.f1 - viaHttp.f1) < 1e-9, `${viaFile.f1} vs ${viaHttp.f1}`);
+    await p.click('#visRes .thumb[data-i="0"]');
+    ok('file:// inspector shows the photo', /^data:image\/jpeg/.test(await p.$eval('#insp img', e => e.src).catch(() => '')));
+    ok('no page errors (file)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+    // Without the bundle next to it, the page falls back to drawn cans and says how to fix it.
+    const lone = fs.mkdtempSync(path.join(os.tmpdir(), 'rybex-file-'));
+    fs.copyFileSync(path.join(ROOT_DIR, 'rybex-ai-workshop.html'), path.join(lone, 'rybex-ai-workshop.html'));
+    const q = await openVision(pathToFileURL(path.join(lone, 'rybex-ai-workshop.html')).href);
+    const miss = await q.evaluate(visState);
+    ok('file:// without the bundle -> drawn fallback, no errors', miss.src === 'synthetic' && miss.reason === 'file' && !q.errs.length, JSON.stringify(miss) + q.errs.join('|'));
+    ok('file:// fallback text names the bundle command', /vision-bundle/.test(await q.$eval('#proto', e => e.textContent)));
+    await q.close(); fs.rmSync(lone, { recursive: true, force: true });
   }
   // ─── Audit fixes (2026-11-03) ───
   if (run('audit')) {

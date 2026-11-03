@@ -32,7 +32,7 @@ function answer(body) {
     const hazard = /zapach|śmierdz|zepsut|nieświeży|wybrzusz|zatru/.test(t);
     return { category: best, hazard, reply: 'Dziękujemy za zgłoszenie (mock ' + best + ').' };
   }
-  const m = lastText.match(/\[(SOP-0\d) §([\d–-]+)\]\s*([^\n]+)/);
+  const m = lastText.match(/\[(PROCES-0\d) §([\d–-]+)\]\s*([^\n]+)/);
   if (!m) return { answer: 'Nie wiem.', sources: [], refused: true };
   return { answer: m[3], sources: [{ doc: m[1], par: m[2] }], refused: false };
 }
