@@ -114,8 +114,8 @@ try {
     await mock('reset?delay=400');
     await p.$eval('#rk', e => { e.value = '2'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     await p.click('#ragRun'); await p.waitForTimeout(150);
-    await p.click('#nav button[data-v=home]'); await p.waitForTimeout(1200);
-    ok('navigating away mid-run cancels cleanly', !p.errs.length && await p.evaluate(() => AIS.run === null), p.errs.join(' | '));
+    await p.click('#nav button[data-v=home]'); await p.click('#toast .toast-act'); await p.waitForTimeout(1200);
+    ok('navigating away mid-run asks, then cancels cleanly', !p.errs.length && await p.evaluate(() => AIS.run === null && S.view === 'home'), p.errs.join(' | '));
     await mock('reset');
     ok('no page errors (rag)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -222,7 +222,7 @@ try {
     await p.click('#visRun');
     await p.waitForSelector('#visModelRes[data-ai-run="done"][data-set="test"]', { timeout: 20000 });
     ok('test revealed -> run on 60 test images, view counted', await p.evaluate(() => lab().vision.testViews) === 1 && await p.$eval('#visModelRes', e => e.dataset.n) === '60');
-    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready') && document.body.dataset.visionStatus === 'ready');
     ok('model runs survive reload', await p.$eval('#visModelRes', e => e.dataset.aiRun) === 'done' && await p.$$eval('#visHist tbody tr', t => t.length) === 3);
     await p.click('#visRv');
     await p.click('#visMethod button[data-m=rules]');
@@ -327,6 +327,127 @@ try {
     const ks = (await mock('calls')).last.messages[1].content.match(/\[SOP-/g).length;
     ok('RAG run uses settings from its start (k=2) and is marked stale', ks <= 2 && await p.$eval('#ragModelRes', e => e.dataset.stale) === 'true', `passages=${ks}`);
     ok('no page errors (fixes)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+  }
+  // ─── Pixel rules on the photographs ───
+  if (run('photo')) {
+    console.log('photo');
+    await mock('reset?delay=5');
+    const p = await fresh('#/lab/vision');
+    await p.evaluate(() => { const L = lab().vision; L.th = { d: 1, s: 2, c: 3 }; save(); });
+    await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+    const r = await p.evaluate(() => {
+      const th = visTh(), recall = (set, t) => { const x = set.filter(i => i.type === t); return x.filter(i => visPred(i.f, th)).length + '/' + x.length; };
+      return { src: VIS.featureSource, contract: document.documentElement.dataset.visionFeatures, th, f1: { train: visEval(VIS.train, th).f1, val: visEval(VIS.val, th).f1 },
+        val: { dent: recall(VIS.val, 'dent'), code: recall(VIS.val, 'code'), label: recall(VIS.val, 'label') },
+        finite: [...VIS.train, ...VIS.val, ...VIS.test].every(i => ['dent', 'shift', 'code'].every(k => Number.isFinite(i.f[k]))) };
+    });
+    ok('all photos loaded -> rules measure the photos (DOM contract says so)', r.src === 'photo' && r.contract === 'photo' && r.finite, JSON.stringify(r));
+    ok('thresholds saved for the old drawn-image features are dropped', r.th.d !== 1 && r.th.s !== 2 && r.th.c !== 3, JSON.stringify(r.th));
+    ok('calibrated photo rules beat the "all defective" baseline on validation (F1 > 0.6)', r.f1.val > 0.6, JSON.stringify(r.f1));
+    ok('borderline photos leave room for tuning (validation F1 below 1)', r.f1.val < 0.99, JSON.stringify(r.f1));
+    ok('photo rules catch every dent and smudged code on validation', r.val.dent === '6/6' && r.val.code === '6/6', JSON.stringify(r.val));
+    const txt = await p.$eval('#proto', e => e.textContent);
+    ok('lab text no longer says the rules use the synthetic image', !/syntetycznego obrazu|synthetic image/i.test(txt), txt.match(/.{0,60}syntetycz.{0,60}/)?.[0] || '');
+    await p.click('#visRes .thumb[data-i="0"]');
+    ok('inspector shows photo feature names', /odstające|outlier/i.test(await p.textContent('#insp')));
+    await p.keyboard.press('Escape');
+    await p.$eval('#vd', e => { e.value = e.min; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    await p.reload(); await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+    ok('a threshold set on the photo features survives reload', await p.evaluate(() => Math.abs(visTh().d - VIS.rng.dent[0]) < 1e-9));
+    ok('no page errors (photo)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+  }
+  // ─── Audit fixes (2026-11-03) ───
+  if (run('audit')) {
+    console.log('audit');
+    await mock('reset?delay=5');
+    let p = await fresh('#/deliver');
+    const best = await p.evaluate(() => {
+      const t = team(); t.track = 'complaints'; t.log = [];
+      const mk = (id, set, acc, ver, views) => ({ id, ts: new Date().toISOString(), track: 'complaints', note: '', testViews: views,
+        cfg: { mode: 'llm', model: 'deepseek/deepseek-v4.1-flash', ver, shots: 0, set, prompt: 'h' + ver },
+        res: { acc, macro: acc, safety: 1, safetyFalse: 0, base: .5, test: set === 'test' ? acc : null, primary: { m: set === 'test' ? 'trafność modelu (test)' : 'trafność modelu (dev)', v: acc, base: .5, hi: true, test: set === 'test' } } });
+      t.log.push(mk('a', 'dev', .9, 'v1', 0), mk('b', 'dev', .7, 'v2', 0), mk('c', 'test', .95, 'v2', 1), mk('d', 'test', .8, 'v1', 2));
+      return reportFacts().bestTxt;
+    });
+    ok('report picks the best run by dev (90%) and adds that configuration\'s test score (80%, viewed 2×)', /90/.test(best) && /80/.test(best) && !/95/.test(best) && /2×/.test(best), best);
+    const task = await p.evaluate(() => { const t = team(); t.track = null; t.log = [{ id: 'f', ts: '', track: 'forecast', note: '', testViews: 0, cfg: { p: 0, h: 6, w: 3 }, res: { mape: {}, best: 'mean', primary: { m: 'MAPE', v: .1, base: .2, hi: false } } }]; return reportFacts().trackTxt; });
+    ok('report task stays empty until the team picks one', /nie wybrano|not chosen/.test(task), task);
+    const hdr = await p.evaluate(() => { const t = team(); t.track = 'forecast'; t.log.push({ id: 'r', ts: '', track: 'rag', note: '', testViews: 0, cfg: { k: 2 }, res: {} }); save(); render(); return document.querySelector('#tbProg').textContent; });
+    ok('header counts experiments of the chosen task (1/3), not all labs', /1\/3/.test(hdr), hdr);
+    const btns = await p.$$eval('#logBox tr[data-log] button', bs => bs.map(b => ({ t: b.textContent.trim(), title: b.title })));
+    ok('log buttons say what they do (text + tooltip)', btns.length >= 3 && btns.every(b => b.t && b.title), JSON.stringify(btns));
+    await p.click('#logBox button[data-d]');
+    const ts = await p.$eval('#toast', e => ({ ms: +e.dataset.ms, hidden: e.hidden }));
+    ok('undo toast stays at least 15 s', !ts.hidden && ts.ms >= 15000, JSON.stringify(ts));
+    await p.hover('#toast');
+    ok('toast pauses while hovered', await p.$eval('#toast', e => e.dataset.paused) === 'true');
+    await p.mouse.move(5, 5);
+    await p.evaluate(() => { S.team = 5; save(); render(); });
+    await p.setInputFiles('#teamFile', { name: 't.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ app: 'rybex-ai-workshop', version: 2, team: 3, data: { name: 'Zespół Karp', log: [] } })) });
+    await p.waitForFunction(() => /Karp/.test(document.querySelector('#toast').textContent));
+    const tt = await p.$eval('#toast', e => e.textContent);
+    ok('import asks first and names source team 3 and target team 5', /3/.test(tt) && /5/.test(tt) && await p.evaluate(() => team().name) !== 'Zespół Karp', tt);
+    await p.click('#toast .toast-act');
+    ok('confirming imports the file into team 5', await p.evaluate(() => S.team === 5 && team().name === 'Zespół Karp'));
+    const pl = await p.evaluate(() => [1, 3, 5, 12, 22, 25].map(n => plural(n, ['wada', 'wady', 'wad'], ['defect', 'defects'])).join(','));
+    ok('Polish plural helper', pl === 'wada,wady,wad,wad,wady,wad', pl);
+    await p.evaluate(() => go('demos', 'split')); await p.waitForTimeout(200);
+    const sp = await p.evaluate(() => { const st = [...document.querySelectorAll('#demo .stat')].find(s => /zbiorze testowym/.test(s.textContent)); if (!st) return 'missing'; const n = +st.querySelector('b').textContent, l = st.querySelector('span').textContent; return l === plural(n, ['wada w zbiorze testowym', 'wady w zbiorze testowym', 'wad w zbiorze testowym'], ['', '']) ? 'ok' : n + ' ' + l; });
+    ok('split demo defect label agrees with the number', sp === 'ok', sp);
+    await p.evaluate(() => go('demos', 'tok')); await p.waitForSelector('#tokOut .stat');
+    const tk = await p.$$eval('#tokOut .stat', s => s.map(x => [x.querySelector('b').textContent, x.querySelector('span').textContent]));
+    ok('token demo shows characters per token', tk.some(([v, l]) => /znaków na token/.test(l) && !/%/.test(v)), JSON.stringify(tk));
+    await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#proto .conf');
+    const cm = await p.$$eval('#proto .conf', e => e.map(x => x.textContent).join(' '));
+    ok('maintenance confusion matrix says failure, not defect', /awari/i.test(cm) && !/wada/i.test(cm), cm.slice(0, 160));
+    const jl = await p.$$eval('#labJump button', b => b.map(x => x.textContent.trim()));
+    ok('lab has jump links Dane / Metoda / Prototyp / Eksperymenty', JSON.stringify(jl) === JSON.stringify(['Dane', 'Metoda', 'Prototyp', 'Eksperymenty']), JSON.stringify(jl));
+    await p.click('#labJump button[data-j="labMethod"]'); await p.waitForTimeout(700);
+    const top = await p.$eval('#labMethod', e => e.getBoundingClientRect().top);
+    ok('jump link brings the section just below the sticky bars', top >= 0 && top < 260, String(top));
+    await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cStats');
+    const gl = await p.$$eval('.gloss', g => g.map(x => x.dataset.term));
+    ok('glossary tips for baseline, macro-F1 and dev', ['baseline', 'macro-F1', 'dev'].every(t => gl.includes(t)), JSON.stringify(gl));
+    await p.focus('.gloss[data-term="macro-F1"]');
+    ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="macro-F1"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
+    await p.click('#cMethod button[data-m=llm]');
+    ok('few-shot has a glossary tip', await p.$$eval('.gloss[data-term="few-shot"]', g => g.length) > 0);
+    ok('no page errors (audit UI)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+
+    const ctx2 = await browser.newContext(); const q = await ctx2.newPage();
+    await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('https://evil.example')}#/home`);
+    await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('?ai= pointing outside localhost is ignored', await q.evaluate(() => AI_URL === AI_DEFAULT_URL));
+    await ctx2.close();
+
+    await mock('reset?delay=800'); // 36 calls / 4 in parallel ≈ 7 s: long enough for the interruptions below
+    p = await fresh('#/lab/complaints'); await connect(p);
+    await p.click('#cMethod button[data-m=llm]');
+    await p.click('#cRun'); await p.waitForTimeout(400);
+    await p.click('#langSeg button[data-l=en]');
+    ok('language switch during a run asks instead of cancelling', await p.evaluate(() => !!AIS.run && S.lang === 'pl') && !(await p.$eval('#toast', e => e.hidden)));
+    await p.evaluate(() => window.dispatchEvent(new StorageEvent('storage', { key: STORE_KEY, newValue: localStorage.getItem(STORE_KEY) })));
+    ok('background re-render waits for the run', await p.evaluate(() => !!AIS.run));
+    await p.click('#nav button[data-v=home]');
+    ok('navigation during a run asks instead of cancelling', await p.evaluate(() => !!AIS.run && S.view === 'lab'));
+    await p.waitForFunction(() => !AIS.run, null, { timeout: 30000 });
+    ok('run finished and was saved', await p.evaluate(() => lab().compl.runs.length) === 1);
+    await p.click('#cRun'); await p.waitForTimeout(400);
+    await p.click('#langSeg button[data-l=en]');
+    await p.click('#toast .toast-act');
+    ok('"cancel and continue" stops the run and switches language', await p.evaluate(() => !AIS.run && S.lang === 'en'));
+    await p.click('#langSeg button[data-l=pl]');
+    const hangText = await p.evaluate(() => DATA.compl[24].text);
+    await mock('reset?delay=5&hang=' + encodeURIComponent(hangText));
+    await p.evaluate(() => { AIS.timeoutMs = 400; });
+    await p.click('#cRun');
+    await p.waitForFunction(() => !AIS.run, null, { timeout: 30000 });
+    const to = await p.evaluate(() => ({ runs: lab().compl.runs.length, failed: lab().compl.runs.at(-1).failed, state: AIS.state }));
+    ok('one timed-out call is a per-item failure, not a lost connection', to.runs === 2 && to.failed === 1 && to.state !== 'offline', JSON.stringify(to));
+    ok('no page errors (audit runs)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }

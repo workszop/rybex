@@ -32,7 +32,9 @@ function sameCode(a, b) {
   return d === 0;
 }
 const codeOk = (env, code) => !!code && listVar(env.CLASS_CODE).some(c => sameCode(c, code));
-const teamOf = req => { const t = parseInt(req.headers.get('x-team'), 10); return t >= 1 && t <= 99 ? String(t) : null; };
+// Teams 1..TEAM_COUNT only: with TEAM_COUNT × TEAM_DAILY_USD below TOTAL_DAILY_USD, one code holder
+// cannot drain the class budget by rotating team numbers.
+const teamOf = (req, env) => { const t = parseInt(req.headers.get('x-team'), 10), max = numVar(env.TEAM_COUNT, 8); return t >= 1 && t <= max ? String(t) : null; };
 
 async function sha256(s) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -80,15 +82,24 @@ export class Gate extends DurableObject {
     const all = sql.exec('SELECT COALESCE(SUM(usd), 0) AS usd FROM spend WHERE day = ?', day).one();
     return { teamSpend: t ? t.usd : 0, teamCalls: t ? t.calls : 0, totalSpend: all.usd };
   }
-  async begin(day, team, hash) {
-    const row = this.ctx.storage.sql.exec('SELECT body, ts FROM cache WHERE hash = ?', hash).toArray()[0];
-    const fresh = row && Date.now() - row.ts < CACHE_DAYS * 864e5;
-    return { cached: fresh ? row.body : null, ...this.totals(day, team) };
-  }
-  async finish(day, team, cost, hash, body) {
+  // Cache lookup, budget check and reservation in one synchronous step, so parallel calls
+  // cannot all pass the check before any of them has been charged.
+  async begin(day, team, hash, limits, reserve) {
     const sql = this.ctx.storage.sql;
-    sql.exec(`INSERT INTO spend (day, team, usd, calls) VALUES (?, ?, ?, 1)
-      ON CONFLICT (day, team) DO UPDATE SET usd = usd + excluded.usd, calls = calls + 1`, day, team, cost);
+    const row = sql.exec('SELECT body, ts FROM cache WHERE hash = ?', hash).toArray()[0];
+    if (row && Date.now() - row.ts < CACHE_DAYS * 864e5) return { cached: row.body, ...this.totals(day, team) };
+    const t = this.totals(day, team);
+    if (t.totalSpend >= limits.total) return { blocked: 'budget_total', ...t };
+    if (t.teamSpend >= limits.team) return { blocked: 'budget_team', ...t };
+    sql.exec(`INSERT INTO spend (day, team, usd, calls) VALUES (?, ?, ?, 0)
+      ON CONFLICT (day, team) DO UPDATE SET usd = usd + excluded.usd`, day, team, reserve);
+    return { cached: null, ...this.totals(day, team) };
+  }
+  // Replace the reservation with the real cost (0 and no call counted when the upstream call failed).
+  async finish(day, team, cost, reserve, hash, body, ok = true) {
+    const sql = this.ctx.storage.sql;
+    sql.exec(`INSERT INTO spend (day, team, usd, calls) VALUES (?, ?, ?, ?)
+      ON CONFLICT (day, team) DO UPDATE SET usd = MAX(0, usd + excluded.usd), calls = calls + excluded.calls`, day, team, cost - reserve, ok ? 1 : 0);
     if (hash && body && body.length <= CACHE_MAX_BYTES) sql.exec('INSERT OR REPLACE INTO cache (hash, body, ts) VALUES (?, ?, ?)', hash, body, Date.now());
     if (Math.random() < 0.02) sql.exec('DELETE FROM cache WHERE ts < ?', Date.now() - CACHE_DAYS * 864e5);
     return this.totals(day, team);
@@ -100,8 +111,8 @@ export class Gate extends DurableObject {
 async function handleChat(req, env) {
   if (!env.CLASS_CODE || !env.OPENROUTER_API_KEY) return json(req, env, 500, { error: 'not_configured' });
   if (!codeOk(env, req.headers.get('x-class-code'))) return json(req, env, 401, { error: 'bad_code' });
-  const team = teamOf(req);
-  if (!team) return json(req, env, 400, { error: 'bad_request' });
+  const team = teamOf(req, env);
+  if (!team) return json(req, env, 400, { error: 'bad_team' });
   const raw = await req.text();
   if (raw.length > MAX_BODY_BYTES) return json(req, env, 400, { error: 'too_large' });
   let input; try { input = JSON.parse(raw); } catch (e) { return json(req, env, 400, { error: 'bad_request' }); }
@@ -110,25 +121,27 @@ async function handleChat(req, env) {
 
   const payload = JSON.stringify(body), hash = await sha256(payload), day = today();
   const gate = env.GATE.getByName('class');
-  const pre = await gate.begin(day, team, hash);
-  const limits = { team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) };
+  const limits = { team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) }, reserve = numVar(env.RESERVE_USD, 0.01);
+  const pre = await gate.begin(day, team, hash, limits, reserve);
   if (pre.cached) {
     const out = JSON.parse(pre.cached);
     out.rybex = { cached: true, teamSpend: pre.teamSpend, totalSpend: pre.totalSpend, limits };
     return json(req, env, 200, out);
   }
-  if (pre.totalSpend >= limits.total) return json(req, env, 429, { error: 'budget_total', ...pre, limits });
-  if (pre.teamSpend >= limits.team) return json(req, env, 429, { error: 'budget_team', ...pre, limits });
+  if (pre.blocked) { const { blocked, ...t } = pre; return json(req, env, 429, { error: blocked, ...t, limits }); }
 
-  let up;
+  let up, text = '';
   try {
     up = await fetch(env.UPSTREAM_URL, { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`, 'HTTP-Referer': 'https://workszop.github.io', 'X-Title': 'Rybex AI workshop' } });
-  } catch (e) { return json(req, env, 502, { error: 'upstream', status: 0 }); }
-  const text = await up.text();
+    text = await up.text();
+  } catch (e) { await gate.finish(day, team, 0, reserve, null, null, false); return json(req, env, 502, { error: 'upstream', status: 0 }); }
   let out; try { out = JSON.parse(text); } catch (e) { out = null; }
-  if (!up.ok || !out || !Array.isArray(out.choices)) return json(req, env, 502, { error: 'upstream', status: up.status, detail: out && out.error ? String(out.error.message || '').slice(0, 300) : '' });
+  if (!up.ok || !out || !Array.isArray(out.choices)) {
+    await gate.finish(day, team, 0, reserve, null, null, false);
+    return json(req, env, 502, { error: 'upstream', status: up.status, detail: out && out.error ? String(out.error.message || '').slice(0, 300) : '' });
+  }
   const cost = numVar(out.usage && out.usage.cost, 0);
-  const post = await gate.finish(day, team, cost, hash, text);
+  const post = await gate.finish(day, team, cost, reserve, hash, text);
   out.rybex = { cached: false, teamSpend: post.teamSpend, totalSpend: post.totalSpend, limits };
   return json(req, env, 200, out);
 }
@@ -137,7 +150,8 @@ async function handleStatus(req, env) {
   if (!env.CLASS_CODE) return json(req, env, 500, { error: 'not_configured' });
   if (!req.headers.get('x-class-code')) return json(req, env, 200, { ok: false, error: 'bad_code' });
   if (!codeOk(env, req.headers.get('x-class-code'))) return json(req, env, 401, { error: 'bad_code' });
-  const team = teamOf(req) || '0';
+  const team = req.headers.get('x-team') ? teamOf(req, env) : '0';
+  if (!team) return json(req, env, 400, { error: 'bad_team' });
   const t = await env.GATE.getByName('class').status(today(), team);
   return json(req, env, 200, { ok: true, ...t, limits: { team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) }, models: listVar(env.ALLOWED_MODELS) });
 }

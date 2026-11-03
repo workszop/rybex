@@ -6,6 +6,8 @@ The OpenRouter key and the class code live here as Worker secrets; the page neve
 - Models allowed: `deepseek/deepseek-v4.1-flash` (default in the app) and `anthropic/claude-haiku-5.5`.
 - Every request: class code checked, reasoning switched off, `max_tokens` capped at 700, at most 10 images.
 - Daily budget per team (`TEAM_DAILY_USD`, default 1.00) and for the whole class (`TOTAL_DAILY_USD`, default 15.00).
+- Teams 1–`TEAM_COUNT` only (default 8; other `X-Team` values get 400 `bad_team`). Keep `TEAM_COUNT × TEAM_DAILY_USD` below `TOTAL_DAILY_USD`, so one code holder cannot use up the class budget by switching team numbers.
+- Each call sets aside `RESERVE_USD` (default 0.01) before it goes to OpenRouter and settles to the real cost afterwards (or back to 0 when the call fails), so parallel calls cannot all slip under the limit.
 - Identical requests are answered from a cache in the Durable Object (7 days), so 8 teams running the same test set pay once.
 - Spend and cache live in one SQLite Durable Object (`Gate`). The Cache API is not used because it does nothing on `*.workers.dev`.
 

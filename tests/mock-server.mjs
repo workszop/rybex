@@ -1,4 +1,5 @@
 // Static server for the app + a mock of the rybex-ai Worker contract (no real model calls).
+// Reset params: delay=<ms>, fail=<substring> (502), hang=<substring> (answer after 3 s), cache=1.
 // Usage: node tests/mock-server.mjs [port=8794]  ->  open http://127.0.0.1:8794/rybex-ai-workshop.html?ai=http://127.0.0.1:8794/mock
 import http from 'node:http';
 import fs from 'node:fs';
@@ -7,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = +(process.argv[2] || 8794);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.md': 'text/markdown' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.md': 'text/markdown' };
 const PRICE = { 'deepseek/deepseek-v4.1-flash': [0.045, 0.5], 'anthropic/claude-haiku-5.5': [0.1, 0.5] };
 const KW = { smell: ['zapach', 'śmierdz', 'zepsut', 'nieświeży', 'smell'], damage: ['wgniec', 'uszkodz', 'wybrzusz', 'rdze', 'przecie', 'ścieśni'], label: ['etykiet', 'kod', 'składu', 'data'], quality: ['suchy', 'ości', 'słon', 'konsystenc', 'sos', 'rozpada'], delivery: ['zamówieni', 'dostaw', 'kurier', 'faktur', 'palet', 'karton'] };
 
@@ -47,7 +48,7 @@ http.createServer((req, res) => {
   if (url.pathname.startsWith('/mock/')) {
     const route = url.pathname.slice(6);
     if (route === 'calls') return send(res, 200, { calls: state.calls, last: state.last });
-    if (route === 'reset') { state.calls = 0; state.replay = null; state.last = null; state.delay = +(url.searchParams.get('delay') || 30); state.fail = url.searchParams.get('fail') || ''; state.cache = url.searchParams.get('cache') === '1'; state.seen = new Map(); return send(res, 200, { ok: true }); }
+    if (route === 'reset') { state.calls = 0; state.replay = null; state.last = null; state.delay = +(url.searchParams.get('delay') || 30); state.fail = url.searchParams.get('fail') || ''; state.hang = url.searchParams.get('hang') || ''; state.cache = url.searchParams.get('cache') === '1'; state.seen = new Map(); return send(res, 200, { ok: true }); }
     if (route === 'replay' && req.method === 'POST') { let b = ''; req.on('data', c => b += c); req.on('end', () => { state.replay = b; send(res, 200, { ok: true }); }); return; }
     const code = req.headers['x-class-code'];
     if (route === 'status') {
@@ -70,7 +71,7 @@ http.createServer((req, res) => {
         const content = JSON.stringify(answer(body)), inTok = Math.ceil(b.length / 3), outTok = Math.ceil(content.length / 3), [pi, po] = PRICE[body.model];
         const outObj = { id: 'mock-' + state.calls, model: body.model, choices: [{ message: { role: 'assistant', content } }], usage: { prompt_tokens: inTok, completion_tokens: outTok, total_tokens: inTok + outTok, cost: (inTok * pi + outTok * po) / 1e6 }, rybex: { cached: false, teamSpend: 0.01 * state.calls, totalSpend: 0.02 * state.calls, limits: { team: 1, total: 15 } } };
         state.seen.set(b, JSON.stringify(outObj));
-        setTimeout(() => send(res, 200, outObj), state.delay);
+        setTimeout(() => send(res, 200, outObj), state.hang && lastText.includes(state.hang) ? 3000 : state.delay);
       });
       return;
     }

@@ -27,7 +27,7 @@ const up = http.createServer((req, res) => {
 fs.writeFileSync(path.join(WORKER_DIR, '.dev.vars'), `CLASS_CODE=${CODE}\nOPENROUTER_API_KEY=dummy-key\n`);
 const persist = fs.mkdtempSync('/tmp/rybex-wr-');
 const wr = spawn('npx', ['wrangler', 'dev', '--port', String(W_PORT), '--ip', '127.0.0.1', '--persist-to', persist,
-  '--var', `UPSTREAM_URL:http://127.0.0.1:${UP_PORT}/chat`, '--var', 'TEAM_DAILY_USD:0.5', '--var', 'TOTAL_DAILY_USD:100'],
+  '--var', `UPSTREAM_URL:http://127.0.0.1:${UP_PORT}/chat`, '--var', 'TEAM_DAILY_USD:0.5', '--var', 'TOTAL_DAILY_USD:100', '--var', 'RESERVE_USD:0.3'],
   { cwd: WORKER_DIR, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 let log = ''; wr.stdout.on('data', d => log += d); wr.stderr.on('data', d => log += d);
 const stop = code => { try { process.kill(-wr.pid, 'SIGTERM'); } catch (e) { } up.close(); fs.rmSync(path.join(WORKER_DIR, '.dev.vars'), { force: true }); process.exit(code); };
@@ -96,6 +96,17 @@ try {
   ok('more than 10 images -> 400 too_large', r.status === 400);
   r = await post({ ...many, messages: [{ role: 'user', content: many.messages[0].content.slice(0, 9) }] }, { 'x-team': '5' });
   ok('9 images (8 examples + 1) accepted', r.status === 200);
+
+  r = await post(msg('t9'), { 'x-team': '9' });
+  ok('team outside 1-8 -> 400 (no budget rotation)', r.status === 400);
+  r = await fetch(W + '/status', { headers: { 'x-class-code': CODE, 'x-team': '42' } });
+  ok('status for team outside 1-8 -> 400', r.status === 400);
+  // team 6: limit 0.5, reserve 0.3 per call -> of three parallel calls only two get through
+  const par = await Promise.all(['p1', 'p2', 'p3'].map(t => post(msg(t), { 'x-team': '6' }).then(x => x.status)));
+  ok('parallel calls reserve budget first: one of three blocked', par.filter(s => s === 429).length === 1 && par.filter(s => s === 200).length === 2, JSON.stringify(par));
+  r = await fetch(W + '/status', { headers: { 'x-class-code': CODE, 'x-team': '6' } });
+  j = await r.json();
+  ok('reservations settle to the real cost', Math.abs(j.teamSpend - 0.8) < 1e-9, JSON.stringify(j));
 } catch (e) { console.log('ERROR', e.message); fail++; }
 console.log(`\n${pass} passed, ${fail} failed`);
 stop(fail ? 1 : 0);

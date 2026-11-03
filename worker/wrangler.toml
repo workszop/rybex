@@ -14,6 +14,10 @@ ALLOWED_ORIGINS = "https://workszop.github.io,http://localhost:8794,http://127.0
 TEAM_DAILY_USD = "1.00"
 TOTAL_DAILY_USD = "15.00"
 MAX_TOKENS = "700"
+# Teams 1..TEAM_COUNT; keep TEAM_COUNT × TEAM_DAILY_USD below TOTAL_DAILY_USD.
+TEAM_COUNT = "8"
+# Set aside per call before it goes upstream, replaced by the real cost after.
+RESERVE_USD = "0.01"
 
 [[durable_objects.bindings]]
 name = "GATE"
