@@ -14,7 +14,6 @@ project_description.md
 project_summary.md
 ux-audit/*
 !ux-audit/regression.mjs
-replay.json
 # full-size vision renders and reference images stay local; the app ships assets/vision-realistic/web/
 assets/*.png
 assets/vision-realistic/*.png

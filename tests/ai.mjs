@@ -69,6 +69,14 @@ try {
     const miss = await q.evaluate(() => callModel({ messages: [{ role: 'user', content: 'never recorded' }] }).then(() => 'resolved', e => e.kind));
     ok('unreachable Worker, not in replay -> network error', miss === 'network', miss);
     await ctx.close();
+    const ctx3 = await browser.newContext(); const q3 = await ctx3.newPage();
+    await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`);
+    await q3.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    const par = await q3.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek';
+      const msgs = [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[SOP-01 §1] Szew co 30 minut.\nPytanie: jak często?' }];
+      const res = await runBatch([1, 2, 3, 4], () => callModel({ messages: msgs })).catch(e => e.kind); return Array.isArray(res) ? res.filter(x => x.ok && x.value.replayed).length : res; });
+    ok('unreachable Worker: 4 parallel first calls all answered from replay.json', par === 4, String(par));
+    await ctx3.close();
     p = await fresh('#/lab/forecast');
     ok('no aiBar on forecast lab', !(await p.$('#aiBar')));
     ok('no page errors (core)', !p.errs.length, p.errs.join(' | '));
