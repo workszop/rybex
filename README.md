@@ -18,6 +18,12 @@ node tools/vision-bundle.mjs
 
 Model calls go through the Cloudflare Worker in `worker/`, which holds the API key and checks a class code; see [worker/README.md](worker/README.md). Without the Worker the labs run on their rule-based baselines.
 
+`replay.json` holds recorded answers for the default model runs and is used when the Worker is unreachable. Re-record it whenever prompts, photos or default settings change (about $0.04 of team 8's budget):
+
+```bash
+CC='class-code' node tools/record-replay.mjs
+```
+
 ## Tests
 
 ```bash
