@@ -10,7 +10,7 @@ enabled = true
 [vars]
 UPSTREAM_URL = "https://openrouter.ai/api/v1/chat/completions"
 ALLOWED_MODELS = "deepseek/deepseek-v4.1-flash,anthropic/claude-haiku-5.5"
-ALLOWED_ORIGINS = "https://workszop.github.io,http://localhost:8794,http://127.0.0.1:8794,http://localhost:8000"
+ALLOWED_ORIGINS = "https://workszop.github.io,https://rybex.warsztaty-ai.com,http://localhost:8794,http://127.0.0.1:8794,http://localhost:8000"
 TEAM_DAILY_USD = "1.00"
 TOTAL_DAILY_USD = "15.00"
 MAX_TOKENS = "700"
