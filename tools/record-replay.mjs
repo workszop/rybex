@@ -27,6 +27,8 @@ try {
     console.log('done', what, 'recorded', await p.evaluate(() => AIS.rec.size), 'calls', await p.evaluate(() => AIS.calls));
   };
   const lab = async k => { await p.evaluate(k => go('lab', k), k); await p.waitForTimeout(300); };
+  // Photos load on the first visit to the vision lab; start that now so the vision runs below find them ready.
+  await p.evaluate(() => visInit());
   await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 60000 });
   for (const model of ['deepseek', 'haiku']) {
     await lab('rag'); await p.selectOption('#aiModel', model);

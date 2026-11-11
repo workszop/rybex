@@ -81,8 +81,9 @@ try {
     body: PNG_1X1,
   }));
   await page.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}#/data`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 8000 });
+  const idle = await page.evaluate(() => ({ status: document.body.dataset.visionStatus, initialized: VIS.initialized }));
   await page.click('button[data-f="can_images/ (210)"]');
+  await page.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 8000 });
   const state = await page.evaluate(() => ({
     status: document.body.dataset.visionStatus,
     expected: +document.body.dataset.visionExpected,
@@ -101,6 +102,7 @@ try {
     statusText: document.querySelector('#visionAssetStatus')?.textContent || '',
   }));
   const shortState = { ...state, first: { ...state.first, url: state.first.url.slice(0, 24) }, second: { ...state.second, url: state.second.url.slice(0, 24) }, big: state.big.slice(0, 24), payload: state.payload.slice(-120) };
+  ok('photos are not loaded until the image folder is opened', idle.status === 'idle' && idle.initialized === false, JSON.stringify(idle));
   ok('manifest becomes ready with expected and loaded counts', state.status === 'ready' && state.expected === 210 && state.photos === 3 && state.fallback === 207, JSON.stringify(shortState));
   ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/png') && /assets\/vision-realistic\/web\/train_003\.png$/.test(state.first.originalUrl), JSON.stringify(state.first));
   ok('manifest label mismatch is rejected without changing immutable truth', state.rejected === 1 && state.mismatch.id === 'train_001' && state.mismatch.type === 'code' && state.mismatch.bad && state.mismatch.source === 'synthetic', JSON.stringify(state.mismatch));
