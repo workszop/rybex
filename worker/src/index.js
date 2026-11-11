@@ -11,12 +11,14 @@ const MAX_IMAGE_URL = 150_000;
 const MAX_MESSAGES = 60;
 const CACHE_DAYS = 7;
 const CACHE_MAX_BYTES = 64_000;
+const UPSTREAM_TIMEOUT_MS = 40_000; // below the app's 45 s, so the Worker answers before the page gives up
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 // ─── Helpers ───
 const listVar = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 const numVar = (v, d) => { const n = parseFloat(v); return Number.isFinite(n) ? n : d; };
 const today = () => new Date().toISOString().slice(0, 10);
+const limitsOf = env => ({ team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) });
 
 function corsHeaders(req, env) {
   const origin = req.headers.get('origin');
@@ -104,7 +106,6 @@ export class Gate extends DurableObject {
     if (Math.random() < 0.02) sql.exec('DELETE FROM cache WHERE ts < ?', Date.now() - CACHE_DAYS * 864e5);
     return this.totals(day, team);
   }
-  async status(day, team) { return this.totals(day, team); }
 }
 
 // ─── Handlers ───
@@ -113,6 +114,8 @@ async function handleChat(req, env) {
   if (!codeOk(env, req.headers.get('x-class-code'))) return json(req, env, 401, { error: 'bad_code' });
   const team = teamOf(req, env);
   if (!team) return json(req, env, 400, { error: 'bad_team' });
+  // Refuse an oversized body before reading it; the length check after covers a missing or wrong header.
+  if (+req.headers.get('content-length') > MAX_BODY_BYTES) return json(req, env, 400, { error: 'too_large' });
   const raw = await req.text();
   if (raw.length > MAX_BODY_BYTES) return json(req, env, 400, { error: 'too_large' });
   let input; try { input = JSON.parse(raw); } catch (e) { return json(req, env, 400, { error: 'bad_request' }); }
@@ -121,7 +124,7 @@ async function handleChat(req, env) {
 
   const payload = JSON.stringify(body), hash = await sha256(payload), day = today();
   const gate = env.GATE.getByName('class');
-  const limits = { team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) }, reserve = numVar(env.RESERVE_USD, 0.01);
+  const limits = limitsOf(env), reserve = numVar(env.RESERVE_USD, 0.01);
   const pre = await gate.begin(day, team, hash, limits, reserve);
   if (pre.cached) {
     const out = JSON.parse(pre.cached);
@@ -132,7 +135,7 @@ async function handleChat(req, env) {
 
   let up, text = '';
   try {
-    up = await fetch(env.UPSTREAM_URL, { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`, 'HTTP-Referer': 'https://workszop.github.io', 'X-Title': 'Rybex AI workshop' } });
+    up = await fetch(env.UPSTREAM_URL, { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`, 'HTTP-Referer': 'https://workszop.github.io', 'X-Title': 'Rybex AI workshop' }, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
     text = await up.text();
   } catch (e) { await gate.finish(day, team, 0, reserve, null, null, false); return json(req, env, 502, { error: 'upstream', status: 0 }); }
   let out; try { out = JSON.parse(text); } catch (e) { out = null; }
@@ -152,15 +155,21 @@ async function handleStatus(req, env) {
   if (!codeOk(env, req.headers.get('x-class-code'))) return json(req, env, 401, { error: 'bad_code' });
   const team = req.headers.get('x-team') ? teamOf(req, env) : '0';
   if (!team) return json(req, env, 400, { error: 'bad_team' });
-  const t = await env.GATE.getByName('class').status(today(), team);
-  return json(req, env, 200, { ok: true, ...t, limits: { team: numVar(env.TEAM_DAILY_USD, 1), total: numVar(env.TOTAL_DAILY_USD, 15) }, models: listVar(env.ALLOWED_MODELS) });
+  const t = await env.GATE.getByName('class').totals(today(), team);
+  return json(req, env, 200, { ok: true, ...t, limits: limitsOf(env), models: listVar(env.ALLOWED_MODELS) });
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const { pathname } = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(req, env) });
-    if (pathname === '/chat' && req.method === 'POST') return handleChat(req, env);
+    if (pathname === '/chat' && req.method === 'POST') {
+      // Keep the call running if the page cancels or times out, so the reservation made in begin() is still
+      // settled in finish() and cancelled runs do not eat into the team's daily budget.
+      const res = handleChat(req, env);
+      ctx.waitUntil(res.catch(() => {}));
+      return res;
+    }
     if (pathname === '/status' && req.method === 'GET') return handleStatus(req, env);
     return json(req, env, 404, { error: 'not_found' });
   },

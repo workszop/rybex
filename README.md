@@ -28,7 +28,15 @@ CC='class-code' node tools/record-replay.mjs
 
 ```bash
 cd tests && npm install
+npm test           # all three suites below
 node ai.mjs        # app probes against a mock Worker (no real calls)
 node vision-realistic.mjs  # photo asset loading and fallback
 node worker.mjs    # Worker contract against a mock OpenRouter
+```
+
+`ux-audit/regression.mjs` holds the UI and accessibility regression checks. It needs the app served on port 8794 and Playwright importable from `ux-audit/`:
+
+```bash
+node tests/mock-server.mjs &            # serves the app on http://127.0.0.1:8794
+cd ux-audit && node regression.mjs
 ```

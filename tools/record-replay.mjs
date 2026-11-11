@@ -1,6 +1,6 @@
 // Records replay.json: real Polish answers from both models for the default runs, used when the Worker is unreachable.
 // Rerun whenever prompts, photos or default settings change (replay matches exact request bodies).
-// Usage (from the repo root, costs about $0.03 of team 8's daily budget; repeated requests come free from the Worker cache):
+// Usage (from the repo root, costs about $0.04 of team 8's daily budget; repeated requests come free from the Worker cache):
 //   CC='class-code' node tools/record-replay.mjs
 import { chromium } from '../tests/node_modules/playwright/index.mjs';
 import { spawn } from 'node:child_process';
@@ -13,7 +13,7 @@ if (!process.env.CC) { console.error('Set the class code: CC=... node tools/reco
 const PORT = 8800;
 const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise(r => srv.stdout.once('data', r));
-const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
+const b = await chromium.launch().catch(e => { srv.kill(); throw e; }); const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
 const errs = []; p.on('pageerror', e => errs.push(e.message)); const toasts = [];
 try {
   await p.goto(`http://127.0.0.1:${PORT}/rybex-ai-workshop.html#/lab/rag`);

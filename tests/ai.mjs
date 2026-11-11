@@ -15,7 +15,8 @@ const run = s => !want.length || want.includes(s);
 
 const srv = spawn('node', [path.join(HERE, 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
 await new Promise(r => srv.stdout.once('data', r));
-const browser = await chromium.launch();
+// Without this a failed browser launch leaves the mock server running and the command never returns.
+const browser = await chromium.launch().catch(e => { srv.kill(); throw e; });
 let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
 const mock = (p, opt) => fetch(MOCK + '/' + p, opt).then(r => r.json());

@@ -91,31 +91,7 @@
   --grape-soft: #7A5AC2;  /* white text 5.2:1 */
   --grape-ink:  #FFFFFF;
 
-  /* Legacy role aliases - older edulab apps use these names */
-  --marigold: var(--yellow); --marigold-600: var(--yellow-600); --marigold-soft: var(--yellow-soft); --marigold-ink: var(--yellow-ink);
-  --teal:     var(--blue);   --teal-600:     var(--blue-600);   --teal-soft:     var(--blue-soft);   --teal-ink:     var(--blue-ink);
-  --sky:      var(--green);                                     --sky-soft:      var(--green-soft);  --sky-ink:      var(--green-ink);
-  --coral:    var(--red);    --coral-600:    var(--red-600);    --coral-soft:    var(--red-soft);    --coral-ink:    var(--red-ink);
-
-  /* Play palette - subject/category colours in the kids app */
-  --play-sun:    #FFD500;
-  --play-grass:  #00A651;
-  --play-berry:  #C6478B;
-  --play-grape:  #7A5AC2;
-  --play-sky:    #1E8FC2;
-  --play-coral:  #E5322D;
-
-  /* ---- Semantic ---- */
-  --success:      #00A651;  --success-soft: #078342;  --success-ink: #FFFFFF;
-  --warning:      #FFD500;  --warning-soft: #FFD500;  --warning-ink: #1C1917;
-  --danger:       #E5322D;  --danger-soft:  #C92823;  --danger-ink:  #FFFFFF;
-  --info:         #1E8FC2;  --info-soft:    #177AA8;  --info-ink:    #FFFFFF;
-
-  /* ---- Functional aliases ---- */
-  --bg:        var(--paper);
-  --fg:        var(--ink);
-  --fg-muted:  var(--ink-2);
-  --primary:   var(--yellow);
+  /* ---- Functional ---- */
   --on-primary:#1C1917;      /* dark text on yellow */
   /* White gap + ink band: >= 3:1 on paper, sand, yellow and every chip fill.
      Pair with `outline: 3px solid transparent` so forced-colours mode still shows focus. */
@@ -123,29 +99,18 @@
   /* Range-slider track */
   --track: color-mix(in srgb, var(--ink) 24%, transparent);
 
-  /* ============================================================
-     SPACING  (4pt base)
-     ============================================================ */
-  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
-  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
-  --sp-12: 48px; --sp-16: 64px; --sp-20: 80px; --sp-24: 96px;
-
   /* ---- Radii (friendly, generous) ---- */
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --r-pill: 999px;
 
   /* ---- Elevation - warm, low, soft ---- */
   --shadow-sm: 0 1px 2px rgba(33,30,26,.10), 0 2px 6px rgba(33,30,26,.06);
-  --shadow-md: 0 6px 18px rgba(33,30,26,.12), 0 1px 3px rgba(33,30,26,.08);
   --shadow-lg: 0 16px 40px rgba(33,30,26,.12), 0 3px 8px rgba(33,30,26,.06);
-  --shadow-primary:  0 8px 22px color-mix(in srgb, var(--yellow) 30%, transparent);
-  --shadow-marigold: var(--shadow-primary);   /* legacy alias */
 
   /* ============================================================
      TYPE SCALE (semantic sizes)
      ============================================================ */
-  --display-font:  clamp(48px, 6vw, 72px);
   --h1: 44px; --h2: 33px; --h3: 25px; --h4: 19px;
-  --body-lg: 18px; --body: 16px; --body-sm: 14px;
+  --body: 16px; --body-sm: 14px;
   --caption: 13px; --overline: 12px;
 }
 
@@ -157,42 +122,32 @@
    <h1 class="app-title"> keep their own font/size instead of the element default.
    ============================================================ */
 
-.edu-display, :where(.edu) h1.display {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--display-font);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  color: var(--ink);
-}
-:where(.edu) h1, .edu-h1 {
+:where(.edu) h1 {
   font-family: var(--font-display);
   font-weight: 700; font-size: var(--h1);
   line-height: 1.06; letter-spacing: -0.02em; color: var(--ink);
 }
-:where(.edu) h2, .edu-h2 {
+:where(.edu) h2 {
   font-family: var(--font-display);
   font-weight: 700; font-size: var(--h2);
   line-height: 1.12; letter-spacing: -0.015em; color: var(--ink);
 }
-:where(.edu) h3, .edu-h3 {
+:where(.edu) h3 {
   font-family: var(--font-display);
   font-weight: 700; font-size: var(--h3);
   line-height: 1.2; letter-spacing: -0.01em; color: var(--ink);
 }
-:where(.edu) h4, .edu-h4 {
+:where(.edu) h4 {
   font-family: var(--font-sans);
   font-weight: 700; font-size: var(--h4);
   line-height: 1.3; color: var(--ink);
 }
-:where(.edu) p, .edu-p, .edu-body {
+:where(.edu) p {
   font-family: var(--font-sans);
   font-weight: 400; font-size: var(--body);
   line-height: 1.6; color: var(--ink-2);
 }
-.edu-body-lg { font-family: var(--font-sans); font-size: var(--body-lg); line-height: 1.6; color: var(--ink-2); }
 .edu-small  { font-family: var(--font-sans); font-size: var(--body-sm); line-height: 1.5; color: var(--ink-2); }
-.edu-caption{ font-family: var(--font-sans); font-size: var(--caption); line-height: 1.45; color: var(--ink-3); }
 
 /* Overline - mono, tracked; functional labels only (never above page/section titles) */
 .edu-overline {
@@ -201,7 +156,7 @@
   letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink);
 }
-:where(.edu) code, .edu-mono {
+:where(.edu) code {
   font-family: var(--font-mono);
   font-size: 0.92em; color: var(--ink);
   background: var(--paper-3); padding: 0.12em 0.4em; border-radius: var(--r-xs);
@@ -544,6 +499,9 @@ const SEC=()=>[
  T('Szacunek zasobów i kosztów technicznych','Estimate of resources and technical costs'),
  T('Dalsze prace: integracje, monitorowanie jakości, utrzymanie','Next steps: integration, quality monitoring, maintenance')]}];
 
+const SEC_ICONS=['target','database','network','flask-conical','gauge','package-check'],SEC_TONES=['grape','blue','yellow','green','ink','stone'];
+const checkProgress=t=>{let done=0,tot=0;SEC().forEach(s=>s.items.forEach((_,n)=>{tot++;if(t.checks[s.id+'.'+n])done++}));return{done,tot}};
+
 const PRODUCTS=[['Szprot w oleju','Sprat in oil',120],['Makrela w pomidorach','Mackerel in tomato',90],['Śledź po kaszubsku','Herring Kashubian style',70],['Tuńczyk w sosie własnym','Tuna in own sauce',60]];
 const SEAS=[.9,.8,1.15,1.15,1,.95,1.1,1,1,1.05,1.05,1.4];
 const monthLbl=i=>{const y=2023+Math.floor((10+i)/12),m=(10+i)%12;return y+'-'+String(m+1).padStart(2,'0')};
@@ -826,10 +784,10 @@ const defaultLab=()=>({vision:{th:null,testViews:0,revealed:false,method:'rules'
 const defaultTeam=()=>({name:'',track:null,decision:{},checks:{},notes:{},arch:{sel:{},infra:'hybrid'},log:[],lab:defaultLab()});
 let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision'},teams:{},ai:{code:'',model:'deepseek'}};
 const AIS={state:'nocode',err:'',checked:false,calls:0,inTok:0,outTok:0,cost:0,teamSpend:null,limits:null,rec:new Map(),replay:undefined,run:null,timeoutMs:AI_TIMEOUT_MS};
-const T=(pl,en)=>S.lang==='pl'?pl:en;
+const T=(pl,en)=>S.lang==='pl'?pl:en,langIx=()=>S.lang==='pl'?0:1;
 // Published 320×400 JPEG copies (≈5 MB); the full-size PNG renders are not shipped.
 const VISION_ASSET_DIR='assets/vision-realistic/web/',VISION_SPLITS=['train','val','test'],VISION_SPLIT_COUNTS={train:90,val:60,test:60},VISION_ASSET_TOTAL=210;
-const VIS={featureSource:'synthetic',initialized:false,loading:false,queued:false,readyPromise:null,status:'idle',error:'',fallbackReason:'',manifestVersion:null,manifestRejected:0,photoCount:0,fallbackCount:VISION_ASSET_TOTAL,expectedPhotoCount:VISION_ASSET_TOTAL,datasetKey:'synthetic-baseline-v1',photoIds:[],photoHashes:[],source:'synthetic'};
+const VIS={featureSource:'synthetic',initialized:false,loading:false,queued:false,readyPromise:null,status:'idle',error:'',fallbackReason:'',manifestVersion:null,manifestRejected:0,photoCount:0,fallbackCount:VISION_ASSET_TOTAL,expectedPhotoCount:VISION_ASSET_TOTAL,datasetKey:'synthetic-baseline-v1',photoHashes:[]};
 const TOK_SAMPLE={pl:'Puszka szprota w oleju, partia RYB-261031-L2 została wstrzymana.',en:'A can of sprats in oil, batch RYB-261031-L2, has been put on hold.'};
 const X={life:0,tokTxt:TOK_SAMPLE.pl,tokIn:'1',tokOut:'1',tokCtx:2000,tokAns:300,tokCalls:10000,ragStep:-1,testPct:20,leak:false,shuf:1,thr:.5,prev:5,ragTimer:null};
 let FSEL='project_description.md',toastTimer=null,liveTimer=null,saveFailed=false;
@@ -878,7 +836,7 @@ const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelecto
 const mainEl=$('#main'),toastEl=$('#toast'),liveEl=$('#live'),inspEl=$('#insp');
 
 // ─── Helpers ───
-const catName=k=>k==='other'?T('inne','other'):CAT[k]?CAT[k][S.lang==='pl'?0:1]:k;
+const catName=k=>k==='other'?T('inne','other'):CAT[k]?CAT[k][langIx()]:k;
 const typeName=k=>({dent:T('wgniecenie','dent'),label:T('etykieta','label'),code:T('kod partii','batch code'),ok:'OK'})[k]||k;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const loc=()=>S.lang==='pl'?'pl-PL':'en-GB';
@@ -894,6 +852,10 @@ function dl(name,data,type){const b=data instanceof Blob?data:new Blob([data],{t
 const toCSV=rows=>{const k=Object.keys(rows[0]);return k.join(',')+'\n'+rows.map(r=>k.map(c=>{const v=String(r[c]);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n')};
 function prf(tp,fp,fn,tn){const p=tp/(tp+fp),r=tp/(tp+fn);return{tp,fp,fn,tn,p,r,f1:2*p*r/(p+r),acc:(tp+tn)/(tp+fp+fn+tn)}}
 const f0=x=>isFinite(x)?x:0;
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+// Show or hide the held-out test set; every reveal is counted and ends up in the log.
+function toggleReveal(L){L.revealed=!L.revealed;if(L.revealed)L.testViews++}
+const isTyping=()=>{const a=document.activeElement;return !!a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type==='text'))};
 function announce(t){clearTimeout(liveTimer);liveTimer=setTimeout(()=>{liveEl.textContent=t},500)}
 // Toasts with an action (undo, confirm) stay longer; every toast pauses while hovered or focused.
 function toast(msg,opt={}){clearTimeout(toastTimer);toastEl.innerHTML=`<span>${esc(msg)}</span>`;toastEl.dataset.ms=opt.ms||(opt.action?TOAST_ACTION_MS:TOAST_MS);toastEl.dataset.paused='false';
@@ -917,7 +879,7 @@ function softRender(){if(AIS.run){X.renderPending=true;return}render()}
 function withUndo(msg,fn){const snap=JSON.stringify(team());fn();const ok=save();render();if(!ok)return;toast(msg,{action:[T('Cofnij','Undo'),()=>{S.teams[S.team]=normTeam(JSON.parse(snap));save();render();announce(T('Cofnięto','Undone'))}]})}
 function statGrid(items,cls='grid4 stats4'){return`<div class="${cls}">${items.map(([v,l,t])=>`<div class="stat ${t?'tone-'+t:'neutral'} edu-block"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`}
 function kpis(m){return statGrid([[pct(m.p),T('Precyzja','Precision'),'yellow'],[pct(m.r),T('Czułość (recall)','Recall'),'blue'],[pct(f0(m.f1)),'F1','green'],[pct(m.acc),T('Trafność','Accuracy'),'ink']])}
-function confMat(m,pos=T('wada','defect')){return`<div class="tscroll conf"><table><thead><tr><th></th><th>${T('Pred','Pred')}: ${pos}</th><th>Pred: OK</th></tr></thead><tbody><tr><td>${T('Fakt','Actual')}: ${pos}</td><td><span class="edu-chip tone-green">${m.tp} TP</span></td><td><span class="edu-chip tone-red">${m.fn} FN</span></td></tr><tr><td>${T('Fakt: OK','Actual: OK')}</td><td><span class="edu-chip tone-red">${m.fp} FP</span></td><td><span class="edu-chip tone-green">${m.tn} TN</span></td></tr></tbody></table></div>`}
+function confMat(m,pos=T('wada','defect')){return`<div class="tscroll conf"><table><thead><tr><th></th><th>Pred: ${pos}</th><th>Pred: OK</th></tr></thead><tbody><tr><td>${T('Fakt','Actual')}: ${pos}</td><td><span class="edu-chip tone-green">${m.tp} TP</span></td><td><span class="edu-chip tone-red">${m.fn} FN</span></td></tr><tr><td>${T('Fakt: OK','Actual: OK')}</td><td><span class="edu-chip tone-red">${m.fp} FP</span></td><td><span class="edu-chip tone-green">${m.tn} TN</span></td></tr></tbody></table></div>`}
 const MOBILE_MQ=matchMedia('(max-width:768px)');
 function chart(series,o){const narrow=!o.w&&MOBILE_MQ.matches,W=o.w||(narrow?380:720),H=o.h||250,fs=narrow?12:10,m={l:42,r:14,t:10,b:24};
  const sx=x=>m.l+(x-o.x0)/(o.x1-o.x0)*(W-m.l-m.r),sy=y=>H-m.b-(Math.min(Math.max(y,o.y0),o.y1)-o.y0)/(o.y1-o.y0)*(H-m.t-m.b);
@@ -966,16 +928,18 @@ const visionFeatureDisclosure=()=>{
  return T('Reguły używają cech pikseli syntetycznego obrazu bazowego.','The rules use pixel features from the synthetic baseline image.');
 };
 const visionManifestWarning=()=>VIS.manifestRejected?T(`${VIS.manifestRejected} wpisów manifestu odrzucono: etykiety muszą zgadzać się z oryginalnym zbiorem; użyto syntetycznego fallbacku.`,`${VIS.manifestRejected} manifest rows were rejected: labels must match the original dataset; the synthetic fallback was kept.`):'';
-const visionAssetStatusHtml=()=>`<div id="visionAssetStatus" class="callout tone-yellow edu-block" data-contract="vision-assets" data-loading="${VIS.loading}" data-photo-count="${VIS.photoCount}" data-photo-total="${VIS.expectedPhotoCount}" data-fallback-count="${VIS.fallbackCount}" data-manifest-rejected="${VIS.manifestRejected}" data-dataset-key="${esc(VIS.datasetKey)}"><b>${visionPhotoStatus()}</b><br><span>${visionFeatureDisclosure()}</span>${visionManifestWarning()?`<br><span>${visionManifestWarning()}</span>`:''}</div>`;
+const visionStatusInner=()=>`<b>${visionPhotoStatus()}</b><br><span>${visionFeatureDisclosure()}</span>${visionManifestWarning()?`<br><span>${visionManifestWarning()}</span>`:''}`;
+const visionAssetStatusHtml=()=>`<div id="visionAssetStatus" class="callout tone-yellow edu-block">${visionStatusInner()}</div>`;
+// Loading state as data attributes (read by the tests and the recording tool) plus the visible status box.
 function publishVisionContract(){
- const d=document.body&&document.body.dataset;if(d){d.visionStatus=VIS.status;d.visionLoading=String(VIS.loading);d.visionPhotos=String(VIS.photoCount);d.visionExpected=String(VIS.expectedPhotoCount);d.visionFallback=String(VIS.fallbackCount);d.visionManifestRejected=String(VIS.manifestRejected);d.visionDataset=VIS.datasetKey;d.visionSource=VIS.source}
- const root=document.documentElement&&document.documentElement.dataset;if(root){root.visionFeatures=VIS.featureSource;root.visionStatus=VIS.status;root.visionPhotos=String(VIS.photoCount);root.visionExpected=String(VIS.expectedPhotoCount);root.visionFallback=String(VIS.fallbackCount);root.visionManifestRejected=String(VIS.manifestRejected)}
- const el=$('#visionAssetStatus');if(el){Object.assign(el.dataset,{loading:String(VIS.loading),photoCount:String(VIS.photoCount),photoTotal:String(VIS.expectedPhotoCount),fallbackCount:String(VIS.fallbackCount),manifestRejected:String(VIS.manifestRejected),datasetKey:VIS.datasetKey});el.innerHTML=`<b>${visionPhotoStatus()}</b><br><span>${visionFeatureDisclosure()}</span>${visionManifestWarning()?`<br><span>${visionManifestWarning()}</span>`:''}`}
+ Object.assign(document.body.dataset,{visionStatus:VIS.status,visionPhotos:VIS.photoCount,visionExpected:VIS.expectedPhotoCount,visionFallback:VIS.fallbackCount,visionManifestRejected:VIS.manifestRejected,visionDataset:VIS.datasetKey});
+ document.documentElement.dataset.visionFeatures=VIS.featureSource;
+ const el=$('#visionAssetStatus');if(el)el.innerHTML=visionStatusInner();
 }
 function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'))}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
-function bigVisionDataUrl(url){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;const x=c.getContext('2d');x.drawImage(im,0,0,320,400);resolve(c.toDataURL('image/jpeg',.9))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
-function resizedVisionDataUrl(url){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;const x=c.getContext('2d');x.drawImage(im,0,0,320,400);resolve(c.toDataURL('image/png'))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
+// Draw an image at the 320×400 working size and return it as a data URL of the given type.
+function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;c.getContext('2d').drawImage(im,0,0,320,400);resolve(c.toDataURL(type,q))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
 // ─── Vision: pixel features of the photographs ───
 // The line camera frames every can the same way, so the rules read fixed regions of a 160×200 copy:
 // dent = ‰ of metal pixels above the label whose brightness stands out from their own column (crater shading);
@@ -990,16 +954,17 @@ function photoFeatureRaw(px){const n=PF_W*PF_H,L=new Float32Array(n),blue=new Ui
  let e=0,m=0;for(let y=152;y<177;y++)for(let x=45;x<114;x++){const i=y*PF_W+x;m++;if(!blue[i]&&!blue[i+1])e+=Math.abs(L[i+1]-L[i])}
  return{dent:cnt?out/cnt*1000:0,center:(top+bot)/2,code:m?e/m:0}}
 function photoPixels(url){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=PF_W;c.height=PF_H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0,PF_W,PF_H);res(x.getImageData(0,0,PF_W,PF_H).data)}catch(e){rej(e)}};im.onerror=()=>rej(new Error('image_decode'));im.src=url})}
+// Slider ranges and calibrated thresholds follow the features currently in use.
+function visRanges(){const all=visionItems();VIS.rng={};['dent','shift','code'].forEach(k=>{const v=all.map(i=>i.f[k]);VIS.rng[k]=[Math.min(...v),Math.max(...v)]});VIS.calib=visCalib()}
 // The rules switch to photo features only when every photo loaded, so one threshold scale covers all images.
 function applyPhotoFeatures(){const all=visionItems(),ok=all.length>0&&all.every(i=>i.source==='photo'&&i.pf);
  if(!ok){all.forEach(i=>{if(i.synF)i.f=i.synF});VIS.featureSource='synthetic'}
  else{const cs=VIS.train.map(i=>i.pf.center).sort((a,b)=>a-b),ref=cs[cs.length>>1];all.forEach(i=>{if(!i.synF)i.synF=i.f;i.f={dent:i.pf.dent,shift:Math.abs(i.pf.center-ref),code:i.pf.code}});VIS.featureSource='photo'}
- const ks=['dent','shift','code'];VIS.rng={};ks.forEach(k=>{const v=all.map(i=>i.f[k]);VIS.rng[k]=[Math.min(...v),Math.max(...v)]});VIS.calib=visCalib()}
+ visRanges()}
 function invalidateVisionRuns(){let changed=false;Object.values(S.teams||{}).forEach(t=>{const L=t&&t.lab&&t.lab.vision;if(!L||!Array.isArray(L.mruns))return;const n=L.mruns.length;L.mruns=L.mruns.filter(r=>r&&r.datasetKey===VIS.datasetKey);if(L.mruns.length!==n){L.vsel='';changed=true}});if(changed)save()}
 function finishVisionAssets(){
- VIS.loading=false;VIS.status='ready';VIS.fallbackCount=Math.max(0,VIS.expectedPhotoCount-VIS.photoCount);VIS.source=VIS.photoCount?'photo':'synthetic';
+ VIS.loading=false;VIS.status='ready';VIS.fallbackCount=Math.max(0,VIS.expectedPhotoCount-VIS.photoCount);
  applyPhotoFeatures();
- VIS.photoIds=visionItems().filter(i=>i.source==='photo').map(i=>i.id).sort();
  VIS.photoHashes=visionItems().filter(i=>i.source==='photo').map(i=>`${i.id}:${i.photoHash||hashStr(i.url)}`).sort();
  VIS.datasetKey=VIS.photoCount?`vision-photo-v2:${hashStr(VIS.photoHashes.join('|'))}`:'synthetic-baseline-v1';
  invalidateVisionRuns();publishVisionContract();visionRefresh();
@@ -1017,8 +982,8 @@ async function loadVisionAssets(){
   if(!isObj(manifest)||manifest.version!==1||!Array.isArray(manifest.images))throw new Error('manifest_shape');VIS.manifestVersion=manifest.version;
   const index=new Map();VIS.manifestRejected=0;manifest.images.forEach(e=>{if(!isObj(e)||!VISION_SPLITS.includes(e.split)||typeof e.id!=='string'||!['ok','dent','label','code'].includes(e.type))return;const it=VIS[e.split]&&VIS[e.split].find(x=>x.id===e.id);if(!it)return;if(it.type!==e.type){VIS.manifestRejected++;return}const file=/^[A-Za-z0-9_-]+\.(png|jpe?g|webp)$/i.test(String(e.file||''))?String(e.file):`${it.id}.jpg`;index.set(it.id,{it,file})});
   const manifestIds=[...index.keys()].sort();if(manifestIds.length){VIS.datasetKey=`vision-photo-v2:manifest-${hashStr(manifestIds.join('|'))}`;publishVisionContract();if(S.view==='lab'&&S.sub.lab==='vision'&&!AIS.run){labVision();icons($('#proto'))}}
- const entries=[...index.values()];let cursor=0;const worker=async()=>{while(cursor<entries.length){const {it,file}=entries[cursor++],url=VISION_ASSET_DIR+file;try{const fullData=await visionPhotoData(file,url,bundle);if(!fullData)continue;const jpg=/\.jpe?g$/i.test(file),data=jpg?fullData:await resizedVisionDataUrl(fullData);it.originalUrl=new URL(url,document.baseURI).href;it.url=data;it.source='photo';it.photo=true;it.photoHash=hashStr(fullData);// Published JPEGs are already the 320×400 working size: use them as they are (no re-encoding).
- if(jpg)it.big=data;else try{it.big=await bigVisionDataUrl(data)}catch(e){it.big=data}
+ const entries=[...index.values()];let cursor=0;const worker=async()=>{while(cursor<entries.length){const {it,file}=entries[cursor++],url=VISION_ASSET_DIR+file;try{const fullData=await visionPhotoData(file,url,bundle);if(!fullData)continue;const jpg=/\.jpe?g$/i.test(file),data=jpg?fullData:await scaledVisionDataUrl(fullData,'image/png');it.originalUrl=new URL(url,document.baseURI).href;it.url=data;it.source='photo';it.photoHash=hashStr(fullData);// Published JPEGs are already the 320×400 working size: use them as they are (no re-encoding).
+ if(jpg)it.big=data;else try{it.big=await scaledVisionDataUrl(data,'image/jpeg',.9)}catch(e){it.big=data}
  try{it.pf=photoFeatureRaw(await photoPixels(data))}catch(e){it.pf=null}VIS.photoCount++;VIS.fallbackCount=Math.max(0,VIS.expectedPhotoCount-VIS.photoCount);publishVisionContract()}catch(e){/* Keep the original synthetic item for this missing photo. */}}};await Promise.all(Array.from({length:Math.min(6,Math.max(1,entries.length))},worker));
  }catch(e){VIS.error=e&&e.message||'manifest';VIS.fallbackReason=location.protocol==='file:'?'file':'manifest'}
  finishVisionAssets();
@@ -1026,8 +991,8 @@ async function loadVisionAssets(){
 function visInit(){if(VIS.initialized){publishVisionContract();return}const mk=(s0,n)=>{const r=rng(s0),a=[],nb=Math.round(n*.1),types=[...Array(nb).fill('dent'),...Array(nb).fill('label'),...Array(nb).fill('code'),...Array(n-3*nb).fill('ok')];for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[types[i],types[j]]=[types[j],types[i]]}for(let i=0;i<n;i++){const t=types[i],c=document.createElement('canvas');c.width=160;c.height=200;const f=drawCan(c,s0*1000+i,t);a.push({type:t,bad:t!=='ok',f,url:c.toDataURL(),seed:s0*1000+i,source:'synthetic',originalUrl:''})}return a};
  VIS.train=mk(7,90);VIS.val=mk(9,60);VIS.test=mk(8,60);
  VIS.train.forEach((x,i)=>x.id='train_'+String(i+1).padStart(3,'0'));VIS.val.forEach((x,i)=>x.id='val_'+String(i+1).padStart(3,'0'));VIS.test.forEach((x,i)=>x.id='test_'+String(i+1).padStart(3,'0'));
- const ks=['dent','shift','code'];VIS.rng={};ks.forEach(k=>{const v=[...VIS.train,...VIS.val,...VIS.test].map(i=>i.f[k]);VIS.rng[k]=[Math.min(...v),Math.max(...v)]});
- VIS.calib=visCalib();VIS.initialized=true;VIS.loading=true;VIS.status='loading';VIS.expectedPhotoCount=VISION_SPLITS.reduce((n,s)=>n+VIS[s].length,0);VIS.fallbackCount=VIS.expectedPhotoCount;publishVisionContract();VIS.readyPromise=loadVisionAssets();}
+ visRanges();VIS.initialized=true;VIS.loading=true;VIS.status='loading';VIS.expectedPhotoCount=VISION_SPLITS.reduce((n,s)=>n+VIS[s].length,0);VIS.fallbackCount=VIS.expectedPhotoCount;publishVisionContract();VIS.readyPromise=loadVisionAssets();}
+const visKey=()=>`<span><i class="tp"></i>TP – ${T('wada wykryta','defect caught')}</span><span><i class="fn"></i>FN – ${T('wada przeoczona','defect missed')}</span><span><i class="fp"></i>FP – ${T('fałszywy alarm','false alarm')}</span><span><i></i>TN – ${T('poprawnie OK','correctly OK')}</span>`;
 const visPred=(f,t)=>f.dent>t.d||f.shift>t.s||f.code<t.c;
 function visEval(set,t){let tp=0,fp=0,fn=0,tn=0;set.forEach(i=>{const p=visPred(i.f,t);if(p&&i.bad)tp++;else if(p)fp++;else if(i.bad)fn++;else tn++});return prf(tp,fp,fn,tn)}
 function visCalib(){const off={d:VIS.rng.dent[1],s:VIS.rng.shift[1],c:VIS.rng.code[0]},t={...off},map={d:'dent',s:'shift',c:'code'},own={d:'dent',s:'label',c:'code'};
@@ -1063,11 +1028,12 @@ async function callModel({messages,maxTokens=300,json=true,signal,model}={}){
  if(signal&&signal.aborted)throw new AiError('aborted');
  let timedOut=false;const ctl=new AbortController(),onAbort=()=>ctl.abort(),timer=setTimeout(()=>{timedOut=true;ctl.abort()},AIS.timeoutMs),t0=performance.now();
  if(signal)signal.addEventListener('abort',onAbort,{once:true});
- let r;
- try{r=await fetch(AI_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Class-Code':S.ai.code,'X-Team':String(S.team)},body:JSON.stringify(body),signal:ctl.signal})}
- catch(e){if(signal&&signal.aborted)throw new AiError('aborted');if(timedOut)throw new AiError('timeout');const rp=await aiReplay(key);if(rp){const out=aiResult(rp,m,0,key,json,true);aiTally(out.usage);return out}aiSetErr('network');throw new AiError('network')}
+ let r,j=null,stopped=()=>{if(signal&&signal.aborted)throw new AiError('aborted');if(timedOut)throw new AiError('timeout')};
+ try{try{r=await fetch(AI_URL+'/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Class-Code':S.ai.code,'X-Team':String(S.team)},body:JSON.stringify(body),signal:ctl.signal})}
+  catch(e){stopped();const rp=await aiReplay(key);if(rp){const out=aiResult(rp,m,0,key,json,true);aiTally(out.usage);return out}aiSetErr('network');throw new AiError('network')}
+  // The timeout and the cancel button also cover reading the body, not only the wait for headers.
+  try{j=await r.json()}catch(e){stopped()}}
  finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',onAbort)}
- let j=null;try{j=await r.json()}catch(e){}
  if(!r.ok){const k=r.status===401?'bad_code':r.status===429?'budget':r.status===400?'bad_request':j&&j.error==='not_configured'?'not_configured':'upstream';if(k==='budget'&&j)AIS.teamSpend=numOr(j.teamSpend,AIS.teamSpend);if(AI_FATAL.has(k))aiSetErr(k);throw new AiError(k,j&&j.error)}
  if(!isObj(j)||!Array.isArray(j.choices))throw new AiError('upstream');
  const out=aiResult(j,m,Math.round(performance.now()-t0),key,json,false);AIS.rec.set(key,j);aiTally(out.usage,j);
@@ -1087,21 +1053,20 @@ const aiUse=x=>({model:x.model,in:x.usage.in,out:x.usage.out,cost:x.usage.cost,p
 function aiCheckFailed(res){const f=res.filter(x=>!x.ok).length;if(f>res.length*AI_MAX_FAIL)throw new AiError('partial',String(f));return f}
 const msText=ms=>ms==null?'–':`${num(ms/1000,2)} s`;
 function aiSummary(uses){const v=uses.filter(Boolean),n=v.length;return{calls:n,inTok:v.reduce((a,x)=>a+x.in,0),outTok:v.reduce((a,x)=>a+x.out,0),cost:v.reduce((a,x)=>a+x.cost,0),paid:v.reduce((a,x)=>a+(x.paid==null?x.cost:x.paid),0),ms:(w=>w.length?Math.round(w.reduce((a,x)=>a+x.ms,0)/w.length):null)(v.filter(x=>!x.cached)),cached:v.filter(x=>x.cached).length,model:n?v[0].model:aiModel().id}}
-const aiSumText=s=>`${aiModelName(s.model)} · ${cnt(s.calls,'call')} · ${num(s.inTok,0)} + ${cnt(s.outTok,'token',num(s.outTok,0))} · ${usd(s.cost)}${s.paid!=null&&s.paid<s.cost-1e-12?` (${T('zapłacono teraz','paid now')} ${usd(s.paid)})`:''} · ${T('śr. czas','avg time')} ${msText(s.ms)}${s.cached?` · ${s.cached} ${T('z pamięci podręcznej (koszt i czas liczone wg pierwszego wywołania, bez opłaty teraz)','from cache (cost shown at list price, not charged now)')}`:''}`;
+const aiSumText=s=>`${aiModelName(s.model)} · ${cnt(s.calls,'call')} · ${num(s.inTok,0)} + ${cnt(s.outTok,'token',num(s.outTok,0))} · ${usd(s.cost)}${s.paid!=null&&s.paid<s.cost-1e-12?` (${T('zapłacono teraz','paid now')} ${usd(s.paid)})`:''} · ${T('śr. czas','avg time')} ${msText(s.ms)}${s.cached?` · ${s.cached} ${T('z pamięci podręcznej (koszt i czas liczone wg pierwszego wywołania, bez opłaty teraz)','from cache (cost and time as on the first call, not charged now)')}`:''}`;
 function aiAbort(){if(AIS.run){AIS.run.abort();AIS.run=null}}
 async function aiCheck(){const code=S.ai.code;AIS.checked=true;if(!code){aiSetErr('nocode');return}
  AIS.state='busy';AIS.err='';renderAiState();
  try{const r=await fetch(AI_URL+'/status',{headers:{'X-Class-Code':code,'X-Team':String(S.team)}});let j=null;try{j=await r.json()}catch(e){}
   if(r.status===401||(j&&j.error==='bad_code'))aiSetErr('bad_code');else if(!r.ok)aiSetErr(j&&j.error==='not_configured'?'not_configured':'upstream');
-  else{AIS.state='ready';AIS.teamSpend=numOr(j.teamSpend,null);AIS.limits=isObj(j.limits)?j.limits:null;renderAiState();renderAiStats()}}
+  else if(!isObj(j))aiSetErr('upstream');else{AIS.state='ready';AIS.teamSpend=numOr(j.teamSpend,null);AIS.limits=isObj(j.limits)?j.limits:null;renderAiState();renderAiStats()}}
  catch(e){aiSetErr('network')}}
-const aiReady=()=>!!S.ai.code&&!['error','offline','nocode'].includes(AIS.state);
 function aiBar(){const opts=Object.entries(AI_MODELS).map(([k,m])=>`<option value="${k}" ${S.ai.model===k?'selected':''}>${m.name} – $${num(m.pin,3)} / $${num(m.pout,2)}</option>`).join('');
  return`<div class="ai-slot" id="aiBar" data-ai-state="${AIS.state}" data-ai-error="${AIS.err}">${card('cpu',T('Model językowy przez API','Language model via API'),`<p>${T('Wywołania idą przez serwer zajęć: klucz API nie trafia do przeglądarki. Każda odpowiedź pokazuje liczbę tokenów, koszt i czas. Bez połączenia laboratorium działa na regułach.','Calls go through the class server: the API key never reaches the browser. Every answer shows tokens, cost and time. Without a connection the lab runs on rules.')}</p>
  <div class="grid3 mt ai-grid"><div class="field"><label for="aiCode">${T('Kod zajęć','Class code')}</label><input id="aiCode" class="input" type="text" autocomplete="off" spellcheck="false" value="${esc(S.ai.code)}"></div><div class="field"><label for="aiModel">${T('Model (cena za 1 mln tokenów: wejście / wyjście)','Model (price per 1M tokens: input / output)')}</label><select id="aiModel" class="input">${opts}</select></div><div class="field"><button type="button" class="btn-ink" id="aiConnect">${ic('plug')}${T('Połącz','Connect')}</button></div></div>
  <p class="mt" id="aiStatus" role="status"></p><p class="hint ai-cost" id="aiSpend"></p><p class="hint"><button type="button" class="linkbtn" id="aiRecord">${T('Dla prowadzącego: pobierz odpowiedzi z tej sesji jako replay.json','For the facilitator: download this session’s answers as replay.json')}</button></p>`,{tone:'ink',meta:`<span id="aiChip" class="edu-chip tone-stone"></span>`})}</div>`}
 function renderAiState(){const b=$('#aiBar');if(!b)return;b.dataset.aiState=AIS.state;b.dataset.aiError=AIS.err;const chip=$('#aiChip'),st=$('#aiStatus');
- const L={nocode:[T('brak kodu','no code'),'stone'],idle:[T('niesprawdzone','not checked'),'stone'],busy:[T('łączenie…','connecting…'),'yellow'],ready:[T('połączono','connected'),'green'],error:[T('błąd','error'),'red'],offline:[T('offline','offline'),'red']}[AIS.state]||['','stone'];
+ const L={nocode:[T('brak kodu','no code'),'stone'],idle:[T('niesprawdzone','not checked'),'stone'],busy:[T('łączenie…','connecting…'),'yellow'],ready:[T('połączono','connected'),'green'],error:[T('błąd','error'),'red'],offline:['offline','red']}[AIS.state]||['','stone'];
  chip.textContent=L[0];chip.className='edu-chip tone-'+L[1];st.textContent=AIS.err?aiErrText(AIS.err):AIS.state==='ready'?T('Gotowe: przyciski „model” w laboratorium wysyłają prawdziwe zapytania.','Ready: the “model” buttons in the lab send real requests.'):AIS.state==='nocode'?aiErrText('nocode'):'';
  if(X.aiHook)X.aiHook()}
 function renderAiStats(){const el=$('#aiSpend');if(!el)return;const lim=AIS.limits&&isFinite(AIS.limits.team)?` ${T('z limitu','of the limit')} ${usd(AIS.limits.team)}`:'';
@@ -1126,10 +1091,10 @@ const BASE_NAME=k=>({vision:T('„zawsze OK”','“always OK”'),rag:T('wyszuk
 const trackName=k=>(trMeta()[k]||{}).title||k;
 function logText(l){if(l.text)return l.text;try{const s=logTextRaw(l),r=l.res||{};return isObj(r.ai)?`${s} · ${aiSumText(r.ai)}${r.agree!=null?` · ${T('zgodność sędziego z regułą','judge agreement with the rule')} ${pct(r.agree)}`:''}`:s}catch(e){return T('(wpis nieczytelny)','(unreadable entry)')}}
 function logTextRaw(l){const c=l.cfg||{},r=l.res||{};switch(l.track){
- case'vision':if(c.mode==='llm'){const m=r.test||r.val||{};return`[model] ${cnt(c.shots,'example')}, ${c.set==='test'?T('test','test'):T('walidacja','validation')}: F1=${pct(m.f1)}, P=${pct(m.p)}, R=${pct(m.r)}; ${T('reguły pikselowe','pixel rules')} F1=${pct(r.ruleF1)}`}
+ case'vision':if(c.mode==='llm'){const m=r.test||r.val||{};return`[model] ${cnt(c.shots,'example')}, ${c.set==='test'?'test':T('walidacja','validation')}: F1=${pct(m.f1)}, P=${pct(m.p)}, R=${pct(m.r)}; ${T('reguły pikselowe','pixel rules')} F1=${pct(r.ruleF1)}`}
   return`${T('progi','thresholds')} d=${num(c.th.d)}, s=${num(c.th.s)}, c=${num(c.th.c)}; ${T('walidacja','validation')} F1=${pct(r.val.f1)}${r.test?`; test F1=${pct(r.test.f1)}, P=${pct(r.test.p)}, R=${pct(r.test.r)}`:''}`;
- case'rag':return`${c.mode==='llm'?T('[model] ','[model] '):''}${c.lang?'['+String(c.lang).toUpperCase()+'] ':''}${r.test?'test: ':''}k=${c.k}, ${T('akapitów/fragment','paragraphs/chunk')}=${c.chunk}, min=${num(c.min,2)}; hit@k=${r.hit}/${r.n}, ${T('poprawne odpowiedzi','correct answers')}=${r.ok}/${r.n}, ${T('odmowy spoza zakresu','out-of-scope refusals')}=${r.ref}/${r.nOos}, ${T('trafne źródła','source precision')}=${pct(r.prec)}; ${T('metoda dosłowna','literal search')}=${r.baseOk}/${r.n}`;
- case'complaints':if(c.mode==='llm')return`[model] ${T('prompt','prompt')} ${c.ver}, ${cnt(c.shots,'example')}, ${setLabel(c.set)}: ${T('trafność','accuracy')}=${pct(r.acc)}, macro-F1=${pct(r.macro)}, ${T('wykrycie zagrożeń','hazard recall')}=${pct(r.safety)} (${T('fałszywe alarmy','false alarms')}: ${r.safetyFalse}); ${T('reguły na tych samych zgłoszeniach','rules on the same complaints')}=${pct(r.base)}`;
+ case'rag':return`${c.mode==='llm'?'[model] ':''}${c.lang?'['+String(c.lang).toUpperCase()+'] ':''}${r.test?'test: ':''}k=${c.k}, ${T('akapitów/fragment','paragraphs/chunk')}=${c.chunk}, min=${num(c.min,2)}; hit@k=${r.hit}/${r.n}, ${T('poprawne odpowiedzi','correct answers')}=${r.ok}/${r.n}, ${T('odmowy spoza zakresu','out-of-scope refusals')}=${r.ref}/${r.nOos}, ${T('trafne źródła','source precision')}=${pct(r.prec)}; ${T('metoda dosłowna','literal search')}=${r.baseOk}/${r.n}`;
+ case'complaints':if(c.mode==='llm')return`[model] prompt ${c.ver}, ${cnt(c.shots,'example')}, ${setLabel(c.set)}: ${T('trafność','accuracy')}=${pct(r.acc)}, macro-F1=${pct(r.macro)}, ${T('wykrycie zagrożeń','hazard recall')}=${pct(r.safety)} (${T('fałszywe alarmy','false alarms')}: ${r.safetyFalse}); ${T('reguły na tych samych zgłoszeniach','rules on the same complaints')}=${pct(r.base)}`;
   return`${T('słowa kluczowe','keywords')}: ${CK.map(k=>catName(k)+'='+c.kw[k]).join('; ')}; ${T('bezpieczeństwo','safety')}=${c.safety}. dev acc=${pct(r.dev)}, macro-F1=${pct(r.macro)}, ${T('wykrycie zagrożeń','hazard recall')}=${pct(r.safety)}${r.safetyFalse!=null?` (${T('fałszywe alarmy','false alarms')}: ${r.safetyFalse})`:''}${r.test!=null?`; test acc=${pct(r.test)}`:''}; baseline=${pct(r.base)}`;
  case'forecast':return`${S.lang==='pl'?PRODUCTS[c.p][0]:PRODUCTS[c.p][1]}, h=${c.h}, ${T('okno','window')}=${c.w}: ${Object.keys(r.mape).map(k=>fcName(k)+' MAPE '+pct(r.mape[k])).join('; ')}`;
  case'maint':return`${c.keys.join('+')}, ${T('próg','thr')}=${num(c.thr)}, ${T('wygładzanie','smooth')}=${c.win}: F1=${pct(r.f1)} (P ${pct(r.p)}, R ${pct(r.r)}); ${T('reguła PROCES-05','PROCES-05 rule')} F1=${pct(r.base)}`}
@@ -1139,7 +1104,7 @@ function logSig(cfg,res){return JSON.stringify([cfg,{...res,primary:{...(res||{}
 function logAdd(track,cfg,res,primary){const t=team(),input=$('#expNote'),note=input?input.value.trim():'',same=logSig(cfg,{...res,primary});
  if(t.log.some(l=>l.track===track&&l.cfg&&l.res&&logSig(l.cfg,l.res)===same)){toast(T('Ten wynik jest już w dzienniku. Zmień parametr, aby zapisać nowy eksperyment.','This result is already in the log. Change a parameter to save a new experiment.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});return}
  const tv=track==='vision'?lab().vision.testViews:track==='complaints'?lab().compl.testViews:track==='rag'?lab().rag.testViews:0;
- t.log.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),ts:new Date().toISOString(),track,cfg,res:{...res,primary},note,testViews:tv});if(input)input.value='';
+ t.log.push({id:newId(),ts:new Date().toISOString(),track,cfg,res:{...res,primary},note,testViews:tv});if(input)input.value='';
  const ok=save();renderProg();renderHeroProg(track);
  if(ok)toast(T('Zapisano w dzienniku zespołu.','Saved to the team log.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});
  else toast(T('Nie zapisano w pamięci przeglądarki. Pobierz plik zespołu.','Not stored in the browser. Download the team file.'))}
@@ -1169,7 +1134,7 @@ const nm=id=>T(...NAV.find(n=>n[0]===id)[2]);
 function renderSaveWarn(){const w=$('#saveWarn');w.hidden=!saveFailed;if(saveFailed)w.textContent=T('Uwaga: przeglądarka nie zapisuje danych. Pobierz plik zespołu, zanim zamkniesz kartę.','Warning: the browser is not storing your data. Download the team file before closing this tab.')}
 function teamLabel(i){const n=S.teams[i]&&S.teams[i].name;return`${T('Zespół','Team')} ${i}${n?' – '+n:''}`}
 function renderTeamOptions(){$('#teamSel').innerHTML=Array.from({length:TEAM_COUNT},(_,k)=>k+1).map(i=>`<option value="${i}" ${i==S.team?'selected':''}>${esc(teamLabel(i))}</option>`).join('')}
-function renderProg(){const t=team();let done=0,tot=0;SEC().forEach(s=>s.items.forEach((_,n)=>{tot++;if(t.checks[s.id+'.'+n])done++}));const el=$('#tbProg');el.dataset.done=done;el.dataset.total=tot;el.dataset.log=t.log.length;$('#tbToggle').innerHTML=`<span>${esc(teamLabel(S.team))} · ${done}/${tot}</span>${ic($('#teamBar').classList.contains('open')?'chevron-up':'chevron-down')}`;icons($('#tbToggle'));el.innerHTML=`<div class="field"><span class="label">${T('Postęp','Progress')}: ${done}/${tot} · ${t.track?`${T('eksperymenty','experiments')} (${trackName(t.track)}): ${expCount(t.track)}/${MIN_EXPERIMENTS}`:`${T('wpisy w dzienniku','log entries')}: ${t.log.length}`}</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}" aria-label="${T('Postęp listy kontrolnej','Checklist progress')}"><span style="width:${tot?done/tot*100:0}%"></span></div></div>`}
+function renderProg(){const t=team(),{done,tot}=checkProgress(t);const el=$('#tbProg');el.dataset.done=done;el.dataset.total=tot;el.dataset.log=t.log.length;$('#tbToggle').innerHTML=`<span>${esc(teamLabel(S.team))} · ${done}/${tot}</span>${ic($('#teamBar').classList.contains('open')?'chevron-up':'chevron-down')}`;icons($('#tbToggle'));el.innerHTML=`<div class="field"><span class="label">${T('Postęp','Progress')}: ${done}/${tot} · ${t.track?`${T('eksperymenty','experiments')} (${trackName(t.track)}): ${expCount(t.track)}/${MIN_EXPERIMENTS}`:`${T('wpisy w dzienniku','log entries')}: ${t.log.length}`}</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}" aria-label="${T('Postęp listy kontrolnej','Checklist progress')}"><span style="width:${tot?done/tot*100:0}%"></span></div></div>`}
 function renderShell(){
  $('#nav').innerHTML=NAV.map((n,i)=>`<button type="button" data-v="${n[0]}" class="${S.view===n[0]?'on':''}" ${S.view===n[0]?'aria-current="page"':''} aria-keyshortcuts="${i+1}">${ic(n[1])}${nm(n[0])}</button>`).join('');
  $('#lblTeam').textContent=T('Zespół','Team');$('#lblName').textContent=T('Nazwa zespołu / projektu','Team / project name');
@@ -1179,7 +1144,7 @@ function renderShell(){
  $('#foot').innerHTML=T('Skróty: klawisze <kbd>1</kbd>–<kbd>7</kbd> przełączają widoki. Dane zdjęciowe są wczytywane lokalnie, a stan zespołu zapisuje się tylko w tej przeglądarce.','Shortcuts: keys <kbd>1</kbd>–<kbd>7</kbd> switch views. Photo data is loaded locally and team state is stored only in this browser.');
  renderProg();renderSaveWarn();
  const d=document.body.dataset;d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'?S.sub.demos:S.view==='lab'?S.sub.lab:'';
- document.documentElement.lang=S.lang;document.title=T('AI Project Lab – Rybex','AI Project Lab – Rybex');publishVisionContract()}
+ document.documentElement.lang=S.lang;document.title='AI Project Lab – Rybex';publishVisionContract()}
 function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});icons()}
 
 // ─── View: home ───
@@ -1189,7 +1154,7 @@ function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dl
  lab:T('Pięć zadań: wizja, asystent wiedzy, reklamacje, prognoza popytu, awarie maszyn. Uruchamiaj prototyp i mierz wyniki.','Five tasks: vision, knowledge assistant, complaints, demand forecast, machine failures. Run a prototype and measure it.'),
  arch:T('Zbuduj schemat blokowy architektury i wyeksportuj go jako SVG lub PNG.','Build the architecture block diagram and export it as SVG or PNG.'),
  deliver:T('Lista kontrolna, notatki, dziennik wyników i eksport raportu.','Checklist, notes, results log and report export.')};
- const tones=['grape','blue','yellow','green','ink','stone'],keys=['brief','data','demos','lab','arch','deliver'];
+ const tones=SEC_TONES,keys=['brief','data','demos','lab','arch','deliver'];
  const ag=[[0,20,'brief',T('Opis projektu; wybór zadania przez zespoły','Brief; teams pick a task'),'clipboard-list'],[20,25,'data',T('Dane: charakterystyka zbioru, ograniczenia, dane zastępcze','Data: dataset profile, limits, substitute data'),'folder-open'],[45,30,'demos',T('Wizualizacje procesów (cykl projektu, podział danych, miary)','Process visualizations (lifecycle, data split, metrics)'),'clapperboard'],[75,45,'lab',T('Laboratorium: prototyp i eksperymenty (min. 3 zmiany parametrów)','Build lab: prototype and experiments (at least 3 parameter changes)'),'flask-conical'],[120,30,'arch',T('Architektura, szacunek kosztów, plan wdrożenia','Architecture, cost estimate, deployment plan'),'network'],[150,30,'deliver',T('Prezentacje zespołów, porównanie z metodą odniesienia, wnioski','Team presentations, baseline comparison, lessons learned'),'circle-check']];
  const tm=m=>Math.floor(m/60)+':'+String(m%60).padStart(2,'0');
  mainEl.innerHTML=pageHead(T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company'),T('Warsztat na przykładzie firmy Rybex – producenta konserw rybnych. Od wyboru zadania i danych, przez architekturę i prototyp, po ocenę działania i plan wdrożenia.','A hands-on workshop based on Rybex, a fish-can manufacturer. From choosing the task and data, through architecture and prototype, to evaluation and a deployment plan.'),`<p class="mt"><button type="button" class="btn" data-go="brief">${T('Zacznij od opisu projektu','Start with the brief')} ${ic('arrow-right')}</button></p>`)
@@ -1201,7 +1166,7 @@ function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dl
 function vBrief(){const M=trMeta(),tp=[...LAB_KEYS];
  mainEl.innerHTML=pageHead(T('Projekt końcowy – część technologiczna','Final project – technology part'),T('Zaprojektować i sprawdzić rozwiązanie AI w firmie <b>Rybex – producencie konserw rybnych</b>. Zespół wybiera jeden problem, opracowuje koncepcję techniczną i przygotowuje <b>Proof of Concept (PoC)</b>, który weryfikuje najważniejsze założenia. Trenowanie własnego modelu nie jest konieczne – wybór podejścia ma wynikać z zadania.','Design and test an AI solution at <b>Rybex, a fish-can manufacturer</b>. The team picks one problem, develops a technical concept and builds a <b>Proof of Concept (PoC)</b> that verifies the key assumptions. Training your own model is not required – the approach should follow from the task.'))
  +sectionBand('target',T('Wybór zadania','Task selection'),`<div class="grid3 wide">${tp.map(k=>`<button type="button" class="chip" data-t="${k}" style="margin:0;border-radius:var(--r-lg);padding:14px 16px;align-items:flex-start;gap:12px">${badge(M[k].ic,TONE[k])}<span><b>${M[k].title}</b><br>${M[k].out}</span></button>`).join('')}</div>`)
- +sectionBand('list-checks',T('Wymagania','Requirements'),`<div class="grid3 wide">${SEC().map((s,i)=>card(['target','database','network','flask-conical','gauge','package-check'][i],s.t,`<ul style="margin:0;padding-left:20px">${s.items.map(x=>`<li>${x}</li>`).join('')}</ul>`,{tone:['grape','blue','yellow','green','ink','stone'][i]})).join('')}</div>`);
+ +sectionBand('list-checks',T('Wymagania','Requirements'),`<div class="grid3 wide">${SEC().map((s,i)=>card(SEC_ICONS[i],s.t,`<ul style="margin:0;padding-left:20px">${s.items.map(x=>`<li>${x}</li>`).join('')}</ul>`,{tone:SEC_TONES[i]})).join('')}</div>`);
  $$('[data-t]',mainEl).forEach(b=>b.onclick=()=>go('lab',b.dataset.t))}
 
 // ─── View: data folder ───
@@ -1226,7 +1191,7 @@ function vData(){visInit();const F=FILES(),t=team();
  else if(k==='sales'||k==='sensors'||k==='compl'){const rows=DATA[k],name=el[0],seen=lab().compl.testViews>0,isC=k==='compl',mask=isC&&!seen?(r,c,i)=>c==='category'&&i>=36?T('ukryta','hidden'):r[c]:null;
   v.innerHTML=dataCard(k)+card('table',name,`<p class="edu-small" data-preview="${Math.min(PREVIEW_ROWS,rows.length)}/${rows.length}">${T(`Podgląd: pierwsze ${PREVIEW_ROWS} z ${rows.length} wierszy. Pełny zbiór jest w pobranym pliku.`,`Preview: first ${PREVIEW_ROWS} of ${rows.length} rows. The full set is in the downloaded file.`)}</p>${table(rows,PREVIEW_ROWS,mask)}${isC?`<p class="hint">${seen?T('Etykiety testowe odblokowane, bo ocena końcowa została już wykonana.','Test labels unlocked: the final evaluation has been run.'):T('Etykiety zestawu testowego (wiersze 37–60) odblokują się po ocenie końcowej w Laboratorium.','Test-set labels (rows 37–60) unlock after the final evaluation in the Build lab.')}</p>`:''}`,{tone:'blue',meta:`<span class="edu-chip tone-stone">${rows.length} ${T('wierszy','rows')}</span>`,foot:isC?`<div class="row">${dlBtn(T('Zestaw deweloperski (CSV)','Dev set (CSV)'),'dlc1')}${dlBtn(T('Test bez etykiet (CSV)','Test without labels (CSV)'),'dlc2',1)}${seen?dlBtn(T('Pełny plik z etykietami','Full labelled file'),'dlc3',1):''}</div>`:dlBtn(T('Pobierz CSV','Download CSV'))});
   if(isC){$('#dlc1').onclick=()=>dl('complaints_dev.csv',toCSV(rows.slice(0,36)),'text/csv');$('#dlc2').onclick=()=>dl('complaints_test_unlabeled.csv',toCSV(rows.slice(36).map(({id,product,text})=>({id,product,text}))),'text/csv');if(seen)$('#dlc3').onclick=()=>dl('complaints.csv',toCSV(rows),'text/csv')}else $('#dlb').onclick=()=>dl(name,toCSV(rows),'text/csv')}
- else if(k.startsWith('doc:')){const d=DOCS.find(x=>x.id===k.slice(4)),i=S.lang==='pl'?0:1,txt=`# ${d.id} ${d.t[i]}\n\n`+d.p[i].map((p,n)=>`§${n+1} ${p}`).join('\n\n');v.innerHTML=dataCard('doc')+card('file-text',`${d.id} – ${d.t[i]}`,`<pre>${esc(txt)}</pre>`,{tone:'blue',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl(d.id+'.md',txt)}
+ else if(k.startsWith('doc:')){const d=DOCS.find(x=>x.id===k.slice(4)),i=langIx(),txt=`# ${d.id} ${d.t[i]}\n\n`+d.p[i].map((p,n)=>`§${n+1} ${p}`).join('\n\n');v.innerHTML=dataCard('doc')+card('file-text',`${d.id} – ${d.t[i]}`,`<pre>${esc(txt)}</pre>`,{tone:'blue',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl(d.id+'.md',txt)}
  else if(k==='log'){v.innerHTML=card('notebook-pen','team_log.md',`<pre class="tall">${esc(logMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl('team_log.md',logMD())}
  else{const s=archSVG();v.innerHTML=card('network','architecture.svg',s?`<div class="diagram" style="--dw:${archWidth()}px">${s}</div>`:`<p>${T('Brak schematu – zbuduj go w zakładce Architektura.','No diagram yet – build it in the Architecture tab.')}</p>`,{tone:'stone',foot:s?dlBtn(T('Pobierz SVG','Download SVG')):`<button type="button" class="btn-ghost" data-go="arch">${T('Przejdź do Architektury','Go to Architecture')}</button>`});if(s)$('#dlb').onclick=()=>dl('architecture.svg',s,'image/svg+xml');else $('[data-go]',v).onclick=()=>go('arch')}}
 
@@ -1273,7 +1238,7 @@ function dRag(){const nodes=ragNodes();
  $('#pl').onclick=()=>{clearInterval(X.ragTimer);if(matchMedia('(prefers-reduced-motion: reduce)').matches){X.ragStep=7;draw();return}X.ragStep=-1;draw();X.ragTimer=setInterval(()=>{if(!$('#ragTxt')){clearInterval(X.ragTimer);return}X.ragStep++;if(X.ragStep>=7){X.ragStep=7;clearInterval(X.ragTimer)}draw()},1300)};
  $('#toLabRag').onclick=()=>go('lab','rag')}
 function dSplit(){
- $('#demo').innerHTML=card('split',T('Podział na zbiór treningowy i testowy','Train / test split'),`<p>${T('100 zdjęć puszek, 12 wadliwych (czerwona ramka). Zbiór testowy musi być niezależny od budowy rozwiązania.','100 can photos, 12 defective (red border). The test set must be independent of how the solution was built.')}</p><div class="grid2 mt"><div><div class="squares" id="sqs" aria-hidden="true"></div><p class="edu-small mt"><span class="sq key"></span>${T('trening','training')} &nbsp; <span class="sq key t"></span>${T('test','test')}</p></div><div>${slider('tp',T('Udział testu','Test share'),5,50,1,X.testPct,X.testPct+'%')}<p class="mt"><label><input type="checkbox" id="lk" ${X.leak?'checked':''}> ${T('Wyciek danych: te same zdjęcia trafiają do obu zbiorów (przerywana ramka)','Data leakage: the same photos land in both sets (dashed outline)')}</label></p><p><button type="button" class="btn-ghost btn-sm" id="sh">${ic('shuffle')}${T('Losuj ponownie','Reshuffle')}</button></p></div></div><div id="splitOut" class="mt" aria-live="polite"></div><p class="hint mt">${T('Dla prognoz sprzedaży dzieli się chronologicznie: test to zawsze „przyszłość”.','For sales forecasting split chronologically: the test set is always “the future”.')}</p>`,{tone:'blue'});
+ $('#demo').innerHTML=card('split',T('Podział na zbiór treningowy i testowy','Train / test split'),`<p>${T('100 zdjęć puszek, 12 wadliwych (czerwona ramka). Zbiór testowy musi być niezależny od budowy rozwiązania.','100 can photos, 12 defective (red border). The test set must be independent of how the solution was built.')}</p><div class="grid2 mt"><div><div class="squares" id="sqs" aria-hidden="true"></div><p class="edu-small mt"><span class="sq key"></span>${T('trening','training')} &nbsp; <span class="sq key t"></span>test</p></div><div>${slider('tp',T('Udział testu','Test share'),5,50,1,X.testPct,X.testPct+'%')}<p class="mt"><label><input type="checkbox" id="lk" ${X.leak?'checked':''}> ${T('Wyciek danych: te same zdjęcia trafiają do obu zbiorów (przerywana ramka)','Data leakage: the same photos land in both sets (dashed outline)')}</label></p><p><button type="button" class="btn-ghost btn-sm" id="sh">${ic('shuffle')}${T('Losuj ponownie','Reshuffle')}</button></p></div></div><div id="splitOut" class="mt" aria-live="polite"></div><p class="hint mt">${T('Dla prognoz sprzedaży dzieli się chronologicznie: test to zawsze „przyszłość”.','For sales forecasting split chronologically: the test set is always “the future”.')}</p>`,{tone:'blue'});
  const draw=()=>{const r=rng(X.shuf),N=100,items=[];for(let i=0;i<N;i++)items.push({bad:i<12,dup:false});for(let i=N-1;i>0;i--){const j=Math.floor(r()*(i+1));[items[i],items[j]]=[items[j],items[i]]}
   const nt=Math.round(N*X.testPct/100),test=items.slice(0,nt).map(x=>({...x,set:'test'})),train=items.slice(nt).map(x=>({...x,set:'train'}));if(X.leak)for(let i=0;i<Math.min(8,test.length);i++)train[i]={...test[i],set:'train',dup:true};
   const all=[...train,...test],tb=test.filter(x=>x.bad).length;$('#tpV').textContent=X.testPct+'%';
@@ -1327,14 +1292,14 @@ function visRules(){const L=lab().vision,R=VIS.rng,th={...visTh()},ph=VIS.featur
   const types=['dent','label','code'].map(t=>{const s=set.filter(i=>i.type===t),h=s.filter(i=>visPred(i.f,th)).length;return[t,h,s.length]});
   Object.assign(out.dataset,{set:rv?'test':'val',f1:cur.f1,valF1:vm.f1,testVisible:rv,testViews:L.testViews});
   out.innerHTML=`<div class="grid2"><div><h4 style="margin:0 0 8px">${rv?T('Wynik na zbiorze testowym','Test-set result'):T('Wynik na zbiorze walidacyjnym','Validation-set result')}</h4>${kpis(cur)}${confMat(cur)}<p class="hint mt">${T('Trening F1','Training F1')}: ${pct(trm.f1)} · ${T('Baseline „zawsze OK”: trafność','“Always OK” baseline: accuracy')} ${pct(base)}, F1 0%</p></div><div><h4 style="margin:0 0 8px">${T('Analiza błędów: ile wad każdego typu wykryto','Error analysis: defects found per type')}</h4><div class="tscroll"><table><thead><tr><th>${T('Typ wady','Defect type')}</th><th class="num">${T('Wykryto','Found')}</th></tr></thead><tbody>${types.map(t=>`<tr><td>${typeName(t[0])}</td><td class="num">${t[1]} / ${t[2]}</td></tr>`).join('')}</tbody></table></div></div></div>
-  <h4 style="margin:18px 0 4px">${rv?T('Zdjęcia testowe','Test images'):T('Zdjęcia walidacyjne','Validation images')}</h4><div class="keyrow"><span><i class="tp"></i>TP – ${T('wada wykryta','defect caught')}</span><span><i class="fn"></i>FN – ${T('wada przeoczona','defect missed')}</span><span><i class="fp"></i>FP – ${T('fałszywy alarm','false alarm')}</span><span><i></i>TN – ${T('poprawnie OK','correctly OK')}</span><span>${T('Kliknij zdjęcie, aby zobaczyć cechy i regułę.','Click an image to see features and the rule.')}</span></div>
+  <h4 style="margin:18px 0 4px">${rv?T('Zdjęcia testowe','Test images'):T('Zdjęcia walidacyjne','Validation images')}</h4><div class="keyrow">${visKey()}<span>${T('Kliknij zdjęcie, aby zobaczyć cechy i regułę.','Click an image to see features and the rule.')}</span></div>
   <div class="gal">${set.map((i,n)=>{const p=visPred(i.f,th),c=p&&i.bad?'tp':p?'fp':i.bad?'fn':'tn';return`<button type="button" class="thumb ${c}" data-cls="${c}" data-i="${n}" aria-label="${esc(i.id)}: ${c.toUpperCase()}"><img src="${i.url}" alt=""><span>${c.toUpperCase()}</span></button>`}).join('')}</div>`;
   $$('.thumb',out).forEach(b=>b.onclick=()=>openInspector(rv?'test':'val',+b.dataset.i,false));
   announce(`F1 ${pct(cur.f1)}`)};
  update();bindVisMethod();
  ks.forEach(([k])=>$('#v'+k).oninput=e=>{const L=lab().vision;L.th={...visTh(),[k]:+e.target.value,fk:VIS.featureSource};save();update()});
  $('#cal').onclick=()=>{lab().vision.th=null;save();update()};
- $('#visRv').onclick=()=>{const L=lab().vision;L.revealed=!L.revealed;if(L.revealed)L.testViews++;save();update();icons($('#proto'));$('#visRv').focus()};
+ $('#visRv').onclick=()=>{const L=lab().vision;toggleReveal(L);save();update();icons($('#proto'));$('#visRv').focus()};
  $('#sv').onclick=()=>{const L=lab().vision,th=visTh(),vm=visEval(VIS.val,th),tm=L.revealed?visEval(VIS.test,th):null,s=m=>({p:m.p,r:m.r,f1:f0(m.f1)});logAdd('vision',{th:{...th,fk:VIS.featureSource},datasetKey:VIS.datasetKey},{val:s(vm),test:tm?s(tm):null},{m:tm?'F1 (test)':T('F1 (walidacja)','F1 (validation)'),v:f0((tm||vm).f1),base:0,hi:true,test:!!tm})}}
 
 // ─── Lab: vision with a model ───
@@ -1365,19 +1330,19 @@ async function visRunLLM({set,setName,shots,signal,onProgress,modelKey}){
  const failed=aiCheckFailed(res),preds=res.map(x=>x.ok?x.value:{d:'ok',bad:false,err:true,r:'',ai:null});let tp=0,fp=0,fn=0,tn=0;
  set.forEach((it,i)=>{if(preds[i].err)return;const p=preds[i].d!=='ok';if(p&&it.bad)tp++;else if(p)fp++;else if(it.bad)fn++;else tn++});const m=prf(tp,fp,fn,tn);
  const types=['dent','label','code'].map(t=>{const ix=set.map((it,i)=>it.type===t&&!preds[i].err?i:-1).filter(i=>i>=0);return[t,ix.filter(i=>preds[i].d!=='ok').length,ix.length,ix.filter(i=>preds[i].d===t).length]});
- return{failed,id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),ts:new Date().toISOString(),model:aiModel(modelKey).id,datasetKey:VIS.datasetKey,shots,set:setName,n:set.length-failed,m:{tp,fp,fn,tn,p:f0(m.p),r:f0(m.r),f1:f0(m.f1),acc:m.acc},types,ruleF1:f0(visEval(set,visTh()).f1),sum:aiSummary(preds.map(p=>p.ai)),preds:preds.map(p=>({d:p.d,r:p.r,bad:p.bad,err:!!p.err}))}}
+ return{failed,id:newId(),ts:new Date().toISOString(),model:aiModel(modelKey).id,datasetKey:VIS.datasetKey,shots,set:setName,n:set.length-failed,m:{tp,fp,fn,tn,p:f0(m.p),r:f0(m.r),f1:f0(m.f1),acc:m.acc},types,ruleF1:f0(visEval(set,visTh()).f1),sum:aiSummary(preds.map(p=>p.ai)),preds:preds.map(p=>({d:p.d,r:p.r,bad:p.bad,err:!!p.err}))}}
 const visSel=L=>{const runs=Array.isArray(L.mruns)?L.mruns.filter(r=>r&&r.datasetKey===VIS.datasetKey):[];return runs.find(r=>r.id===L.vsel)||runs[runs.length-1]||null};
 const visMethodBar=()=>`<div class="seg-mode" id="visMethod" role="group" aria-label="${T('Metoda kontroli','Inspection method')}" style="margin-bottom:14px"><button type="button" class="chip" data-m="rules" aria-pressed="${lab().vision.method!=='llm'}">${T('Reguły na cechach pikseli','Rules on pixel features')}</button><button type="button" class="chip" data-m="llm" aria-pressed="${lab().vision.method==='llm'}">${ic('cpu')}${T('Model wizyjny','Vision model')}</button></div>`;
 function bindVisMethod(){$$('#visMethod button').forEach(b=>b.onclick=()=>{lab().vision.method=b.dataset.m;save();labVision();icons($('#proto'));const f=$(`#visMethod button[data-m=${b.dataset.m}]`);if(f)f.focus()})}
 function labVision(){visInit();X.aiHook=null;if(lab().vision.method==='llm')visLLM();else visRules()}
 
- function visLLM(){const L=lab().vision;
+function visLLM(){const L=lab().vision;
  $('#proto').innerHTML=visMethodBar()+visionAssetStatusHtml()+card('cpu',T('Model wizyjny przez API','Vision model via API'),`<p>${T('Każde zdjęcie (powiększone do 320×400 px) trafia do modelu razem z opisem wad. Model odpowiada typem wady i uzasadnieniem. Nic tu nie jest trenowane: jedyne „dane treningowe” to oznaczone zdjęcia dołączone do promptu.','Each image (upscaled to 320×400 px) goes to the model together with a description of the defects. The model answers with the defect type and a reason. Nothing is trained here: the only “training data” are labelled images attached to the prompt.')}</p>
  <details class="mt"><summary>${T('Prompt systemowy','System prompt')}</summary><pre style="white-space:pre-wrap">${esc(VIS_SYS())}</pre></details>
  <div class="field mt"><span class="label">${T('Oznaczone zdjęcia w prompcie (ze zbioru treningowego)','Labelled images in the prompt (from the training set)')}</span><div class="seg-mode" id="visShots" role="group" aria-label="${T('Liczba przykładów','Number of examples')}">${VSHOTS.map(n=>`<button type="button" class="chip" data-s="${n}" aria-pressed="${L.vshots===n}">${n}</button>`).join('')}</div><p class="hint">${T('4 = po jednym zdjęciu z każdej klasy (OK, wgniecenie, etykieta, kod), 8 = po dwa. Każde zdjęcie w prompcie to dodatkowe tokeny przy każdym wywołaniu.','4 = one image per class (OK, dent, label, code), 8 = two each. Every image in the prompt adds tokens to every call.')}</p></div>
  <div class="row mt"><button type="button" class="btn" id="visRun"></button><button type="button" class="btn-ink" id="visRv"></button><span id="visViews" class="edu-chip tone-stone"></span></div><p class="hint ai-cost" id="visEst"></p><p class="hint" id="visLock"></p>${aiRunBox('visRunBox')}`,{tone:'grape'})
  +`<div class="mt">${card('gauge',T('Wynik modelu','Model result'),`<div id="visModelRes" data-ai-run="none"></div>`,{tone:'grape',meta:`<span id="visSetName" class="edu-chip tone-stone"></span>`})}</div>`
- +`<div class="grid2 mt"><div>${card('images',T('Zdjęcia i decyzje modelu','Images and model decisions'),`<div class="keyrow"><span><i class="tp"></i>TP – ${T('wada wykryta','defect caught')}</span><span><i class="fn"></i>FN – ${T('wada przeoczona','defect missed')}</span><span><i class="fp"></i>FP – ${T('fałszywy alarm','false alarm')}</span><span><i></i>TN – ${T('poprawnie OK','correctly OK')}</span></div><div class="gal" id="visGal"></div>`,{tone:'grape'})}</div><div id="visDetail"></div></div>`
+ +`<div class="grid2 mt"><div>${card('images',T('Zdjęcia i decyzje modelu','Images and model decisions'),`<div class="keyrow">${visKey()}</div><div class="gal" id="visGal"></div>`,{tone:'grape'})}</div><div id="visDetail"></div></div>`
  +`<div class="mt">${card('history',T('Historia przebiegów','Run history'),`<div id="visHist"></div>`,{tone:'grape'})}</div><div class="mt">${card('save',T('Zapisz eksperyment','Save the experiment'),saveBar(),{tone:'grape'})}</div>`;
  const drawControls=()=>{const L=lab().vision,rv=L.revealed,busy=!!AIS.run,loading=VIS.loading,queued=VIS.queued,m=aiModel(),est=60*((150+(1+L.vshots)*VIS_IMG_TOKENS)*m.pin+60*m.pout)/1e6;
   if(!busy)$('#visRun').innerHTML=loading?T('Ładowanie zdjęć…','Loading images…'):ic('play')+(rv?T('Uruchom model na 60 zdjęciach testowych','Run the model on the 60 test images'):T('Uruchom model na 60 zdjęciach walidacyjnych','Run the model on the 60 validation images'));
@@ -1396,13 +1361,13 @@ function labVision(){visInit();X.aiHook=null;if(lab().vision.method==='llm')visL
   $('#visGal').innerHTML=set.map((it,i)=>{const pd=r.preds[i],p=pd.d!=='ok',c=pd.err?'err':p&&it.bad?'tp':p?'fp':it.bad?'fn':'tn',lb=pd.err?T('BŁĄD WYWOŁANIA','CALL FAILED'):`${c.toUpperCase()} · ${typeName(pd.d)}`;return`<button type="button" class="thumb ${c==='err'?'':c}" data-cls="${c}" data-i="${i}" aria-label="${esc(it.id)}: ${lb}"><img src="${it.url}" alt=""><span>${lb}</span></button>`}).join('');
   $$('#visGal .thumb').forEach(b=>b.onclick=()=>drawDetail(r,set,+b.dataset.i));$('#visDetail').innerHTML=card('scan-eye',T('Szczegóły zdjęcia','Image details'),`<p class="hint">${T('Kliknij zdjęcie, aby zobaczyć je w rozdzielczości wysyłanej do modelu, prawdziwy typ wady i uzasadnienie modelu.','Click an image to see it at the resolution sent to the model, the actual defect type and the model reason.')}</p>`,{tone:'grape'});icons($('#visDetail'));announce(`F1 ${pct(r.m.f1)}`)};
  const drawDetail=(r,set,i)=>{const it=set[i],pd=r.preds[i],ok=pd.d===it.type,el=$('#visDetail');
-  el.innerHTML=card('scan-eye',`${it.id}`,`<img src="${visBig(it)}" alt="${esc(it.id)}" style="width:100%;max-width:320px;display:block;border-radius:var(--r-sm);border:1px solid var(--line-2)"><p class="mt"><b>${T('Fakt','Actual')}:</b> ${typeName(it.type)} · <b>${T('Model','Model')}:</b> ${typeName(pd.d)} <span class="edu-chip ${ok?'tone-green':'tone-red'}">${ok?T('zgodnie','match'):T('niezgodnie','mismatch')}</span></p><p><b>${T('Uzasadnienie modelu','Model reason')}:</b> ${pd.r?esc(pd.r):`<span class="hint">${pd.bad?T('(brak poprawnego JSON)','(no valid JSON)'):T('(uzasadnienia przechowujemy tylko dla ostatnich przebiegów)','(reasons are kept for the latest runs only)')}</span>`}</p>`,{tone:ok?'green':'red'});icons(el)};
+  el.innerHTML=card('scan-eye',`${it.id}`,`<img src="${visBig(it)}" alt="${esc(it.id)}" style="width:100%;max-width:320px;display:block;border-radius:var(--r-sm);border:1px solid var(--line-2)"><p class="mt"><b>${T('Fakt','Actual')}:</b> ${typeName(it.type)} · <b>Model:</b> ${typeName(pd.d)} <span class="edu-chip ${ok?'tone-green':'tone-red'}">${ok?T('zgodnie','match'):T('niezgodnie','mismatch')}</span></p><p><b>${T('Uzasadnienie modelu','Model reason')}:</b> ${pd.r?esc(pd.r):`<span class="hint">${pd.bad?T('(brak poprawnego JSON)','(no valid JSON)'):T('(uzasadnienia przechowujemy tylko dla ostatnich przebiegów)','(reasons are kept for the latest runs only)')}</span>`}</p>`,{tone:ok?'green':'red'});icons(el)};
  const drawHist=()=>{const L=lab().vision,el=$('#visHist'),runs=(Array.isArray(L.mruns)?L.mruns:[]).filter(r=>r&&r.datasetKey===VIS.datasetKey),cur=visSel(L);if(!runs.length){el.innerHTML=`<p class="hint">${T('Każdy przebieg modelu trafia tutaj.','Every model run lands here.')}</p>`;return}
-  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>#</th><th>${T('Model','Model')}</th><th class="num">${T('Przykłady','Examples')}</th><th>${T('Zbiór','Set')}</th><th class="num">F1</th><th class="num">P</th><th class="num">R</th><th class="num">${T('F1 reguł','Rules F1')}</th><th class="num">${T('Koszt','Cost')}</th><th></th></tr></thead><tbody>${runs.map((r,i)=>`<tr class="${r===cur?'sel':''}"><td>${i+1}</td><td>${esc(aiModelName(r.model))}</td><td class="num">${r.shots}</td><td>${r.set==='test'?`<span class="edu-chip tone-yellow">test</span>`:T('walidacja','validation')}</td><td class="num">${pct(r.m.f1)}</td><td class="num">${pct(r.m.p)}</td><td class="num">${pct(r.m.r)}</td><td class="num">${pct(r.ruleF1)}</td><td class="num">${usd(r.sum.cost)}</td><td><button type="button" class="btn-ghost btn-sm" data-run="${r.id}">${T('Pokaż','Show')}</button></td></tr>`).join('')}</tbody></table></div>`;
+  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>#</th><th>Model</th><th class="num">${T('Przykłady','Examples')}</th><th>${T('Zbiór','Set')}</th><th class="num">F1</th><th class="num">P</th><th class="num">R</th><th class="num">${T('F1 reguł','Rules F1')}</th><th class="num">${T('Koszt','Cost')}</th><th></th></tr></thead><tbody>${runs.map((r,i)=>`<tr class="${r===cur?'sel':''}"><td>${i+1}</td><td>${esc(aiModelName(r.model))}</td><td class="num">${r.shots}</td><td>${r.set==='test'?`<span class="edu-chip tone-yellow">test</span>`:T('walidacja','validation')}</td><td class="num">${pct(r.m.f1)}</td><td class="num">${pct(r.m.p)}</td><td class="num">${pct(r.m.r)}</td><td class="num">${pct(r.ruleF1)}</td><td class="num">${usd(r.sum.cost)}</td><td><button type="button" class="btn-ghost btn-sm" data-run="${r.id}">${T('Pokaż','Show')}</button></td></tr>`).join('')}</tbody></table></div>`;
   $$('[data-run]',el).forEach(b=>b.onclick=()=>{lab().vision.vsel=b.dataset.run;save();drawRes();drawHist()})};
  const all=()=>{drawControls();drawRes();drawHist()};all();X.aiHook=drawControls;bindVisMethod();
  $$('#visShots button').forEach(b=>b.onclick=()=>{lab().vision.vshots=+b.dataset.s;save();drawControls()});
- $('#visRv').onclick=()=>{const L=lab().vision;L.revealed=!L.revealed;if(L.revealed)L.testViews++;save();drawControls();$('#visRv').focus()};
+ $('#visRv').onclick=()=>{const L=lab().vision;toggleReveal(L);save();drawControls();$('#visRv').focus()};
  $('#visRun').onclick=async()=>{if(VIS.queued)return;VIS.queued=true;drawControls();let run=null,o=null;
   try{if(VIS.loading){toast(T('Poczekaj na wczytanie zdjęć.','Wait for the images to finish loading.'));if(VIS.readyPromise)await VIS.readyPromise}if(VIS.status!=='ready'||S.view!=='lab'||S.sub.lab!=='vision')return;
    const L=lab().vision,rv=L.revealed,set=rv?VIS.test:VIS.val;o=$('#visModelRes');run=aiStart('visRunBox',set.length,T('Zdjęcia','Images'));o.dataset.aiRun='running';drawControls();
@@ -1412,19 +1377,18 @@ function labVision(){visInit();X.aiHook=null;if(lab().vision.method==='llm')visL
   logAdd('vision',{mode:'llm',model:r.model,shots:r.shots,set:r.set,datasetKey:r.datasetKey||VIS.datasetKey},{val:t?null:s,test:t?s:null,ai:r.sum,ruleF1:r.ruleF1,run:r.id},{m:t?T('F1 modelu (test)','model F1 (test)'):T('F1 modelu (walidacja)','model F1 (validation)'),v:r.m.f1,base:0,hi:true,test:t})}}
 
 // ─── Lab: RAG ───
-const STEM=toks;
 // Hidden test questions: four in scope plus one out of scope; the example chips stay in the tuning set
 const RAG_TEST_IDX=new Set([7,9,12,14,19]),RQ_DEV=RQ.filter((_,i)=>!RAG_TEST_IDX.has(i)),RQ_TEST=RQ.filter((_,i)=>RAG_TEST_IDX.has(i));
-function ragIndex(chunk){const li=S.lang==='pl'?0:1,ch=[];DOCS.forEach(d=>{const ps=d.p[li];for(let i=0;i<ps.length;i+=chunk){ch.push({doc:d.id,title:d.t[li],par:(i+1)+(chunk>1?'–'+Math.min(i+chunk,ps.length):''),text:ps.slice(i,i+chunk).join(' ')})}});
- const df={};ch.forEach(c=>{c.tf={};STEM(c.text).forEach(t=>c.tf[t]=(c.tf[t]||0)+1);Object.keys(c.tf).forEach(t=>df[t]=(df[t]||0)+1)});
+function ragIndex(chunk){const li=langIx(),ch=[];DOCS.forEach(d=>{const ps=d.p[li];for(let i=0;i<ps.length;i+=chunk){ch.push({doc:d.id,title:d.t[li],par:(i+1)+(chunk>1?'–'+Math.min(i+chunk,ps.length):''),text:ps.slice(i,i+chunk).join(' ')})}});
+ const df={};ch.forEach(c=>{c.tf={};toks(c.text).forEach(t=>c.tf[t]=(c.tf[t]||0)+1);Object.keys(c.tf).forEach(t=>df[t]=(df[t]||0)+1)});
  ch.forEach(c=>{c.w={};let n=0;for(const t in c.tf){c.w[t]=(1+Math.log(c.tf[t]))*Math.log(1+ch.length/df[t]);n+=c.w[t]**2}c.n=Math.sqrt(n)});return{ch,df}}
-function ragAsk(q,chunk){const{ch,df}=ragIndex(chunk),qt=STEM(q),qw={};qt.forEach(t=>qw[t]=(qw[t]||0)+1);let qn=0;for(const t in qw){qw[t]=(df[t]?Math.log(1+ch.length/df[t]):0)*(1+Math.log(qw[t]));qn+=qw[t]**2}qn=Math.sqrt(qn)||1;
+function ragAsk(q,chunk){const{ch,df}=ragIndex(chunk),qt=toks(q),qw={};qt.forEach(t=>qw[t]=(qw[t]||0)+1);let qn=0;for(const t in qw){qw[t]=(df[t]?Math.log(1+ch.length/df[t]):0)*(1+Math.log(qw[t]));qn+=qw[t]**2}qn=Math.sqrt(qn)||1;
  return ch.map(c=>{let d=0;for(const t in qw)if(c.w[t])d+=qw[t]*c.w[t];return{c,s:d/(qn*c.n)}}).sort((a,b)=>b.s-a.s)}
-function bestSentence(text,q){const sents=text.split(/(?<=[.!?])\s+/),qs=new Set(STEM(q));let best=sents[0],bs=-1;sents.forEach(s=>{const o=STEM(s).filter(t=>qs.has(t)).length;if(o>bs){bs=o;best=s}});return best}
+function bestSentence(text,q){const sents=text.split(/(?<=[.!?])\s+/),qs=new Set(toks(q));let best=sents[0],bs=-1;sents.forEach(s=>{const o=toks(s).filter(t=>qs.has(t)).length;if(o>bs){bs=o;best=s}});return best}
 function ragAnswer(q,sc,cfg){const top=sc[0];if(!top||top.s<cfg.min)return{a:T('Nie znalazłem tej informacji w opisach procesów.','I could not find this in the process documents.'),src:[],sim:top?top.s:0,refused:true};
  return{a:bestSentence(top.c.text,q),src:sc.slice(0,cfg.k).filter(x=>x.s>=cfg.min).map(x=>({doc:x.c.doc,par:x.c.par})),sim:top.s,refused:false}}
-function literalBaseline(q){const li=S.lang==='pl'?0:1,words=q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' ').filter(w=>w&&!STOP.has(w));let best=null,bs=0;DOCS.forEach(d=>d.p[li].forEach(p=>{const pw=p.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' '),n=words.filter(w=>pw.includes(w)).length;if(n>bs){bs=n;best=p}}));return best}
-function ragEval(cfg,set=RQ_DEV){const li=S.lang==='pl'?0:1;let hit=0,ok=0,ref=0,baseOk=0,precSum=0;const rows=set.map(r=>{const q=r.q[li],sc=ragAsk(q,cfg.chunk),ans=ragAnswer(q,sc,cfg),got=sc.slice(0,cfg.k).map(x=>x.c.doc);
+function literalBaseline(q){const li=langIx(),words=q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' ').filter(w=>w&&!STOP.has(w));let best=null,bs=0;DOCS.forEach(d=>d.p[li].forEach(p=>{const pw=p.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' '),n=words.filter(w=>pw.includes(w)).length;if(n>bs){bs=n;best=p}}));return best}
+function ragEval(cfg,set=RQ_DEV){const li=langIx();let hit=0,ok=0,ref=0,baseOk=0,precSum=0;const rows=set.map(r=>{const q=r.q[li],sc=ragAsk(q,cfg.chunk),ans=ragAnswer(q,sc,cfg),got=sc.slice(0,cfg.k).map(x=>x.c.doc);
   if(r.oos){if(ans.refused)ref++;return{q,oos:1,a:ans.a,sim:ans.sim,good:ans.refused,got}}
   const h=got.includes(r.doc),c=!ans.refused&&r.ok.test(ans.a),b=literalBaseline(q);if(ans.src.length)precSum+=ans.src.filter(x=>x.doc===r.doc).length/ans.src.length;if(h)hit++;if(c)ok++;if(b&&r.ok.test(b))baseOk++;return{q,doc:r.doc,got,h,a:ans.a,sim:ans.sim,good:c}});
  const n=set.filter(r=>!r.oos).length;return{rows,hit,ok,ref,baseOk,n,nOos:set.filter(r=>r.oos).length,prec:precSum/n}}
@@ -1442,10 +1406,10 @@ async function ragLLMAsk(q,L,signal){const sc=ragAsk(q,L.chunk),ps=sc.filter(x=>
  if(!ps.length)return{a:RAG_NOT_FOUND(),src:[],refused:true,sim,top,ai:null,messages:null};
  const messages=ragMessages(q,ps),x=await callModel({messages,maxTokens:250,signal}),c=ragClean(x.data);
  return{a:c?c.answer:T('(model nie zwrócił poprawnego JSON)','(the model did not return valid JSON)'),src:c?c.src:[],refused:c?c.refused:false,sim,top,ai:aiUse(x),messages}}
-function refPassage(r){const li=S.lang==='pl'?0:1,d=DOCS.find(x=>x.id===r.doc);return d?(d.p[li].find(p=>r.ok.test(p))||d.p[li].join(' ')):''}
+function refPassage(r){const li=langIx(),d=DOCS.find(x=>x.id===r.doc);return d?(d.p[li].find(p=>r.ok.test(p))||d.p[li].join(' ')):''}
 async function ragJudge(r,q,a,signal){const x=await callModel({messages:[{role:'system',content:JUDGE_SYS()},{role:'user',content:`${T('Pytanie','Question')}: ${q}\n${T('Wzorcowy fragment','Reference passage')} (${r.doc}): ${refPassage(r)}\n${T('Odpowiedź asystenta','Assistant answer')}: ${a}`}],maxTokens:120,signal}),d=x.data;
  return{v:isObj(d)?{correct:!!d.correct,grounded:!!d.grounded,reason:typeof d.reason==='string'?d.reason.slice(0,200):''}:null,ai:aiUse(x)}}
-async function ragEvalLLM(L,set,{signal,onProgress}){const li=S.lang==='pl'?0:1,items=set.map(r=>({r,q:r.q[li]})),ext=ragEval(L,set);
+async function ragEvalLLM(L,set,{signal,onProgress}){const li=langIx(),items=set.map(r=>({r,q:r.q[li]})),ext=ragEval(L,set);
  const res=await runBatch(items,async it=>{const ans=await ragLLMAsk(it.q,L,signal),judge=L.judge&&!it.r.oos&&!ans.refused?await ragJudge(it.r,it.q,ans.a,signal):null;return{ans,judge}},{signal,onProgress});
  const failed=aiCheckFailed(res),rows=[],uses=[];let hit=0,ok=0,ref=0,precSum=0,baseOk=0,jn=0,agree=0;
  res.forEach((x,i)=>{const{r,q}=items[i];
@@ -1459,7 +1423,7 @@ async function ragEvalLLM(L,set,{signal,onProgress}){const li=S.lang==='pl'?0:1,
  return{failed,rows,res:{hit,ok,ref,n,nOos:okSet.length-n,prec:n?precSum/n:0,baseOk,extOk:ext.ok},sum:aiSummary(uses),judgeN:L.judge?jn:null,agree:jn?agree/jn:null}}
 const useText=u=>`${aiModelName(u.model)} · ${num(u.in,0)} + ${cnt(u.out,'token',num(u.out,0))} · ${usd(u.cost)} · ${num(u.ms/1000,2)} s${u.cached?' · '+T('z pamięci podręcznej','from cache'):''}`;
 
-function labRag(){const L=lab().rag,li=S.lang==='pl'?0:1,qs=RQ.slice(0,6),oosQ=RQ.find(r=>r.oos).q[li],llm=L.gen==='llm';
+function labRag(){const L=lab().rag,li=langIx(),qs=RQ.slice(0,6),oosQ=RQ.find(r=>r.oos).q[li],llm=L.gen==='llm';
  $('#proto').innerHTML=`<div class="grid2">${card('messages-square',T('Czat z opisami procesów','Chat with process documents'),`<div class="seg-mode" id="ragGen" role="group" aria-label="${T('Kto pisze odpowiedź','Who writes the answer')}"><button type="button" class="chip" data-g="extract" aria-pressed="${!llm}">${T('Odpowiedź ekstrakcyjna (bez modelu)','Extractive answer (no model)')}</button><button type="button" class="chip" data-g="llm" aria-pressed="${llm}">${ic('cpu')}${T('Model językowy','Language model')}</button></div>
  <p class="mt">${llm?T('Wyszukiwanie TF-IDF wybiera fragmenty opisów procesów, a odpowiedź pisze prawdziwy model językowy wyłącznie na ich podstawie. Fragmenty poniżej min. podobieństwa nie trafiają do modelu.','TF-IDF search picks process document passages and a real language model writes the answer from them only. Passages below min. similarity are not sent to the model.'):T('Wyszukiwanie TF-IDF po fragmentach opisów procesów + odpowiedź ekstrakcyjna (zdanie z najlepszego fragmentu). W produkcji ostatni krok wykonuje model językowy.','TF-IDF search over process document passages + extractive answer (best sentence of the top passage). In production an LLM does the last step.')}</p>
  <div class="grid3 mt">${slider('rk',T('Liczba fragmentów k','Retrieved passages k'),1,5,1,L.k,L.k)}${slider('rc',T('Akapitów we fragmencie','Paragraphs per chunk'),1,4,1,L.chunk,L.chunk)}${slider('rm',T('Min. podobieństwo','Min. similarity'),0,.6,.01,L.min,num(L.min,2))}</div>
@@ -1500,14 +1464,14 @@ function labRag(){const L=lab().rag,li=S.lang==='pl'?0:1,qs=RQ.slice(0,6),oosQ=R
  drawChat();drawPrompt();drawEval();drawModel();X.aiHook=drawModel;
  $$('#ragGen button').forEach(b=>b.onclick=()=>{lab().rag.gen=b.dataset.g;save();labRag();icons($('#proto'));$(`#ragGen button[data-g=${b.dataset.g}]`).focus()});
  $('#qs').onclick=()=>ask($('#qi').value);$('#qi').onkeydown=e=>{if(e.key==='Enter')ask(e.target.value)};
- $$('#proto .chip[data-i]').forEach(c=>c.onclick=()=>ask(qs[+c.dataset.i].q[S.lang==='pl'?0:1]));$('#oosQ').onclick=()=>ask(oosQ);
+ $$('#proto .chip[data-i]').forEach(c=>c.onclick=()=>ask(qs[+c.dataset.i].q[langIx()]));$('#oosQ').onclick=()=>ask(oosQ);
  const upd=()=>{save();drawEval();drawModel()};
  $('#rk').oninput=e=>{lab().rag.k=+e.target.value;upd()};$('#rc').oninput=e=>{lab().rag.chunk=+e.target.value;upd()};$('#rm').oninput=e=>{lab().rag.min=+e.target.value;upd()};
  $('#ragJudge').onchange=e=>{lab().rag.judge=e.target.checked;upd()};
- $('#ragRv').onclick=()=>{const L=lab().rag;L.revealed=!L.revealed;if(L.revealed)L.testViews++;save();drawEval();drawModel();icons($('#proto'));$('#ragRv').focus()};
+ $('#ragRv').onclick=()=>{const L=lab().rag;toggleReveal(L);save();drawEval();drawModel();icons($('#proto'));$('#ragRv').focus()};
  $('#ragRun').onclick=async()=>{const L=lab().rag,set=L.revealed?RQ_TEST:RQ_DEV,setName=L.revealed?'test':'dev',cfg={k:L.k,chunk:L.chunk,min:L.min,judge:!!L.judge},sig=ragSig(cfg,setName),o=$('#ragModelRes'),b=$('#ragRun'),run=aiStart('ragRunBox',set.length,T('Pytania','Questions'));
   o.dataset.aiRun='running';b.disabled=true;
-  try{const r=await ragEvalLLM(cfg,set,{signal:run.signal,onProgress:run.progress});L.mrun={sig,set:setName,judge:cfg.judge,...r};save();announce(`${T('Model','Model')}: ${r.res.ok}/${r.res.n}, ${usd(r.sum.cost)}`)}
+  try{const r=await ragEvalLLM(cfg,set,{signal:run.signal,onProgress:run.progress});L.mrun={sig,set:setName,judge:cfg.judge,...r};save();announce(`Model: ${r.res.ok}/${r.res.n}, ${usd(r.sum.cost)}`)}
   catch(e){aiFailToast(e)}
   finally{run.end();if(o.isConnected){o.dataset.aiRun='idle';b.disabled=false;drawModel()}}};
  $('#sv').onclick=()=>{const L=lab().rag,rv=L.revealed,m=L.mrun,setName=rv?'test':'dev';
@@ -1527,7 +1491,7 @@ const cSafetyFalse=(rows,safety)=>rows.filter(r=>!r.hazard&&cHazard(r.text,safet
 function draftFor(text,kw,safety){const h=cHazard(text,safety);return{h,text:h?REPLY('smell'):REPLY(cPred(text,kw))}}
 function complRules(){const dev=DATA.compl.slice(0,36),tst=DATA.compl.slice(36);
  $('#proto').innerHTML=complMethodBar()+card('sliders-horizontal',T('Reguły słów kluczowych','Keyword rules'),`<p>${T('Edytuj listy słów (po przecinku) i obserwuj wynik na zestawie deweloperskim (36 zgłoszeń). Zestaw testowy (24) odsłoń dopiero na końcu: każde odsłonięcie jest liczone.','Edit the keyword lists (comma-separated) and watch the dev set (36 complaints). Reveal the test set (24) only at the end: each reveal is counted.')}</p>
- ${complGuideHTML()}<div class="grid3 wide mt">${CK.map(c=>`<div class="field"><label for="kw_${c}">${CAT[c][S.lang==='pl'?0:1]}</label><input type="text" class="input" id="kw_${c}" data-c="${c}" value="${esc(lab().compl.kw[c])}"></div>`).join('')}<div class="field"><label for="kwSafety">${T('Bezpieczeństwo żywności (PROCES-04)','Food safety (PROCES-04)')}</label><input type="text" class="input" id="kwSafety" value="${esc(lab().compl.safety)}"></div></div>
+ ${complGuideHTML()}<div class="grid3 wide mt">${CK.map(c=>`<div class="field"><label for="kw_${c}">${CAT[c][langIx()]}</label><input type="text" class="input" id="kw_${c}" data-c="${c}" value="${esc(lab().compl.kw[c])}"></div>`).join('')}<div class="field"><label for="kwSafety">${T('Bezpieczeństwo żywności (PROCES-04)','Food safety (PROCES-04)')}</label><input type="text" class="input" id="kwSafety" value="${esc(lab().compl.safety)}"></div></div>
  <div class="row mt"><button type="button" class="btn-ink" id="rv"></button><button type="button" class="btn-ghost" id="rs">${ic('rotate-ccw')}${T('Przywróć domyślne słowa','Reset keywords')}</button><span id="cViews" class="edu-chip tone-stone"></span></div><p class="hint" id="cLock"></p><div id="cStats" class="mt"></div>`,{tone:'yellow'})
  +`<div class="grid2 mt"><div>${card('list',T('Zgłoszenia i błędy','Complaints and errors'),`<div class="tscroll tall" id="cList" style="max-height:520px"></div>`,{tone:'yellow',meta:`<span id="cSetName" class="edu-chip tone-stone"></span>`})}</div><div id="cDraft"></div></div>`
  +`<div class="mt">${card('save',T('Zapisz eksperyment','Save the experiment'),saveBar(),{tone:'yellow'})}</div>`;
@@ -1545,7 +1509,7 @@ function complRules(){const dev=DATA.compl.slice(0,36),tst=DATA.compl.slice(36);
  bindComplMethod();
  const all=()=>{drawStats();drawList();drawDraft()};all();
  $$('#proto input[data-c]').forEach(i=>i.oninput=e=>{lab().compl.kw[e.target.dataset.c]=e.target.value;save();all()});$('#kwSafety').oninput=e=>{lab().compl.safety=e.target.value;save();all()};
- $('#rv').onclick=()=>{const L=lab().compl;L.revealed=!L.revealed;if(L.revealed)L.testViews++;L.sel=0;save();all();icons($('#proto'));$('#rv').focus()};
+ $('#rv').onclick=()=>{const L=lab().compl;toggleReveal(L);L.sel=0;save();all();icons($('#proto'));$('#rv').focus()};
  $('#rs').onclick=()=>withUndo(T('Przywrócono domyślne słowa.','Keywords reset.'),()=>{const L=lab().compl;L.kw={...KW};L.safety=SAFETY_KW});
  $('#sv').onclick=()=>{const L=lab().compl,d=cEval(dev,L.kw),t=L.revealed?cEval(tst,L.kw):null;logAdd('complaints',{kw:{...L.kw},safety:L.safety},{dev:d.acc,macro:d.macro,safety:cSafetyRecall(cur(),L.safety),safetyFalse:cSafetyFalse(cur(),L.safety),base:d.maj,test:t?t.acc:null},{m:t?T('trafność (test)','accuracy (test)'):T('trafność (dev)','accuracy (dev)'),v:t?t.acc:d.acc,base:t?t.maj:d.maj,hi:true,test:!!t})}}
 
@@ -1581,7 +1545,7 @@ async function complRunLLM({rows,setName,prompt,ver,shots,modelKey,signal,onProg
   return{c:normCategory(d&&d.category),h:!!d&&d.hazard===true,r:d&&typeof d.reply==='string'?d.reply.slice(0,800):'',bad:!d,ai:aiUse(x)}},{signal,onProgress});
  const failed=aiCheckFailed(res),keep=res.map((x,i)=>x.ok?i:-1).filter(i=>i>=0);rows=keep.map(i=>rows[i]);
  const preds=keep.map(i=>res[i].value),sc=cScore(rows,preds.map(p=>p.c)),hz=rows.map((r,i)=>[r,preds[i]]).filter(([r])=>r.hazard);
- return{failed,id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),ts:new Date().toISOString(),ver,model:aiModel(modelKey).id,shots,set:setName,n:rows.length,acc:sc.acc,macro:sc.macro,safety:hz.length?hz.filter(([,p])=>p.h).length/hz.length:1,safetyFalse:rows.filter((r,i)=>!r.hazard&&preds[i].h).length,ruleAcc:cEval(rows,lab().compl.kw).acc,sum:aiSummary(preds.map(p=>p.ai)),ids:rows.map(r=>r.id),preds:preds.map(p=>({c:p.c,h:p.h,r:p.r,bad:p.bad}))}}
+ return{failed,id:newId(),ts:new Date().toISOString(),ver,model:aiModel(modelKey).id,shots,set:setName,n:rows.length,acc:sc.acc,macro:sc.macro,safety:hz.length?hz.filter(([,p])=>p.h).length/hz.length:1,safetyFalse:rows.filter((r,i)=>!r.hazard&&preds[i].h).length,ruleAcc:cEval(rows,lab().compl.kw).acc,sum:aiSummary(preds.map(p=>p.ai)),ids:rows.map(r=>r.id),preds:preds.map(p=>({c:p.c,h:p.h,r:p.r,bad:p.bad}))}}
 function complAddRun(L,run){L.runs.push(run);if(L.runs.length>MAX_RUNS)L.runs.splice(0,L.runs.length-MAX_RUNS);L.runs.slice(0,-KEEP_REPLIES).forEach(x=>x.preds.forEach(p=>p.r=''));L.rsel=run.id;L.sel=0}
 const complSel=L=>L.runs.find(r=>r.id===L.rsel)||L.runs[L.runs.length-1]||null;
 const complMethodBar=()=>`<div class="seg-mode" id="cMethod" role="group" aria-label="${T('Metoda klasyfikacji','Classification method')}" style="margin-bottom:14px"><button type="button" class="chip" data-m="rules" aria-pressed="${lab().compl.method!=='llm'}">${T('Reguły słów kluczowych','Keyword rules')}</button><button type="button" class="chip" data-m="llm" aria-pressed="${lab().compl.method==='llm'}">${ic('cpu')}${T('Model językowy z promptem','Language model with a prompt')}</button></div>`;
@@ -1611,24 +1575,24 @@ function complLLM(){const L=complEnsure(),rv=L.revealed;
   Object.assign(o.dataset,{n:r.n,failed:r.failed||0,shots:r.shots,set:r.set,ver:r.ver,acc:r.acc,macro:r.macro,safety:r.safety,safetyFalse:r.safetyFalse,calls:r.sum.calls,cost:r.sum.cost,ms:r.sum.ms,model:r.model});
   const per=r.sum.calls?r.sum.cost/r.sum.calls*1000:0,bad=r.preds.filter(p=>p.bad).length;
   o.innerHTML=statGrid([[pct(r.acc),T('trafność modelu','model accuracy'),'blue'],['macro-F1 '+pct(r.macro),T('średnia F1 po kategoriach','mean F1 across categories'),'green'],[pct(r.ruleAcc),T('reguły słów kluczowych na tych samych zgłoszeniach','keyword rules on the same complaints'),'ink'],[pct(r.safety),T(`wykrycie zagrożeń żywności (PROCES-04), fałszywe alarmy: ${r.safetyFalse}`,`food-safety hazard recall (PROCES-04), false alarms: ${r.safetyFalse}`),r.safety<1?'red':'green'],[usd(r.sum.cost),T(`koszt przebiegu (≈ ${usd(per)} / 1000 zgłoszeń)`,`run cost (≈ ${usd(per)} / 1000 complaints)`),'yellow'],[msText(r.sum.ms),T('średni czas odpowiedzi','average response time'),'']],'grid3 wide')
-   +`<p class="hint ai-cost mt">${esc(`${T('prompt','prompt')} ${r.ver} · ${cnt(r.shots,'example')} · `+aiSumText(r.sum))}${bad?` · ${cnt(bad,'answer')} ${T('bez poprawnego JSON (liczone jako błąd)','without valid JSON (counted as errors)')}`:''}${r.failed?` · ${T('nieudane wywołania (po ponowieniu, pominięte w wynikach)','failed calls (after a retry, left out of the results)')}: ${r.failed}`:''}</p>`;
+   +`<p class="hint ai-cost mt">${esc(`prompt ${r.ver} · ${cnt(r.shots,'example')} · `+aiSumText(r.sum))}${bad?` · ${cnt(bad,'answer')} ${T('bez poprawnego JSON (liczone jako błąd)','without valid JSON (counted as errors)')}`:''}${r.failed?` · ${T('nieudane wywołania (po ponowieniu, pominięte w wynikach)','failed calls (after a retry, left out of the results)')}: ${r.failed}`:''}</p>`;
   announce(`${T('Trafność modelu','Model accuracy')} ${pct(r.acc)}`)};
  const drawList=()=>{const L=lab().compl,r=complSel(L),box=$('#cList');if(!r){box.innerHTML='';$('#cDraft').innerHTML='';return}const rows=r.ids.map(i=>DATA.compl[i-1]),sel=Math.min(L.sel,rows.length-1);
-  box.innerHTML=`<table><thead><tr><th>#</th><th>${T('Treść (PL)','Text (PL)')}</th><th>${T('Fakt','Actual')}</th><th>${T('Model','Model')}</th></tr></thead><tbody>${rows.map((x,i)=>{const p=r.preds[i],err=p.c!==x.category,miss=x.hazard&&!p.h;return`<tr data-i="${i}" class="${i===sel?'sel':err||miss?'err':''}" aria-selected="${i===sel}"><td><button type="button" class="linkbtn" style="color:inherit" aria-label="${T('Pokaż odpowiedź modelu','Show the model answer')} ${x.id}">${x.id}</button></td><td>${esc(x.text)}</td><td>${catName(x.category)}${x.hazard?` <span class="edu-chip tone-red">PROCES-04</span>`:''}</td><td>${err?`<span class="edu-chip tone-red">${catName(p.c)}</span>`:catName(p.c)}${p.h?` <span class="edu-chip ${x.hazard?'tone-green':'tone-yellow'}">PROCES-04</span>`:''}${miss?` <span class="edu-chip tone-red">${T('przeoczone','missed')}</span>`:''}</td></tr>`}).join('')}</tbody></table>`;
+  box.innerHTML=`<table><thead><tr><th>#</th><th>${T('Treść (PL)','Text (PL)')}</th><th>${T('Fakt','Actual')}</th><th>Model</th></tr></thead><tbody>${rows.map((x,i)=>{const p=r.preds[i],err=p.c!==x.category,miss=x.hazard&&!p.h;return`<tr data-i="${i}" class="${i===sel?'sel':err||miss?'err':''}" aria-selected="${i===sel}"><td><button type="button" class="linkbtn" style="color:inherit" aria-label="${T('Pokaż odpowiedź modelu','Show the model answer')} ${x.id}">${x.id}</button></td><td>${esc(x.text)}</td><td>${catName(x.category)}${x.hazard?` <span class="edu-chip tone-red">PROCES-04</span>`:''}</td><td>${err?`<span class="edu-chip tone-red">${catName(p.c)}</span>`:catName(p.c)}${p.h?` <span class="edu-chip ${x.hazard?'tone-green':'tone-yellow'}">PROCES-04</span>`:''}${miss?` <span class="edu-chip tone-red">${T('przeoczone','missed')}</span>`:''}</td></tr>`}).join('')}</tbody></table>`;
   $$('tr[data-i]',box).forEach(tr=>tr.onclick=()=>{lab().compl.sel=+tr.dataset.i;save();drawList()});drawDraft(r,rows,sel)};
  const drawDraft=(r,rows,i)=>{const x=rows[i],p=r.preds[i],el=$('#cDraft');el.dataset.id=x.id;el.dataset.hazard=p.h;
   el.innerHTML=card('mail-check',`${T('Projekt odpowiedzi modelu','Model reply draft')} #${x.id}`,`<p><i>${esc(x.text)}</i></p>${p.h?`<div class="callout tone-red edu-block"><b>${T('Bezpieczeństwo żywności','Food safety')}</b><br>${T('Model oznaczył zagrożenie: PROCES-04 wymaga przekazania sprawy do działu jakości w ciągu 24 godzin.','The model flagged a hazard: PROCES-04 requires passing the case to quality within 24 hours.')}</div>`:x.hazard?`<div class="callout tone-red edu-block"><b>${T('Model przeoczył zagrożenie','The model missed a hazard')}</b><br>${T('To zgłoszenie jest zagrożeniem wg PROCES-04. Taki błąd w produkcji wymaga weryfikacji przez człowieka.','This complaint is a hazard under PROCES-04. In production such an error needs human review.')}</div>`:''}<p class="mt"><b>${T('Kategoria modelu','Model category')}:</b> ${catName(p.c)}</p><p><b>${T('Projekt','Draft')}:</b> ${p.r?esc(p.r):`<span class="hint">${p.bad?T('(model nie zwrócił poprawnego JSON)','(the model did not return valid JSON)'):T('(projekty odpowiedzi przechowujemy tylko dla ostatnich przebiegów)','(reply drafts are kept for the latest runs only)')}</span>`}</p><p class="hint mt">${T('Projekt pisze model, a wysyłkę zatwierdza człowiek (human-in-the-loop).','The model writes the draft and a human approves sending (human-in-the-loop).')}</p>`,{tone:p.h||x.hazard?'red':'yellow'});icons(el)};
  const drawHist=()=>{const L=lab().compl,el=$('#cHist'),cur=complSel(L);if(!L.runs.length){el.innerHTML=`<p class="hint">${T('Każdy przebieg trafia tutaj. Porównuj wersje promptu i liczbę przykładów jak kolejne epoki treningu.','Every run lands here. Compare prompt versions and example counts like successive training epochs.')}</p>`;return}
   const best=L.runs.filter(r=>r.set!=='test').reduce((b,r)=>!b||r.acc>b.acc?r:b,null);
-  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>#</th><th>${T('Prompt','Prompt')}</th><th>${T('Model','Model')}</th><th class="num">${T('Przykłady','Examples')}</th><th>${T('Zbiór','Set')}</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">macro-F1</th><th class="num">PROCES-04</th><th class="num">${T('Koszt','Cost')}</th><th></th></tr></thead><tbody>${L.runs.map((r,i)=>`<tr class="${r===cur?'sel':r===best?'best':''}"><td>${i+1}</td><td>${esc(r.ver)}</td><td>${esc(aiModelName(r.model))}</td><td class="num">${r.shots}</td><td>${r.set==='test'?`<span class="edu-chip tone-yellow">test</span>`:r.set==='dev16'?'21–36':'1–36'}</td><td class="num">${pct(r.acc)}${r===best?` <span class="edu-chip tone-yellow">${T('najlepszy','best')}</span>`:''}</td><td class="num">${pct(r.macro)}</td><td class="num">${pct(r.safety)}</td><td class="num">${usd(r.sum.cost)}</td><td><button type="button" class="btn-ghost btn-sm" data-run="${r.id}" ${r===cur?'aria-pressed="true"':''}>${T('Pokaż','Show')}</button></td></tr>`).join('')}</tbody></table></div><p class="hint mt">${T('Wybieraj najlepszy przebieg po wynikach na zestawie deweloperskim, nie testowym. Zmiana jednego elementu naraz (prompt, przykłady, model) pozwala powiedzieć, co pomogło.','Pick the best run by dev results, not test results. Changing one thing at a time (prompt, examples, model) tells you what helped.')}</p>`;
+  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>#</th><th>Prompt</th><th>Model</th><th class="num">${T('Przykłady','Examples')}</th><th>${T('Zbiór','Set')}</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">macro-F1</th><th class="num">PROCES-04</th><th class="num">${T('Koszt','Cost')}</th><th></th></tr></thead><tbody>${L.runs.map((r,i)=>`<tr class="${r===cur?'sel':r===best?'best':''}"><td>${i+1}</td><td>${esc(r.ver)}</td><td>${esc(aiModelName(r.model))}</td><td class="num">${r.shots}</td><td>${r.set==='test'?`<span class="edu-chip tone-yellow">test</span>`:r.set==='dev16'?'21–36':'1–36'}</td><td class="num">${pct(r.acc)}${r===best?` <span class="edu-chip tone-yellow">${T('najlepszy','best')}</span>`:''}</td><td class="num">${pct(r.macro)}</td><td class="num">${pct(r.safety)}</td><td class="num">${usd(r.sum.cost)}</td><td><button type="button" class="btn-ghost btn-sm" data-run="${r.id}" ${r===cur?'aria-pressed="true"':''}>${T('Pokaż','Show')}</button></td></tr>`).join('')}</tbody></table></div><p class="hint mt">${T('Wybieraj najlepszy przebieg po wynikach na zestawie deweloperskim, nie testowym. Zmiana jednego elementu naraz (prompt, przykłady, model) pozwala powiedzieć, co pomogło.','Pick the best run by dev results, not test results. Changing one thing at a time (prompt, examples, model) tells you what helped.')}</p>`;
   $$('[data-run]',el).forEach(b=>b.onclick=()=>{const L=lab().compl;L.rsel=b.dataset.run;L.sel=0;save();drawRes();drawList();drawHist()})};
  const drawCurve=()=>{const L=lab().compl,c=L.curve,el=$('#cCurveOut');if(!c){el.dataset.points=0;el.innerHTML=`<p class="hint">${T('Ten sam prompt z 0, 2, 5, 10 i 20 przykładami na zgłoszeniach 21–36. Pokazuje, ile dają „dane treningowe” w prompcie i ile kosztują tokeny.','The same prompt with 0, 2, 5, 10 and 20 examples on complaints 21–36. Shows what “training data” in the prompt buys and what the tokens cost.')}</p>`;return}
   el.dataset.points=c.points.length;const pts=c.points.map(p=>[p.shots,p.acc*100]);
   el.innerHTML=chart([{pts,c:BLUE,w:2.4}],{x0:0,x1:20,y0:0,y1:100,hline:c.ruleAcc*100,dots:pts.map(p=>[p[0],p[1],BLUE]),xlab:SHOTS.map(n=>[n,String(n)]),label:T('Trafność a liczba przykładów','Accuracy vs number of examples'),w:520,h:230})+legend([[BLUE,T('trafność modelu (%)','model accuracy (%)')],[RED,T('reguły słów kluczowych','keyword rules'),'5 3']])
-   +`<div class="tscroll"><table><thead><tr><th class="num">${T('Przykłady','Examples')}</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">PROCES-04</th><th class="num">${T('Koszt 16 zgłoszeń','Cost of 16 complaints')}</th></tr></thead><tbody>${c.points.map(p=>`<tr><td class="num">${p.shots}</td><td class="num">${pct(p.acc)}</td><td class="num">${pct(p.safety)}</td><td class="num">${usd(p.cost)}</td></tr>`).join('')}</tbody></table></div><p class="hint">${esc(`${aiModelName(c.model)} · ${T('prompt','prompt')} ${c.ver} · ${T('razem','total')} ${usd(c.cost)}`)}. ${T('Więcej przykładów to dłuższy prompt przy każdym wywołaniu: koszt rośnie liniowo, a trafność zwykle przestaje rosnąć.','More examples mean a longer prompt on every call: cost grows linearly while accuracy usually stops improving.')}</p>`};
+   +`<div class="tscroll"><table><thead><tr><th class="num">${T('Przykłady','Examples')}</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">PROCES-04</th><th class="num">${T('Koszt 16 zgłoszeń','Cost of 16 complaints')}</th></tr></thead><tbody>${c.points.map(p=>`<tr><td class="num">${p.shots}</td><td class="num">${pct(p.acc)}</td><td class="num">${pct(p.safety)}</td><td class="num">${usd(p.cost)}</td></tr>`).join('')}</tbody></table></div><p class="hint">${esc(`${aiModelName(c.model)} · prompt ${c.ver} · ${T('razem','total')} ${usd(c.cost)}`)}. ${T('Więcej przykładów to dłuższy prompt przy każdym wywołaniu: koszt rośnie liniowo, a trafność zwykle przestaje rosnąć.','More examples mean a longer prompt on every call: cost grows linearly while accuracy usually stops improving.')}</p>`};
  const drawCmp=()=>{const L=lab().compl,c=L.cmp,el=$('#cCmpOut');if(!c){el.dataset.rows=0;el.innerHTML=`<p class="hint">${T('Ten sam prompt i przykłady na obu modelach. Porównaj jakość, czas i koszt na 1000 zgłoszeń: to argument do wyboru metody w raporcie.','The same prompt and examples on both models. Compare quality, time and cost per 1000 complaints: an argument for the method choice in the report.')}</p>`;return}
   el.dataset.rows=c.rows.length;
-  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>${T('Model','Model')}</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">macro-F1</th><th class="num">PROCES-04</th><th class="num">${T('Śr. czas','Avg time')}</th><th class="num">${T('$ / 1000 zgłoszeń','$ / 1000 complaints')}</th></tr></thead><tbody>${c.rows.map(x=>`<tr><td>${esc(aiModelName(x.model))}</td><td class="num">${pct(x.acc)}</td><td class="num">${pct(x.macro)}</td><td class="num">${pct(x.safety)}</td><td class="num">${msText(x.ms)}</td><td class="num">${usd(x.calls?x.cost/x.calls*1000:0)}</td></tr>`).join('')}</tbody></table></div><p class="hint">${esc(`${T('prompt','prompt')} ${c.ver} · ${cnt(c.shots,'example')} · ${setLabel(c.set)}`)}. ${T('Koszt z pamięci podręcznej serwera wynosi 0 $: powtórzone identyczne zapytania nie są płatne.','Cost from the server cache is $0: repeated identical requests are free.')}</p>`};
+  el.innerHTML=`<div class="tscroll"><table><thead><tr><th>Model</th><th class="num">${T('Trafność','Accuracy')}</th><th class="num">macro-F1</th><th class="num">PROCES-04</th><th class="num">${T('Śr. czas','Avg time')}</th><th class="num">${T('$ / 1000 zgłoszeń','$ / 1000 complaints')}</th></tr></thead><tbody>${c.rows.map(x=>`<tr><td>${esc(aiModelName(x.model))}</td><td class="num">${pct(x.acc)}</td><td class="num">${pct(x.macro)}</td><td class="num">${pct(x.safety)}</td><td class="num">${msText(x.ms)}</td><td class="num">${usd(x.calls?x.cost/x.calls*1000:0)}</td></tr>`).join('')}</tbody></table></div><p class="hint">${esc(`prompt ${c.ver} · ${cnt(c.shots,'example')} · ${setLabel(c.set)}`)}. ${T('Koszt z pamięci podręcznej serwera wynosi 0 $: powtórzone identyczne zapytania nie są płatne.','Cost from the server cache is $0: repeated identical requests are free.')}</p>`};
  const all=()=>{drawControls();drawRes();drawList();drawHist();drawCurve();drawCmp()};all();X.aiHook=drawControls;
  // ─── complaints: listeners ───
  bindComplMethod();
@@ -1637,7 +1601,7 @@ function complLLM(){const L=complEnsure(),rv=L.revealed;
  $('#cSaveVer').onclick=()=>{const L=lab().compl,id='v'+(Math.max(0,...L.prompts.map(x=>+x.id.slice(1)))+1);L.prompts.push({id,text:L.draft});L.active=id;save();$('#cVer').innerHTML=L.prompts.map(x=>`<option value="${x.id}" ${x.id===L.active?'selected':''}>${x.id}</option>`).join('');drawControls();toast(T(`Zapisano wersję ${id}.`,`Saved version ${id}.`))};
  $('#cDefault').onclick=()=>{const L=lab().compl;L.draft=COMPL_PROMPT();save();$('#cPrompt').value=L.draft;drawControls()};
  $$('#cShots button').forEach(b=>b.onclick=()=>{lab().compl.shots=+b.dataset.s;save();drawControls()});
- $('#rv').onclick=()=>{const L=lab().compl;L.revealed=!L.revealed;if(L.revealed)L.testViews++;save();drawControls();$('#rv').focus()};
+ $('#rv').onclick=()=>{const L=lab().compl;toggleReveal(L);save();drawControls();$('#rv').focus()};
  const busy=async(label,total,work)=>{const o=$('#cRes'),run=aiStart('cRunBox',total,label);o.dataset.aiRun='running';drawControls();
   try{await work(run)}catch(e){aiFailToast(e)}finally{run.end();if(o.isConnected){o.dataset.aiRun='idle';all()}}};
  $('#cRun').onclick=()=>{const L=lab().compl,s=complSet(L,L.shots);busy(T('Zgłoszenia','Complaints'),s.rows.length,async run=>{const r=await complRunLLM({rows:s.rows,setName:s.name,prompt:L.draft,ver:complVer(L),shots:L.shots,signal:run.signal,onProgress:run.progress});complAddRun(L,r);save()})};
@@ -1681,7 +1645,7 @@ function labMaint(){const L=lab().mt,fl=[['temp_c',T('temperatura','temperature'
  <div class="grid2 mt">${slider('mt',T('Próg (z-score)','Threshold (z-score)'),1.5,10,.1,L.thr,num(L.thr))}${slider('mw',T('Wygładzanie (minut)','Smoothing (minutes)'),1,8,1,L.win,L.win)}</div><div id="mtRes" class="mt"></div>${saveBar()}`,{tone:'ink'});
  const draw=()=>{const L=lab().mt,R=mtCompute(L),bands=[],dots=[];let s=-1;R.rows.forEach((r,i)=>{if(r.anomaly&&s<0)s=i;if((!r.anomaly||i===599)&&s>=0){bands.push([s,i,'rgba(201,40,35,.18)']);s=-1}});for(let i=300;i<600;i++)if(R.z[i]>L.thr)dots.push([i,R.z[i],R.rows[i].anomaly?GREEN:BERRY]);
   $('#mtV').textContent=num(L.thr);$('#mwV').textContent=L.win;const o=$('#mtRes');Object.assign(o.dataset,{f1:R.m.f1,baseF1:R.bl.f1});
-  o.innerHTML=chart([{pts:R.z.map((v,i)=>[i,v]),c:INK,w:1.2}],{x0:0,x1:599,y0:0,y1:12,bands,dots,hline:L.thr,vlines:[300],xlab:[[0,T('trening','train')],[300,T('test →','test →')],[599,'600']],label:T('Odchylenie od normy w czasie','Deviation from normal over time')})+legend([[RED,T('próg alarmu','alarm threshold'),'5 3'],[GREEN,T('trafny alarm','true alarm')],[BERRY,T('fałszywy alarm','false alarm')]])+`<p class="hint">${T('Czerwone pasma tła to rzeczywiste awarie.','Red background bands are actual failures.')}</p><div class="grid2 mt"><div><h4 style="margin:0 0 8px">${T('Z-score (test)','Z-score (test)')}</h4>${kpis(R.m)}${confMat(R.m,T('awaria','failure'))}</div><div><h4 style="margin:0 0 8px">${T('Baseline: drgania > 4 mm/s (PROCES-05)','Baseline: vibration > 4 mm/s (PROCES-05)')}</h4>${kpis(R.bl)}${confMat(R.bl,T('awaria','failure'))}</div></div><p class="hint mt">${T('Zauważ: stała reguła z PROCES-05 przeoczy awarie, w których rośnie tylko temperatura. Pamiętaj też, że wczesne minuty awarii są trudne do odróżnienia od normy.','Notice: the fixed PROCES-05 rule misses failures where only temperature rises. Also remember that early minutes of a failure are hard to tell from normal.')} ${T('Ciśnienie rośnie tylko przy awariach retortu (gdy rośnie sama temperatura), więc samo nie wykryje awarii zamykarki.','Pressure rises only in retort failures (when temperature alone rises), so on its own it cannot detect seamer failures.')}</p>`;
+  o.innerHTML=chart([{pts:R.z.map((v,i)=>[i,v]),c:INK,w:1.2}],{x0:0,x1:599,y0:0,y1:12,bands,dots,hline:L.thr,vlines:[300],xlab:[[0,T('trening','train')],[300,'test →'],[599,'600']],label:T('Odchylenie od normy w czasie','Deviation from normal over time')})+legend([[RED,T('próg alarmu','alarm threshold'),'5 3'],[GREEN,T('trafny alarm','true alarm')],[BERRY,T('fałszywy alarm','false alarm')]])+`<p class="hint">${T('Czerwone pasma tła to rzeczywiste awarie.','Red background bands are actual failures.')}</p><div class="grid2 mt"><div><h4 style="margin:0 0 8px">Z-score (test)</h4>${kpis(R.m)}${confMat(R.m,T('awaria','failure'))}</div><div><h4 style="margin:0 0 8px">${T('Baseline: drgania > 4 mm/s (PROCES-05)','Baseline: vibration > 4 mm/s (PROCES-05)')}</h4>${kpis(R.bl)}${confMat(R.bl,T('awaria','failure'))}</div></div><p class="hint mt">${T('Zauważ: stała reguła z PROCES-05 przeoczy awarie, w których rośnie tylko temperatura. Pamiętaj też, że wczesne minuty awarii są trudne do odróżnienia od normy.','Notice: the fixed PROCES-05 rule misses failures where only temperature rises. Also remember that early minutes of a failure are hard to tell from normal.')} ${T('Ciśnienie rośnie tylko przy awariach retortu (gdy rośnie sama temperatura), więc samo nie wykryje awarii zamykarki.','Pressure rises only in retort failures (when temperature alone rises), so on its own it cannot detect seamer failures.')}</p>`;
   announce(`F1 ${pct(R.m.f1)}`)};
  draw();
  $$('#mtChips .chip').forEach(c=>c.onclick=()=>{const L=lab().mt,k=c.dataset.f;L.f[k]=L.f[k]?0:1;if(!Object.values(L.f).some(Boolean))L.f[k]=1;$$('#mtChips .chip').forEach(x=>x.setAttribute('aria-pressed',!!L.f[x.dataset.f]));save();draw()});
@@ -1715,7 +1679,6 @@ function vArch(){const L=LANES(),t=team();
 
 // ─── View: deliverables ───
 const NOTE_PROMPTS=()=>({1:T('Jaki problem rozwiązujecie, dla kogo i jakie jest kryterium sukcesu?','What problem do you solve, for whom, and what is the success criterion?'),2:T('Skąd dane, jak je przygotowano i podzielono, jakie mają ograniczenia?','Where do the data come from, how were they prepared and split, what are the limits?'),3:T('Dlaczego ta metoda, narzędzia i infrastruktura?','Why this method, tools and infrastructure?'),4:T('Jak uruchomić prototyp? Jakie eksperymenty i decyzje?','How to run the prototype? Which experiments and decisions?'),5:T('Przykłady poprawnego działania i błędów, wnioski z testów.','Examples of correct behaviour and errors, conclusions from the tests.'),6:T('Koszty, integracje, monitorowanie i utrzymanie.','Costs, integration, monitoring and maintenance.')});
-function reportTrack(t){return t.track||null}
 // Best configuration = best dev/validation score (never the test score). Its test score comes from the same
 // entry or from a later entry with the same settings; tracks without a dev score fall back to their one metric.
 function devScore(l){const r=l.res||{},p=r.primary||{},c=l.cfg||{};
@@ -1738,7 +1701,7 @@ function bestText(k,b){if(!b)return T('(brak zapisanych eksperymentów)','(no sa
  if(b.dev==null)return`${p.m}: ${pct(p.v)} ${base}${views}`;
  const m=BEST_METRIC(k),dl=k==='vision'?T('walidacja','validation'):'dev';
  return`${m} (${dl}): ${pct(b.dev)} ${base} · `+(b.test!=null?`${m} (test): ${pct(b.test)}${views}`:T('ten wariant nie był jeszcze oceniony na zbiorze testowym','this configuration has not been scored on the test set yet'))}
-function reportFacts(){const t=team(),k=reportTrack(t),M=trMeta(),L=LANES(),title=t.name||`${T('Zespół','Team')} ${S.team}`,dec=k?t.decision[k]:null,method=k&&dec&&dec.m>=0&&M[k].methods[dec.m]?M[k].methods[dec.m][0]:null,best=k?bestRun(t,k):null,sel=L.map(l=>[l[1],l[2].filter(o=>t.arch.sel[o[0]]).map(o=>o[1])]).filter(x=>x[1].length);
+function reportFacts(){const t=team(),k=t.track,M=trMeta(),L=LANES(),title=t.name||`${T('Zespół','Team')} ${S.team}`,dec=k?t.decision[k]:null,method=k&&dec&&dec.m>=0&&M[k].methods[dec.m]?M[k].methods[dec.m][0]:null,best=k?bestRun(t,k):null,sel=L.map(l=>[l[1],l[2].filter(o=>t.arch.sel[o[0]]).map(o=>o[1])]).filter(x=>x[1].length);
  return{t,k,title,trackTxt:k?M[k].title:T('(nie wybrano)','(not chosen)'),method:method||T('(nie wybrano)','(not chosen)'),why:dec&&dec.why?dec.why:T('(brak uzasadnienia)','(no justification)'),best,bestTxt:k?bestText(k,best):T('(najpierw wybierz zadanie zespołu w Laboratorium)','(first choose the team’s task in the Build lab)'),sel}}
 function reportMD(){const f=reportFacts(),t=f.t,svg=archSVG();
  return `# ${mdInline(f.title)}\n\n## ${T('Podsumowanie','Summary')}\n- **${T('Zadanie','Task')}:** ${f.trackTxt}\n- **${T('Wybrana metoda','Chosen method')}:** ${f.method}\n- **${T('Uzasadnienie','Justification')}:** ${mdInline(f.why)}\n- **${T('Najlepszy wynik','Best result')}:** ${f.bestTxt}\n\n`+SEC().map(s=>`## ${s.t}\n`+s.items.map((i,n)=>`- [${t.checks[s.id+'.'+n]?'x':' '}] ${i}`).join('\n')+(t.notes[s.id]?`\n\n${mdEsc(t.notes[s.id])}`:'')).join('\n\n')+`\n\n## ${T('Architektura','Architecture')}\n`+(f.sel.length?f.sel.map(x=>`- **${x[0]}:** ${x[1].join(', ')}`).join('\n')+`\n- **${T('Infrastruktura','Infrastructure')}:** ${infraName(t.arch.infra)}\n\n![${T('Schemat blokowy','Block diagram')}](data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))})\n\n${T('Jeśli schemat się nie wyświetla (np. na GitHubie), dołącz plik SVG z zakładki Architektura.','If the diagram does not display (e.g. on GitHub), attach the SVG file from the Architecture tab.')}`:T('(brak)','(none)'))+`\n\n## ${T('Dziennik eksperymentów','Experiment log')}\n`+(t.log.length?t.log.map(logLineMD).join('\n'):T('(brak wpisów)','(no entries)'))+'\n'}
@@ -1751,9 +1714,9 @@ function restoreRun(l){const L=lab(),c=l.cfg,r=l.res||{};try{if(c.mode==='llm'){
 function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts();
  mainEl.innerHTML=pageHead(nm('deliver'),T('Odhaczaj wymagania, zapisuj wnioski i wyeksportuj raport z diagramem i najlepszym wynikiem.','Tick off requirements, record conclusions and export a report with the diagram and best result.'))
  +`<section class="sec"><h2 class="sr-only">${T('Podsumowanie','Summary')}</h2><div class="wrap"><div id="delivStats"></div><div class="row mt"><button type="button" class="btn" id="expH">${ic('download')}${T('Eksportuj raport (HTML)','Export report (HTML)')}</button><button type="button" class="btn-ghost" id="exp">${ic('download')}Markdown</button></div><div class="mt">${card('file-check',T('Podsumowanie projektu','Project summary'),`<dl style="margin:0" id="delivSummary"></dl>`,{tone:'grape'})}</div></div></section>`
- +sectionBand('list-checks',T('Lista kontrolna i notatki','Checklist and notes'),`<div class="grid2">${SEC().map((s,i)=>card(['target','database','network','flask-conical','gauge','package-check'][i],s.t,s.items.map((x,n)=>`<label style="display:flex;gap:9px;margin:5px 0;align-items:flex-start;cursor:pointer"><input type="checkbox" data-c="${s.id}.${n}" ${t.checks[s.id+'.'+n]?'checked':''}><span>${x}</span></label>`).join('')+`<div class="field mt"><label for="note${s.id}">${T('Notatki zespołu','Team notes')}</label><textarea id="note${s.id}" class="input" data-n="${s.id}" rows="3" placeholder="${esc(P[s.id])}">${esc(t.notes[s.id]||'')}</textarea></div>`,{tone:['grape','blue','yellow','green','ink','stone'][i]})).join('')}</div>`)
+ +sectionBand('list-checks',T('Lista kontrolna i notatki','Checklist and notes'),`<div class="grid2">${SEC().map((s,i)=>card(SEC_ICONS[i],s.t,s.items.map((x,n)=>`<label style="display:flex;gap:9px;margin:5px 0;align-items:flex-start;cursor:pointer"><input type="checkbox" data-c="${s.id}.${n}" ${t.checks[s.id+'.'+n]?'checked':''}><span>${x}</span></label>`).join('')+`<div class="field mt"><label for="note${s.id}">${T('Notatki zespołu','Team notes')}</label><textarea id="note${s.id}" class="input" data-n="${s.id}" rows="3" placeholder="${esc(P[s.id])}">${esc(t.notes[s.id]||'')}</textarea></div>`,{tone:SEC_TONES[i]})).join('')}</div>`)
  +sectionBand('notebook-pen',T('Dziennik eksperymentów','Experiment log'),`<div id="logBox"></div>`);
- const stats=()=>{const t=team();let done=0,tot=0;SEC().forEach(s=>s.items.forEach((_,n)=>{tot++;if(t.checks[s.id+'.'+n])done++}));$('#delivStats').innerHTML=statGrid([[`${done}/${tot}`,T('elementów gotowych','items complete'),'yellow'],[t.log.length,plural(t.log.length,['wpis w dzienniku','wpisy w dzienniku','wpisów w dzienniku'],['log entry','log entries']),'blue'],[Object.values(t.arch.sel).filter(Boolean).length,T('komponentów architektury','architecture components'),'ink']],'grid3');const f=reportFacts();$('#delivSummary').innerHTML=[[T('Zadanie','Task'),f.trackTxt],[T('Wybrana metoda','Chosen method'),f.method],[T('Uzasadnienie','Justification'),f.why],[T('Najlepszy wynik','Best result'),f.bestTxt]].map(([a,b])=>`<dt class="edu-overline" style="margin-top:8px">${esc(a)}</dt><dd style="margin:2px 0 0;color:var(--ink-2)">${esc(b)}</dd>`).join('');renderProg()};
+ const stats=()=>{const t=team(),{done,tot}=checkProgress(t);$('#delivStats').innerHTML=statGrid([[`${done}/${tot}`,T('elementów gotowych','items complete'),'yellow'],[t.log.length,plural(t.log.length,['wpis w dzienniku','wpisy w dzienniku','wpisów w dzienniku'],['log entry','log entries']),'blue'],[Object.values(t.arch.sel).filter(Boolean).length,T('komponentów architektury','architecture components'),'ink']],'grid3');const f=reportFacts();$('#delivSummary').innerHTML=[[T('Zadanie','Task'),f.trackTxt],[T('Wybrana metoda','Chosen method'),f.method],[T('Uzasadnienie','Justification'),f.why],[T('Najlepszy wynik','Best result'),f.bestTxt]].map(([a,b])=>`<dt class="edu-overline" style="margin-top:8px">${esc(a)}</dt><dd style="margin:2px 0 0;color:var(--ink-2)">${esc(b)}</dd>`).join('');renderProg()};
  const logBox=()=>{const t=team(),b=$('#logBox');b.innerHTML=t.log.length?`<div class="tscroll"><table><thead><tr><th>${T('Czas','Time')}</th><th>${T('Zadanie','Task')}</th><th>${T('Wynik','Result')}</th><th>${T('Notatka','Note')}</th><th>${T('Akcje','Actions')}</th></tr></thead><tbody>${t.log.map((l,i)=>`<tr data-log="${i}"><td>${esc(fmtTs(l.ts))}</td><td>${esc(l.text||!LAB_KEYS.includes(l.track)?l.track:trackName(l.track))}</td><td>${esc(logText(l))}${l.testViews?` <span class="edu-chip tone-yellow">${T('test oglądany','test viewed')}: ${l.testViews}×</span>`:''}</td><td>${esc(l.note)}</td><td><div class="row" style="flex-wrap:nowrap">${l.cfg&&LAB_KEYS.includes(l.track)?`<button type="button" class="btn-ghost btn-sm" data-r="${i}" title="${T('Wczytaj ustawienia tego eksperymentu z powrotem do Laboratorium','Load this experiment’s settings back into the Build lab')}">${ic('rotate-ccw')}${T('Przywróć ustawienia','Restore settings')}</button>`:''}<button type="button" class="btn-ghost btn-sm" data-d="${i}" title="${T('Usuń wpis z dziennika (można cofnąć)','Delete the entry from the log (can be undone)')}">${ic('trash-2')}${T('Usuń','Delete')}</button></div></td></tr>`).join('')}</tbody></table></div>`:`<div class="well"><p style="margin:0">${T('Brak wpisów – zapisuj wyniki eksperymentów w Laboratorium.','No entries – save experiment results in the Build lab.')}</p><p class="mt"><button type="button" class="btn-ghost btn-sm" id="toLab">${T('Przejdź do Laboratorium','Go to the Build lab')}</button></p></div>`;
   const tl=$('#toLab');if(tl)tl.onclick=()=>go('lab');$$('button[data-d]',b).forEach(x=>x.onclick=()=>withUndo(T('Usunięto wpis.','Entry deleted.'),()=>{team().log.splice(+x.dataset.d,1)}));$$('button[data-r]',b).forEach(x=>x.onclick=()=>restoreRun(team().log[+x.dataset.r]));icons(b)};
  stats();logBox();
@@ -1764,7 +1727,7 @@ function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts();
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(b)go(b.dataset.v)});
 $('#teamSel').onchange=e=>{const v=+e.target.value;if(AIS.run)e.target.value=S.team;guardRun(()=>{S.team=v;save();render()})};
 $('#tbToggle').onclick=()=>{const b=$('#teamBar'),on=b.classList.toggle('open');$('#tbToggle').setAttribute('aria-expanded',on);renderProg()};
-MOBILE_MQ.addEventListener('change',()=>{const a=document.activeElement,typing=a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type==='text'));if(!typing&&!inspEl.open)softRender()});
+MOBILE_MQ.addEventListener('change',()=>{if(!isTyping()&&!inspEl.open)softRender()});
 $('#teamName').oninput=e=>{team().name=e.target.value;save();renderTeamOptions();renderProg();const h=$('#main .app-title');if(S.view==='data'&&h)h.textContent=`${T('Folder zespołu','Team folder')} – ${team().name||T('Zespół','Team')+' '+S.team}`};
 $('#teamExport').onclick=exportTeam;$('#teamImport').onclick=()=>$('#teamFile').click();
 $('#teamFile').onchange=e=>{const f=e.target.files[0];if(f)importTeam(f);e.target.value=''};
@@ -1774,7 +1737,7 @@ toastEl.addEventListener('mouseleave',()=>{if(!toastEl.contains(document.activeE
 inspEl.addEventListener('click',e=>{if(e.target===inspEl)inspEl.close()});
 addEventListener('hashchange',onHashChange);
 addEventListener('load',()=>icons());
-addEventListener('storage',e=>{if(e.key!==STORE_KEY||!e.newValue)return;if(AIS.run){X.storagePending=X.renderPending=true;return}try{const x=JSON.parse(e.newValue);S.teams=normTeams(x.teams)}catch(err){return}const a=document.activeElement,typing=a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type==='text'));if(!typing&&!inspEl.open)softRender();else renderProg()});
+addEventListener('storage',e=>{if(e.key!==STORE_KEY||!e.newValue)return;if(AIS.run){X.storagePending=X.renderPending=true;return}try{const x=JSON.parse(e.newValue);S.teams=normTeams(x.teams)}catch(err){return}if(!isTyping()&&!inspEl.open)softRender();else renderProg()});
 addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||inspEl.open)return;const a=e.target,tag=a.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return;const i=+e.key;if(i>=1&&i<=NAV.length){e.preventDefault();go(NAV[i-1][0])}});
 
 // ─── Init ───
