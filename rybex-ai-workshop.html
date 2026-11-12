@@ -284,7 +284,7 @@ p{margin:6px 0}
 /* ─── Stat blocks ─── */
 .stat{border-radius:var(--r-md);padding:12px 14px;min-width:0}
 .stat b{display:block;font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1.15}
-.stat span{font-size:13px;display:block}
+.stat>span{font-size:13px;display:block}
 .stat.neutral{background:var(--paper-3);color:var(--ink)}
 
 /* ─── Tables ─── */
@@ -891,7 +891,7 @@ const GLOSS=()=>{const g=(forms,pl,en)=>({forms,d:T(pl,en)});return{
  f1:g(['f1','f1[- ]score'],'Jedna liczba łącząca precyzję i czułość. Wysokie F1 wymaga, żeby system jednocześnie rzadko się mylił i rzadko coś pomijał.','One number combining precision and recall. A high F1 needs the system to be wrong rarely and to miss things rarely, both at once.'),
  token:g(['token(?:y|ów|ami|ach|om|a|ie|em)?','tokens'],'Kawałek tekstu, na który model dzieli zdanie. To nie zawsze jest całe słowo. Opłata za model liczy się zwykle od liczby tokenów.','A piece of text the model splits a sentence into, not always a whole word. Model fees are usually charged per token.'),
  prompt:g(['prompt(?:y|u|ów|em|ach|ami|om)?','prompcie','prompt(?:u|em|cie)? systemow(?:y|ego|ym)','system prompts?','prompts'],'Instrukcja i kontekst przekazywane modelowi przy wywołaniu. Zmiana promptu zmienia zachowanie bez trenowania wag.','The instruction and context passed to the model with each call. Changing the prompt changes behaviour without training any weights.'),
- rag:g(['rag(?:-(?:u|a|iem|owi))?'],'Najpierw wyszukujemy fragmenty dokumentów firmy, a dopiero potem model pisze odpowiedź na ich podstawie. Model nie „zna” procedur z pamięci.','First we search the company documents for passages, then the model writes the answer from them. The model does not “know” the procedures from memory.'),
+ rag:g(['rag(?:-(?:u|a|iem|owi))?'],'Najpierw wyszukujemy fragmenty dokumentów firmy, a dopiero potem model pisze odpowiedź na ich podstawie. Model nie «zna» procedur z pamięci.','First we search the company documents for passages, then the model writes the answer from them. The model does not “know” the procedures from memory.'),
  'tf-idf':g(['tf-idf'],'Prosty sposób liczenia, jak charakterystyczne jest słowo dla fragmentu. W aplikacji służy do wyszukiwania w procedurach.','A simple way to score how characteristic a word is of a passage. In the app it is used to search the procedures.'),
  embedding:g(['embedding(?:i|ów|ami|ach|u|iem|s)?'],'Liczbowa reprezentacja tekstu używana do wyszukiwania „po sensie”. W warsztacie jest w tabeli metod, nie trzeba jej liczyć ręcznie.','A numeric representation of text used to search “by meaning”. In the workshop it appears in the method table; you do not compute it by hand.'),
  poc:g(['poc','proof of concept','prototyp(?:u|ie|em|y|ów)?','prototypes?'],'Najmniejsza działająca wersja, która sprawdza główne założenie rozwiązania.','The smallest working version that tests the solution’s main assumption.'),

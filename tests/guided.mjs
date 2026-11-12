@@ -60,8 +60,14 @@ try {
     ok('gloss no nested gloss', await p.evaluate(() => !/gloss-tip[^<]*<span class="gloss"/.test(glh(glx('baseline i F1')))));
     ok('gloss numbers untouched', await p.evaluate(() => glx('F1 0,73').includes('0,73')));
     ok('gloss terms on the lab page', await p.$$eval('#labMethod .gloss, #proto .gloss', e => e.length) >= 3);
-    await p.focus('#proto .gloss'); ok('gloss tooltip reachable by keyboard', await p.$eval('#proto .gloss:focus .gloss-tip', e => getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none'));
+    const tipShown = () => p.$eval('#proto .gloss .gloss-tip', e => getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none');
+    const before = await tipShown(); await p.focus('#proto .gloss');
+    ok('gloss tooltip reachable by keyboard', !before && await tipShown() && await p.$eval('#proto .gloss', e => e === document.activeElement), `before focus shown: ${before}`);
     await p.evaluate(() => go('demos', 'metr')); ok('gloss terms in the metrics demo', await p.$$eval('#demo .gloss', e => e.length) >= 2);
+    for (const h of ['lab/vision', 'lab/maint', 'lab/complaints', 'demos/metr']) {
+      await p.evaluate(h => { location.hash = '#/' + h; }, h); await p.waitForTimeout(400); await p.mouse.move(0, 0); await p.evaluate(() => document.activeElement && document.activeElement.blur());
+      const shown = await p.$$eval('.gloss-tip', e => e.filter(t => getComputedStyle(t).display !== 'none').map(t => t.parentElement.dataset.term));
+      ok(`gloss tips hidden until hover or focus: ${h}`, shown.length === 0 && await p.$$eval('.gloss', e => e.length) > 0, JSON.stringify(shown)); }
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
