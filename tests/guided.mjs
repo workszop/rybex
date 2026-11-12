@@ -874,7 +874,12 @@ try {
     const f = await fresh('#/lab/forecast');
     for (const [pr, w] of [[0, 3], [0, 6], [1, 6]]) { await f.evaluate(([pr, w]) => { Object.assign(lab().fc, { p: pr, w }); save(); render(); }, [pr, w]); await f.fill('#expNote', 'n'); await f.click('#sv'); }
     let c = await pick(f, [1, 2]);
-    ok('forecast, same product: lower error named in pp.', c.same === 'true' && c.diff !== undefined && /Wersja [AB] ma niższy błąd prognozy \(MAPE\) na ocenianych miesiącach o [\d,]+ pp\.|Obie wersje/.test(c.t), c.t);
+    // Same product and horizon, window 3 vs 6: the best method (not the moving average) ties, the moving average's own error moves.
+    const fx = await f.evaluate(() => { const l = team().log, m = l.slice(0, 2).map(x => x.res); return { best: m.map(r => r.best), ma: m.map(r => r.mape.ma), names: m.map(r => fcName(r.best)), maName: fcName('ma'), maPct: m.map(r => pct(r.mape.ma)), cols: $$('#cmp .cmp-col').map(e => e.textContent), s: $('#cmp .cmp-s').textContent }; });
+    ok('forecast fixture: best method is not the moving average, its value ties, the moving average error changes', c.same === 'true' && Number(c.diff) === 0 && !fx.best.includes('ma') && Math.abs(fx.ma[0] - fx.ma[1]) >= 5e-4, JSON.stringify(fx));
+    ok('forecast columns name the best method and list the moving average error', fx.cols.length === 2 && fx.cols.every((t, i) => t.includes(`Błąd najlepszej metody (${fx.names[i]}): `) && t.includes(`${fx.maName}: ${fx.maPct[i]}`)), fx.cols.join(' | '));
+    ok('forecast, window only: the sentence names the moving average change, not only "same result"', /^Najlepsza metoda ma w obu wersjach ten sam błąd; zmienił się błąd średniej ruchomej: z [\d,]+% do [\d,]+%\.$/.test(fx.s.trim()) && !/Obie wersje/.test(fx.s), fx.s);
+    ok('forecast per-method differences are reported', new RegExp(`${fx.maName}: [+−][\\d,]+ pp\\.`).test(c.t), c.t);
     c = await pick(f, [0, 1]);
     ok('forecast, different products: no winner, a plain note on different data', c.same === 'false' && c.diff === undefined && /różnych danych/.test(c.t) && !/ma niższy/.test(c.t), c.t);
     const k = await fresh('#/lab/complaints');
@@ -897,6 +902,14 @@ try {
     ok('a test-only entry has no tuning value and no difference', await v.evaluate(() => { const h = renderCompare(team().log[0], team().log[2], 'vision'); return !h.includes('99') && h.includes('brak wyniku na zbiorze do strojenia') && !/data-diff=/.test(h); }));
     ok('entries saved with the test revealed are marked and still compared on validation', await v.evaluate(() => { const h = renderCompare(team().log[0], team().log[1], 'vision'); return h.includes('zapisano przy odsłoniętym teście') && /60,0%/.test(h) && /70,0%/.test(h) && /data-diff="/.test(h); }));
     ok('same run twice is refused', await v.evaluate(() => renderCompare(team().log[0], team().log[0], 'vision') === ''));
+    ok('changes line never shows the set: no test wording besides the revealed mark', await v.evaluate(() => { const d = document.createElement('div'); d.innerHTML = renderCompare(team().log[1], team().log[2], 'vision'); return !/test/i.test(d.textContent.replaceAll('zapisano przy odsłoniętym teście', '')); }));
+    ok('a rounded-zero difference has no sign; thresholds use the slider decimals', await v.evaluate(() => { const mk = (id, v) => ({ id, ts: '2026-11-12', track: 'maint', cfg: { f: {}, thr: 4, win: id === 'm' ? 1 : 2, keys: [] }, res: { f1: v, p: v, r: v, base: .2, primary: { m: 'F1', v, base: .2, hi: true, test: true } }, note: '', testViews: 0 });
+      const d = document.createElement('div'); d.innerHTML = renderCompare(mk('m', .5), mk('n', .5002), 'maint'); const t = d.textContent;
+      const th = (id, x) => ({ id, ts: '2026-11-12', track: 'vision', cfg: { th: { d: x, s: 2, c: 3 } }, res: { val: { p: .5, r: .5, f1: .5 }, test: null, primary: { v: .5, m: 'F1', base: 0, hi: true, test: false } }, note: '', testViews: 0 });
+      const e = document.createElement('div'); e.innerHTML = renderCompare(th('t1', 12.3), th('t2', 12.34), 'vision');
+      return /Różnica \(B wobec A\): 0,0 pp\./.test(t) && !/[+−]0,0 pp/.test(t) && /próg d: 12,30 → 12,34/.test(e.textContent); }));
+    ok('the RAG recap inside a comparison has a full contour', await v.evaluate(() => { const mk = (id, ok) => ({ id, ts: '2026-11-12', track: 'rag', cfg: { k: 3, chunk: 1, min: .1, lang: 'pl' }, res: { hit: ok, ok, ref: 2, n: 12, nOos: 3, baseOk: 5, prec: .5, test: false, primary: { m: 'x', v: ok / 12, base: 5 / 12, hi: true, test: false } }, note: '', testViews: 0 });
+      const box = document.createElement('div'); box.id = 'cmpProbe'; box.innerHTML = renderCompare(mk('r1', 7), mk('r2', 9), 'rag'); document.body.append(box); const r = box.querySelector('.cmp .recap'), s = r && getComputedStyle(r), res = !!s && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; box.remove(); return res; }));
     for (const pg of [p, f, k, m, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
