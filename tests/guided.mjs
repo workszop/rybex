@@ -707,7 +707,7 @@ try {
   if (run('golive')) { const p = await fresh('#/arch');
     ok('four decisions rendered', await p.$eval('#goLive', e => e.dataset.total === '4' && e.dataset.answered === '0' && e.dataset.warn === ''));
     ok('decision ids and options', await p.evaluate(() => { const D = GO_LIVE_DECISIONS(), o = id => D.find(d => d.id === id).options.map(x => x.id).join(); return D.map(d => d.id).join() === 'runWhere,stopAuthority,monitor,reviewEvery' && o('runWhere') === INFRA.join() && o('stopAuthority') === 'system,operator,quality' && o('monitor') === 'falseAlarms,refusals,photoDrift,nothing' && o('reviewEvery') === 'weekly,quarterly,never' && D.every(d => d.q && d.options.every(x => x.t && x.fb.length > 40)); }));
-    ok('default hybrid of a fresh team is not an answer', await p.evaluate(() => team().arch.infra === 'hybrid' && !goLiveWarnings(team()).length) && await p.$eval('#goLive [data-d=runWhere]', e => !e.querySelector('[aria-pressed=true]') && e.querySelector('.fb').textContent === ''));
+    ok('default hybrid of a fresh team is not an answer', await p.evaluate(() => { const t = defaultTeam(); t.track = 'complaints'; return t.arch.infra === 'hybrid' && !goLiveWarnings(t).length && team().arch.infra === 'hybrid'; }) && await p.$eval('#goLive [data-d=runWhere]', e => !e.querySelector('[aria-pressed=true]') && e.querySelector('.fb').textContent === ''));
     ok('Hanna speaks in the go-live block', !!(await p.$('#goLive figure.persona[data-persona=hanna][data-slot=go_live]')));
     ok('static privacy hint replaced', !(await p.evaluate(() => document.querySelector('#main').textContent.includes('Wskazówka: dane wrażliwe'))));
     const svg0 = await p.evaluate(() => { team().arch.sel.cam = true; save(); render(); window.__svg = document.querySelector('#archOut svg'); return !!window.__svg; });
@@ -724,14 +724,24 @@ try {
     await seed(p, () => { const a = team().arch; team().track = 'complaints'; a.infra = 'cloud'; a.decisions.runWhere = 'cloud'; a.decisions.stopAuthority = 'system'; a.sel = {}; });
     ok('warning: personal data to the cloud without anonymisation', await p.$eval('#goLive', e => e.dataset.warn.includes('privacy')));
     ok('warning: system stops the line with no human check', await p.$eval('#goLive', e => e.dataset.warn.includes('hitl')));
-    ok('warnings sit next to their decision', await p.evaluate(() => !!document.querySelector('#goLive [data-d=runWhere] [data-w=privacy]') && !!document.querySelector('#goLive [data-d=stopAuthority] [data-w=hitl]') && /anonimizacj/.test(document.querySelector('[data-w=privacy]').textContent)));
+    ok('warnings sit next to their decision', await p.evaluate(() => !!document.querySelector('#goLive [data-d=runWhere] [data-w=privacy]') && !!document.querySelector('#goLive [data-d=stopAuthority] [data-w=hitl]') && /dane osobowe/.test(document.querySelector('[data-w=privacy]').textContent)));
     ok('report marks missing decisions', await p.evaluate(() => /brak decyzji|nie podjęto/i.test(reportMD()) && /Decyzje wdrożeniowe/.test(reportMD()) && /Decyzje wdrożeniowe/.test(reportHTML()) && /nie podjęto/.test(reportHTML())));
     ok('report lists active warnings in words', await p.evaluate(() => reportMD().includes(GO_LIVE_WARN_TXT(team(), 'hitl')) && reportHTML().includes(esc(GO_LIVE_WARN_TXT(team(), 'privacy')))));
     await p.click('#goLive [data-fix=hitl]');
     ok('fix button adds human verification to the diagram', await p.evaluate(() => team().arch.sel.hitl === true && !goLiveWarnings(team()).includes('hitl')) && await p.$eval('.chip[data-o=hitl]', e => e.getAttribute('aria-pressed') === 'true') && await p.$eval('#goLive', e => !e.dataset.warn.includes('hitl')));
     await p.click('.chip[data-o=hitl]'); await p.click('#goLive [data-d=stopAuthority] [data-o=operator]');
     ok('reverse inconsistency: a person confirms but no human check in the diagram', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('hitl')));
-    await p.click('.chip[data-o=acl]'); ok('access control clears the privacy warning', await p.$eval('#goLive', e => !e.dataset.warn.includes('privacy')));
+    await p.click('.chip[data-o=acl]'); ok('access control does not clear the privacy warning', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('privacy')) && !(await p.$('#goLive [data-fix=acl]')));
+    ok('privacy warning says access control does not change what leaves the plant', await p.evaluate(() => { const x = GO_LIVE_WARN_TXT(team(), 'privacy'); return x.includes('Reklamacje zawierają dane kontaktowe klientów.') && x.includes('nie zmieniają tego, co wychodzi na zewnątrz') && reportMD().includes('nie zmieniają tego, co wychodzi na zewnątrz') && !/nie ma uprawnień i audytu/.test(reportMD() + reportHTML()); }));
+    await p.click('#goLive [data-fix=anon]');
+    ok('anonymisation fix selects anon only and clears the warning', await p.evaluate(() => team().arch.sel.anon === true && team().arch.decisions.runWhere === 'cloud') && await p.$eval('#goLive', e => !e.dataset.warn.includes('privacy')) && await p.$eval('.chip[data-o=anon]', e => e.getAttribute('aria-pressed') === 'true'));
+    await p.click('.chip[data-o=anon]'); await p.click('#goLive [data-fix=local]');
+    ok('local fix sets runWhere and infra to local and clears the warning', await p.evaluate(() => team().arch.decisions.runWhere === 'local' && team().arch.infra === 'local' && !team().arch.sel.anon) && await p.$eval('#goLive', e => !e.dataset.warn.includes('privacy')) && await p.$eval('[data-i=local]', e => e.getAttribute('aria-pressed') === 'true'));
+    ok('privacy rule by track and runWhere', await p.evaluate(() => { const w = (track, rw, sel = {}) => { const t = defaultTeam(); t.track = track; t.arch.infra = rw; t.arch.decisions.runWhere = rw; Object.assign(t.arch.sel, sel); return goLiveWarnings(t).includes('privacy'); };
+      return w('complaints', 'hybrid') && w('rag', 'cloud') && w('complaints', 'cloud', { acl: true }) && !w('complaints', 'cloud', { anon: true }) && !w('vision', 'cloud') && !w('forecast', 'cloud') && !w('complaints', 'local'); }));
+    ok('hybrid and RAG wording', await p.evaluate(() => { const t = defaultTeam(); t.track = 'rag'; t.arch.infra = t.arch.decisions.runWhere = 'hybrid'; const x = GO_LIVE_WARN_TXT(t, 'privacy'); return x.includes('Pytania pracowników i dokumenty mogą zawierać nazwiska i dane osobowe.') && x.includes('W wariancie hybrydowym pilnujcie, co przechodzi przez granicę zakładu.') && !x.includes('nie zmieniają'); }));
+    ok('anonymisation is a component in the preparation lane, in no preset', await p.evaluate(() => LANES().find(l => l[0] === 'prep')[2].some(o => o[0] === 'anon') && !Object.values(PRESET).some(a => a.includes('anon')) && normTeam({ arch: { sel: { anon: true } } }).arch.sel.anon === true));
+    ok('markdown decision lines put the answer on its own indented line', await p.evaluate(() => { const md = reportMD(), q = GO_LIVE_DECISIONS()[0].q; return md.includes(`- **${q}**\n  ${GO_LIVE_DECISIONS()[0].options[0].t}`); }));
     await p.click('#goLive [data-d=monitor] [data-o=nothing]'); ok('monitor warning when nothing is watched', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('monitor')) && !!(await p.$('#goLive [data-d=monitor] [data-w=monitor]')));
     await p.click('#goLive [data-d=monitor] [data-o=falseAlarms]'); await p.click('#goLive [data-d=reviewEvery] [data-o=weekly]');
     ok('all four answered and in the report', await p.$eval('#goLive', e => e.dataset.answered === '4' && !e.dataset.warn.includes('monitor')) && await p.evaluate(() => reportMD().includes(GO_LIVE_DECISIONS()[2].options[0].t) && !/nie podjęto decyzji/.test(reportMD())));
@@ -751,9 +761,15 @@ try {
       return document.querySelector('#pathBar').dataset.next === 'risk' && b.dataset.mode === 'here' && b.textContent.trim() === 'Podejmijcie cztery decyzje wdrożeniowe'; }));
     await p.click('#pathNext'); await p.waitForTimeout(50);
     ok('Next focuses the first unanswered decision', await p.evaluate(() => document.activeElement.matches('#goLive [data-d=stopAuthority] [data-o]')));
+    await seed(p, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = {}; });
+    await p.evaluate(() => go('demos', 'risk'));
+    ok('risk tab after four cards: the bar says the risk step', await p.$eval('#pathBar', e => e.dataset.step === 'risk' && e.dataset.next === 'risk'));
+    await p.click('#pathNext'); await p.waitForTimeout(50);
+    ok('Dalej from the risk tab leads to the architecture view', await p.evaluate(() => location.hash) === '#/arch' && await p.$eval('#pathBar', e => e.dataset.step === 'risk'));
     ok('golive no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     const m = await fresh('#/arch', '', { width: 375, height: 740 });
     await seed(m, () => { const t = team(), a = t.arch; t.track = 'complaints'; PRESET.complaints.forEach(k => a.sel[k] = true); a.sel.hitl = false; a.sel.acl = false; a.infra = 'cloud'; a.decisions = { runWhere: 'cloud', stopAuthority: 'system', monitor: 'nothing', reviewEvery: 'quarterly' }; });
+    ok('warning box and consequence use a full contour', await m.evaluate(() => [...document.querySelectorAll('#goLive .gl-w, #goLive .fb:not(:empty)')].every(e => { const c = getComputedStyle(e); return c.borderLeftWidth === c.borderRightWidth && c.borderLeftColor === c.borderRightColor && c.borderTopWidth === c.borderLeftWidth; })));
     ok('go-live block with warnings fits at 375', await m.evaluate(() => document.querySelector('#goLive').dataset.warn.split(' ').length === 3 && document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#goLive [data-d]')].every(c => c.getBoundingClientRect().right <= innerWidth)));
     await m.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
