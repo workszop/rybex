@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -771,6 +771,58 @@ try {
     await seed(m, () => { const t = team(), a = t.arch; t.track = 'complaints'; PRESET.complaints.forEach(k => a.sel[k] = true); a.sel.hitl = false; a.sel.acl = false; a.infra = 'cloud'; a.decisions = { runWhere: 'cloud', stopAuthority: 'system', monitor: 'nothing', reviewEvery: 'quarterly' }; });
     ok('warning box and consequence use a full contour', await m.evaluate(() => [...document.querySelectorAll('#goLive .gl-w, #goLive .fb:not(:empty)')].every(e => { const c = getComputedStyle(e); return c.borderLeftWidth === c.borderRightWidth && c.borderLeftColor === c.borderRightColor && c.borderTopWidth === c.borderLeftWidth; })));
     ok('go-live block with warnings fits at 375', await m.evaluate(() => document.querySelector('#goLive').dataset.warn.split(' ').length === 3 && document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#goLive [data-d]')].every(c => c.getBoundingClientRect().right <= innerWidth)));
+    await m.close(); }
+  if (run('challenge')) { const p = await fresh('#/lab/rag');
+    ok('one challenge per track', await p.evaluate(() => LAB_KEYS.every(k => CHALLENGES()[k] && CHALLENGES()[k].task && CHALLENGES()[k].lesson)));
+    ok('ids per track', await p.evaluate(() => LAB_KEYS.map(k => CHALLENGES()[k].id).join()) === 'vision_borderline,rag_oos,compl_mixed,fc_horizon,maint_retort');
+    ok('starts open', await p.$eval('.challenge', e => e.dataset.id === 'rag_oos' && e.dataset.state === 'open'));
+    ok('panel sits under the prototype, folded', await p.evaluate(() => { const c = document.querySelector('.challenge'), d = c.querySelector('details'); return !!c.closest('#labProto') && !c.closest('#proto') && !!d && !d.open && !!c.querySelector('.status').textContent.trim(); }));
+    await p.evaluate(() => { visInit(); });
+    await p.waitForFunction(() => !VIS.loading, null, { timeout: 30000 });
+    const fr = await p.evaluate(() => Object.fromEntries(LAB_KEYS.map(k => [CHALLENGES()[k].id, challengeCheck(CHALLENGES()[k].id)])));
+    ok('fresh team: every challenge open on the workshop data', Object.values(fr).every(v => v === false), JSON.stringify(fr));
+    ok('rag at default settings still answers the out-of-scope question', await p.evaluate(() => challengeCheck('rag_oos', { simulate: true })) === false);
+    const reachable = await p.evaluate(() => { const out = {}; const L = lab();
+      L.rag.min = .6; out.rag_oos_strict = (() => { try { return challengeCheck('rag_oos', { simulate: true }); } catch (e) { return String(e); } })();
+      out.rag_needs_question = challengeCheck('rag_oos'); L.rag.min = .12;
+      L.mt.f.temp_c = 1; let best = false; for (let thr = 1.5; thr <= 10 && !best; thr += .5) for (let w = 1; w <= 8 && !best; w++) { L.mt.thr = thr; L.mt.win = w; best = challengeCheck('maint_retort'); } out.maint = best;
+      const th = visTh(), R = VIS.rng; out.vision = false; for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200 && !out.vision; i++) { L.vision.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; out.vision = challengeCheck('vision_borderline'); }
+      L.vision.th = null;
+      L.compl.kw = { ...KW, damage: KW.damage + ', wypukł, napuch, poszarp', quality: KW.quality + ', tward', smell: KW.smell + ', smród, pachni', delivery: KW.delivery + ', karton' }; out.compl = challengeCheck('compl_mixed');
+      L.compl.safety = 'zapach'; out.compl_needs_safety = challengeCheck('compl_mixed'); L.compl.kw = { ...KW }; L.compl.safety = SAFETY_KW;
+      out.fc = false; L.fc.h = 9; Object.keys(L.fc.show).forEach(k => L.fc.show[k] = 1); for (let pp = 0; pp < 4 && !out.fc; pp++) for (let w = 2; w <= 12 && !out.fc; w++) { L.fc.p = pp; L.fc.w = w; out.fc = challengeCheck('fc_horizon'); }
+      L.fc.h = 6; out.fc_needs_h9 = challengeCheck('fc_horizon'); Object.assign(L.fc, defaultLab().fc);
+      return out; });
+    ok('maint challenge is reachable on the workshop data', reachable.maint === true, JSON.stringify(reachable));
+    ok('rag challenge is reachable at a strict threshold', reachable.rag_oos_strict === true, JSON.stringify(reachable));
+    ok('rag challenge needs the question to be asked', reachable.rag_needs_question === false);
+    ok('vision challenge is reachable with one rule threshold', reachable.vision === true, JSON.stringify(reachable));
+    ok('complaints challenge is reachable with keywords', reachable.compl === true && reachable.compl_needs_safety === false, JSON.stringify(reachable));
+    ok('forecast challenge is reachable and needs the 9-month horizon', reachable.fc === true && reachable.fc_needs_h9 === false, JSON.stringify(reachable));
+    await p.evaluate(() => { go('lab', 'maint'); });
+    ok('passing is recorded and survives reload', await p.evaluate(() => { renderChallenge('maint'); return team().challenges.maint_retort === 'done'; }));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('done state after reload', await p.$eval('.challenge', e => e.dataset.state) === 'done');
+    ok('no test-set numbers in challenge text', await p.$eval('.challenge', e => !/test/i.test(e.querySelector('.result')?.textContent || '')));
+    ok('done stays done when settings change', await p.evaluate(() => { const L = lab().mt; L.thr = 9; L.win = 1; renderChallenge('maint'); return document.querySelector('.challenge').dataset.state === 'done' && team().challenges.maint_retort === 'done'; }));
+    // Live re-evaluation from the lab's own controls, no full render().
+    await p.evaluate(() => go('lab', 'forecast'));
+    await p.evaluate(() => { window.__r = 0; const r = render; render = (...a) => { window.__r++; return r(...a); }; });
+    await p.$eval('#fh', e => { e.value = 9; e.dispatchEvent(new Event('input')); });
+    ok('forecast still open at 9 months with the default methods', await p.$eval('.challenge', e => e.dataset.id === 'fc_horizon' && e.dataset.state === 'open'));
+    await p.click('#fcChips .chip[data-m=ma]');
+    ok('forecast passes from the controls, no full render', await p.evaluate(() => document.querySelector('.challenge').dataset.state === 'done' && team().challenges.fc_horizon === 'done' && window.__r === 0));
+    ok('lesson shown after the pass', await p.$eval('.challenge .result', e => e.textContent.trim().length > 20));
+    await p.evaluate(() => go('lab', 'rag'));
+    await p.$eval('#rm', e => { e.value = .3; e.dispatchEvent(new Event('input')); });
+    ok('rag: strict threshold alone does not pass before the question is asked', await p.$eval('.challenge', e => e.dataset.state) === 'open');
+    await p.click('#oosQ');
+    ok('rag passes after asking the out-of-scope question', await p.$eval('.challenge', e => e.dataset.state) === 'done');
+    ok('challenges never block the path', await p.evaluate(() => !PATH_STEPS().some(s => /challenge/i.test(JSON.stringify(s)))));
+    ok('challenge no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+    const m = await fresh('#/lab/maint', '', { width: 375, height: 740 });
+    await m.click('.challenge summary');
+    ok('challenge panel fits at 375 and uses a full contour', await m.evaluate(() => { const c = document.querySelector('.challenge'), s = getComputedStyle(c); return document.documentElement.scrollWidth <= innerWidth && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; }));
     await m.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
