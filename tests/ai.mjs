@@ -442,7 +442,7 @@ try {
     await p.evaluate(() => go('demos', 'tok')); await p.waitForSelector('#tokOut .stat');
     const tk = await p.$$eval('#tokOut .stat', s => s.map(x => [x.querySelector('b').textContent, x.querySelector('span').textContent]));
     ok('token demo shows characters per token', tk.some(([v, l]) => /znaków na token/.test(l) && !/%/.test(v)), JSON.stringify(tk));
-    await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#proto .conf');
+    await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#proto .conf', { state: 'attached' }); // folded in details.more-metrics
     const cm = await p.$$eval('#proto .conf', e => e.map(x => x.textContent).join(' '));
     ok('maintenance confusion matrix says failure, not defect', /awari/i.test(cm) && !/wada/i.test(cm), cm.slice(0, 160));
     const jl = await p.$$eval('#labJump button', b => b.map(x => x.textContent.trim()));
@@ -453,6 +453,7 @@ try {
     await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cStats');
     const gl = await p.$$eval('.gloss', g => g.map(x => x.dataset.term));
     ok('glossary tips for baseline, macro-F1 and dev', ['baseline', 'macro-f1', 'dev'].every(t => gl.includes(t)), JSON.stringify(gl));
+    await p.$eval('#cStats details.more-metrics', d => { d.open = true; }); // macro-F1 now sits in the folded metrics
     await p.focus('.gloss[data-term="macro-f1"]');
     ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="macro-f1"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
     await p.click('#cMethod button[data-m=llm]');
