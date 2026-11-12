@@ -171,10 +171,16 @@ try {
     let acc = [];
     for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
       await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
-      const r1 = await f.evaluate(id => { const s = PATH_STEPS().find(x => x.id === id); go(...s.go); document.activeElement.blur(); return { next: document.querySelector('#pathBar').dataset.next, hash: location.hash }; }, id);
+      const r1 = await f.evaluate(id => { const s = PATH_STEPS().find(x => x.id === id); go(...s.go); document.activeElement.blur(); const n = PATH_STEPS().find(x => x.id === document.querySelector('#pathBar').dataset.next); return { next: n.id, hash: location.hash, target: '#/' + n.go.join('/') }; }, id);
       await f.click('#pathNext'); await f.waitForTimeout(50);
-      const r2 = await f.evaluate(() => ({ hash: location.hash, body: document.activeElement === document.body, act: document.activeElement.id || document.activeElement.tagName }));
-      ok(`Next acts on its own page (${id})`, r2.hash !== r1.hash || !r2.body, JSON.stringify([r1, r2])); }
+      const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
+      // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
+      const own = { join: '#onboardName', task: '#main [data-t]', base: '#expNote', iterate: '#expNote', report: '#expH' };
+      const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
+      ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true }); delete t.seen['demo.metr']; });
+    await f.evaluate(() => go('demos', 'split')); await f.click('#pathNext'); await f.waitForTimeout(50);
+    ok('Next moves from one required demo to the next', await f.evaluate(() => location.hash) === '#/demos/metr');
     ok('Next focuses the working element', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#pathNext').click(); return document.activeElement.id === 'onboardName'; }));
     await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true }); t.log = []; });
     await f.evaluate(() => go('lab', 'maint')); await f.click('#sv');
