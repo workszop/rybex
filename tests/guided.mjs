@@ -544,8 +544,14 @@ try {
     ok('site products come from PRODUCTS', await p.evaluate(() => PRODUCTS.every(x => document.querySelector('.rybex-frame').textContent.includes(x[0]))));
     await p.waitForFunction(() => document.querySelectorAll('.rybex-frame img').length >= 1, null, { timeout: 8000 });
     ok('site product photos have alt text', await p.$$eval('.rybex-frame img', e => e.every(i => i.alt.trim().length > 10)));
-    ok('site product photos differ per product', await p.$$eval('.rybex-frame img[data-vi]', e => e.length === 4 && new Set(e.map(i => i.dataset.vi)).size === 4));
-    ok('site product photos are OK cans from the training set', await p.evaluate(() => [...document.querySelectorAll('.rybex-frame img[data-vi]')].every(i => VIS.train[+i.dataset.vi] && !VIS.train[+i.dataset.vi].bad)));
+    const packshots = ['szprot-w-oleju', 'makrela-w-pomidorach', 'sledz-po-kaszubsku', 'tunczyk-w-sosie-wlasnym'].map(s => `assets/products/${s}.webp`);
+    ok('site product photos match the generated packshots in product order', await p.$$eval('.rf-prod img', (imgs, expected) => imgs.length === 4 && imgs.every((img, i) => img.getAttribute('src') === expected[i]), packshots));
+    await p.evaluate(() => Promise.all([...document.querySelectorAll('.rf-prod img')].map(img => img.decode().catch(() => {}))));
+    ok('site product packshots load', await p.$$eval('.rf-prod img', imgs => imgs.every(img => img.complete && img.naturalWidth > 0)));
+    await p.evaluate(() => { go('rybex', 'home'); visionRefresh(); });
+    ok('site hero uses the generated sprat and mackerel packshots', await p.$$eval('.rf-hero-pic img', (imgs, expected) => imgs.length === 2 && imgs.every((img, i) => img.getAttribute('src') === expected[i]), packshots));
+    ok('site vision refresh leaves product packshots unchanged', await p.$$eval('.rf-prod img', (imgs, expected) => imgs.length === 4 && imgs.every((img, i) => img.getAttribute('src') === expected[i] && !img.hasAttribute('data-vi')), packshots));
+    await p.evaluate(() => go('rybex', 'products'));
     await p.click('.rybex-frame [data-lab=vision]'); ok('site product links to the vision lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'vision'));
     await p.evaluate(() => go('rybex', 'quality')); await p.click('.rybex-frame [data-doc]');
     ok('site quality links to a PROCES document in the data folder', await p.evaluate(() => S.view === 'data' && /^PROCES-0[1-5]/.test(FSEL)));
@@ -1193,7 +1199,55 @@ try {
       ok('exit2 an old baseline with a stored label renders as stored', lb.old.includes('trafność (dev)'), lb.old);
       ok('exit2 the stored baseline still counts as saved', await p.$eval('#baseOut', e => e.dataset.saved) === 'true');
       ok('exit2 no page errors (10-12)', !p.errs.length, p.errs.join('|'));
-      await p.close(); } }
+      await p.close(); }
+    // Review round 1.
+    // 1: the note is waived only for the first final-result save (test revealed, enough experiments, no such entry yet).
+    { const p = await fresh('#/lab/complaints');
+      const vary = i => p.evaluate(i => { lab().compl.kw[CK[0]] += ', zz' + i; save(); render(); }, i);
+      const nExp = () => p.evaluate(() => expOf(team(), 'complaints'));
+      await p.evaluate(`(()=>{ (${prepC})({ n: 0 }); lab().compl.revealed = false; lab().compl.testViews = 0; save(); render(); })()`);
+      await p.click('#rv');
+      ok('exit2r reveal right after the baseline (gate satisfied, no trainer)', await p.evaluate(() => !S.trainer && lab().compl.revealed && expOf(team(), 'complaints') === 0));
+      for (const i of [1, 2]) { await vary(i); await p.fill('#expNote', 'Wniosek ' + i); await p.click('#sv'); }
+      await vary(3); await p.fill('#expNote', ''); await p.click('#sv');
+      ok('exit2r revealed early: the third save without a note is held', await nExp() === 2 && await p.$eval('#expNote', e => e.dataset.noteRequired === 'true' && e.getAttribute('aria-invalid') === 'true'));
+      await p.close(); }
+    { const p = await fresh('#/lab/complaints');
+      const vary = i => p.evaluate(i => { lab().compl.kw[CK[0]] += ', zz' + i; save(); render(); }, i);
+      const nExp = () => p.evaluate(() => expOf(team(), 'complaints'));
+      await p.evaluate(`(()=>{ (${prepC})({ n: 0 }); lab().compl.revealed = false; lab().compl.testViews = 0; save(); render(); })()`);
+      for (const i of [1, 2, 3]) { await vary(i); await p.fill('#expNote', 'Wniosek ' + i); await p.click('#sv'); }
+      await p.click('#rv'); await vary(4); await p.fill('#expNote', ''); await p.click('#sv');
+      ok('exit2r three experiments, reveal, save without a note: the final result is saved', await nExp() === 4 && await p.evaluate(() => cmpTestSaved(team().log[team().log.length - 1])));
+      await vary(5); await p.fill('#expNote', ''); await p.click('#sv');
+      ok('exit2r a second save while still revealed without a note is held', await nExp() === 4 && await p.$eval('#expNote', e => e.dataset.noteRequired === 'true'));
+      ok('exit2r no page errors (note waiver)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 2: the human-check warning follows the track.
+    { const p = await fresh('#/arch');
+      await seed(p, () => { const t = team(); t.track = 'complaints'; t.arch.sel = {}; t.arch.decisions = { stopAuthority: 'system' }; });
+      const w = await p.evaluate(() => ({ s: document.querySelector('#goLive [data-w=hitl]').textContent, md: reportMD(), h: reportHTML() }));
+      const sec = x => x.slice(x.indexOf('## Decyzje wdrożeniowe') + 3);
+      ok('exit2r complaints hitl warning speaks of the reply, not the line', !/linię/.test(w.s) && /klient/.test(w.s) && /odpowied/.test(w.s), w.s);
+      ok('exit2r complaints hitl warning in both reports without the line', w.md.includes(w.s.trim()) && sec(w.md).split('\n## ')[0].includes(w.s.trim()) && !/linię/.test(sec(w.md).split('\n## ')[0]) && !/zatrzymuje linię/.test(w.h), sec(w.md).split('\n## ')[0]);
+      ok('exit2r person-confirms warning follows the track too', await p.evaluate(() => { const t = team(); t.arch.decisions.stopAuthority = 'operator'; const x = GO_LIVE_WARN_TXT(t, 'hitl'); return !/zatrzymanie/.test(x) && /odpowied/.test(x); }));
+      ok('exit2r every track has its own hitl wording, vision keeps the line, English too', await p.evaluate(() => { const t = team(), out = {}; for (const k of ['vision', 'complaints', 'rag', 'forecast', 'maint']) { t.track = k; t.arch.decisions.stopAuthority = 'system'; out[k] = GO_LIVE_WARN_TXT(t, 'hitl'); } S.lang = 'en'; t.track = 'complaints'; const en = GO_LIVE_WARN_TXT(t, 'hitl'); t.track = 'vision'; const env = GO_LIVE_WARN_TXT(t, 'hitl'); S.lang = 'pl'; t.track = 'complaints';
+        return /zatrzymuje linię/.test(out.vision) && new Set(Object.values(out)).size === 5 && /maszyn/.test(out.maint) && /plan/.test(out.forecast) && /procedur/.test(out.rag) && /customer/.test(en) && !/line/.test(en) && /stops the line/.test(env); }));
+      await p.close(); }
+    // 3: leaving the example does not overwrite where the site was entered from.
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(()=>{ (${prepC})(); lab().compl.testViews = 1; save(); render(); })()`);
+      await p.click('#inboxForm'); await p.waitForSelector('#backToWs');
+      await p.evaluate(() => enterExample()); await p.click('#exampleExit');
+      ok('exit2r back on the site after the example', await p.evaluate(() => location.hash) === '#/rybex/contact');
+      await p.click('#backToWs'); ok('exit2r back still returns to the lab, not the report', await p.evaluate(() => location.hash) === '#/lab/complaints');
+      ok('exit2r no page errors (example and site)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 6: the path bar writes the position as "krok n z 9".
+    { const p = await fresh('#/home');
+      ok('exit2r path bar position reads krok n z 9', await p.evaluate(() => { const h = $('.pb-here').textContent, s = $('#pathBar').dataset.step; S.lang = 'en'; render(); const e = $('.pb-here').textContent; S.lang = 'pl'; render(); return /krok 1 z 9/.test(h) && !/\d\/9/.test(h) && /step 1 of 9/.test(e) && s === 'join'; }));
+      await p.close(); }
+  }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
