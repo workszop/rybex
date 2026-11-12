@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -84,6 +84,28 @@ try {
     await p.click('#langSeg button[data-l=en]'); ok('recap in English', /validation/i.test(await p.$eval('#proto .recap', e => e.textContent)));
     ok('recap no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
+  if (run('story')) { const p = await fresh('#/home');
+    ok('story memo visible without scrolling past one screen', (await p.$eval('#memo', e => e.getBoundingClientRect().top)) < 900);
+    ok('story memo comes before the home cards and agenda', await p.$eval('#main', e => { const all = [...e.querySelectorAll('#memo, .card')]; return all[0].id === 'memo' || all[0].closest('#onboard, #memo') !== null; }));
+    ok('story lot from one source', await p.evaluate(() => STORY().lot === 'RYB-261031-L2' && document.querySelector('#memo').textContent.includes(STORY().lot) && VIS_SYS().includes(STORY().lot)));
+    ok('onboarding shown on first visit', !!(await p.$('#onboard')));
+    await p.fill('#onboardName', 'Zespół Szprot');
+    ok('onboarding name mirrors the team name field', await p.$eval('#teamName', e => e.value) === 'Zespół Szprot');
+    await p.click('#onboardGo');
+    ok('onboarding sets name and timestamp', await p.evaluate(() => team().name === 'Zespół Szprot' && !!team().onboardedAt));
+    ok('onboarding closes, memo stays', !(await p.$('#onboard')) && !!(await p.$('#memo')));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('onboarding gone after reload', !(await p.$('#onboard')) && !!(await p.$('#memo')));
+    await p.evaluate(() => go('brief')); ok('brief shows the incident and keeps requirements', await p.$eval('#main', e => e.textContent.includes('RYB-261031-L2') && e.querySelectorAll('#briefReq .card').length === SEC().length));
+    ok('brief memo before task choice, requirements open on desktop', await p.evaluate(() => { const m = document.querySelector('#main #memo'), t = document.querySelector('#main [data-t]'), r = document.querySelector('#briefReq'); return !!m && !!t && !!(m.compareDocumentPosition(t) & 4) && !!(t.compareDocumentPosition(r) & 4) && r.open; }));
+    ok('brief file starts with the story', await p.evaluate(() => BRIEF_PL.startsWith('>') && BRIEF_PL.includes(STORY().lot) && BRIEF_PL.includes('Celem projektu') && BRIEF_EN.includes(STORY().lot) && BRIEF_EN.includes('# Final project')));
+    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('home')); ok('memo in English', /plant director/i.test(await p.$eval('#memo', e => e.textContent)));
+    ok('no real brands', await p.$eval('#main', e => !/Biedronka|Lidl|Graal|Łosoś Ustka|Auchan|Kaufland/i.test(e.textContent)));
+    ok('story no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close();
+    const m = await fresh('#/brief', '', { width: 390, height: 844 });
+    ok('brief requirements folded on mobile', await m.$eval('#briefReq', e => !e.open));
+    await m.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
