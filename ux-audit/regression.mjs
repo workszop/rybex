@@ -20,6 +20,8 @@ async function fresh(vp = { width: 1440, height: 900 }, hash = '', lang) {
   if (lang === 'en') await p.click('#langSeg button[data-l=en]');
   return p;
 }
+// Trainer mode skips the baseline gate (spec 4.7); only for sections that reveal a test set on a fresh team.
+const TRAINER = '?trainer=1';
 const ready = p => p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
 const nav = (p, v) => p.click(`#nav button[data-v=${v}]`);
 const track = (p, k) => p.click(`#trackTabs button[data-k=${k}]`);
@@ -85,7 +87,7 @@ console.log('\nUX-004 team file, tabs, failed save');
   ok('004 failed save warns', await s.isVisible('#saveWarn')); ok('004 no false success', !(await s.textContent('#toast')).includes('Zapisano')); }
 
 console.log('\nUX-005 test discipline');
-{ const p = await fresh(undefined, '#/lab/vision'); const res = () => p.$eval('#visRes', e => ({ ...e.dataset }));
+{ const p = await fresh(undefined, TRAINER + '#/lab/vision'); const res = () => p.$eval('#visRes', e => ({ ...e.dataset }));
   let r = await res(); ok('005 tuning shows validation', r.set === 'val' && r.testVisible === 'false' && r.testViews === '0'); ok('005 no test score in default', !(await p.textContent('#visRes')).includes('testowym'));
   await p.click('#visRv'); r = await res(); ok('005 reveal shows test, counted', r.set === 'test' && r.testViews === '1'); ok('005 sliders locked', await p.$eval('#vd', e => e.disabled) && await p.$eval('#cal', e => e.disabled));
   await p.click('#sv'); const l = await p.evaluate(() => team().log.at(-1)); ok('005 log stamps views', l.testViews === 1 && !!l.res.test);
@@ -93,7 +95,7 @@ console.log('\nUX-005 test discipline');
   await p.reload(); await ready(p); ok('005 count survives reload', (await res()).testViews === '2');
   await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cStats'); const c = () => p.$eval('#cStats', e => ({ ...e.dataset }));
   ok('005 complaints test hidden', (await c()).test === undefined); await p.click('#rv'); ok('005 complaints reveal counted', (await c()).testViews === '1' && (await c()).test !== undefined); ok('005 keywords locked', await p.$eval('#kw_label', e => e.disabled) && await p.$eval('#rs', e => e.disabled));
-  const q = await fresh(undefined, '#/data'); await q.click('.tree button[data-k=compl]'); const cats = await q.$$eval('#viewer .tscroll.tall tr', rs => rs.slice(1).map(x => x.lastElementChild.textContent)); ok('005 test labels masked', cats.slice(36).every(x => x === 'ukryta') && cats.slice(0, 36).every(x => x !== 'ukryta'));
+  const q = await fresh(undefined, TRAINER + '#/data'); await q.click('.tree button[data-k=compl]'); const cats = await q.$$eval('#viewer .tscroll.tall tr', rs => rs.slice(1).map(x => x.lastElementChild.textContent)); ok('005 test labels masked', cats.slice(36).every(x => x === 'ukryta') && cats.slice(0, 36).every(x => x !== 'ukryta'));
   const d = await download(q, '#dlc2', 'test.csv'); const csv = fs.readFileSync(d.file, 'utf8'); ok('005 unlabeled csv', !csv.includes('category') && csv.trim().split('\n').length >= 25 && d.name === 'complaints_test_unlabeled.csv'); ok('005 no full file yet', !(await q.$('#dlc3')));
   await q.evaluate(() => go('lab', 'complaints')); await q.waitForSelector('#rv'); await q.click('#rv'); await q.evaluate(() => go('data')); await q.waitForSelector('#dlc3'); ok('005 full file after reveal', true); }
 
@@ -119,7 +121,7 @@ console.log('\nUX-007 reproducible experiments');
   await p.click('#langSeg button[data-l=en]'); const en = await p.textContent('#logBox'); ok('007 log follows language', en.includes('correct answers') && !en.includes('poprawne odpowiedzi')); }
 
 console.log('\nUX-008 report');
-{ const p = await fresh(undefined, '#/lab/vision'); await p.click('#pickTrack'); await p.click('#labMethod details > summary'); await p.click('input[name=meth][value="0"]'); await p.fill('#methWhy', 'Bo <tanie> i wyjaśnialne'); await p.click('#visRv'); await p.click('#sv'); await nav(p, 'arch'); await p.click('button[data-p=vision]'); await nav(p, 'deliver');
+{ const p = await fresh(undefined, TRAINER + '#/lab/vision'); await p.click('#pickTrack'); await p.click('#labMethod details > summary'); await p.click('input[name=meth][value="0"]'); await p.fill('#methWhy', 'Bo <tanie> i wyjaśnialne'); await p.click('#visRv'); await p.click('#sv'); await nav(p, 'arch'); await p.click('button[data-p=vision]'); await nav(p, 'deliver');
   const h = await download(p, '#expH', 'r.html'); const html = fs.readFileSync(h.file, 'utf8'); ok('008 html has diagram', html.includes('<svg')); ok('008 states track, method, why, best', /Wizyjna kontrola/.test(html) && /Reguły na cechach/.test(html) && html.includes('Bo &lt;tanie&gt;') && /F1 \(test\)/.test(html) && html.includes('zawsze OK')); ok('008 infra localized', html.includes('hybrydowa')); ok('008 title fallback', html.includes('<h1>Zespół 1</h1>'));
   const m = await download(p, '#exp', 'r.md'); const md = fs.readFileSync(m.file, 'utf8'); ok('008 md embeds diagram', md.includes('data:image/svg+xml;base64,')); ok('008 md summary', md.includes('Wizyjna kontrola') && md.includes('Bo &lt;tanie&gt;')); if (EV) { const v = await p.context().newPage(); await v.goto('file://' + h.file); await v.screenshot({ path: `${EV}/after-report.png`, fullPage: true }); await v.close(); } }
 

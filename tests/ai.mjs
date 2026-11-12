@@ -145,7 +145,7 @@ try {
   if (run('compl')) {
     console.log('compl');
     await mock('reset?delay=5');
-    const p = await fresh('#/lab/complaints');
+    const p = await fresh('#/lab/complaints', '&trainer=1'); // reveals the test without a baseline
     await connect(p);
     const nc = await p.evaluate(() => [normCategory('Damaged can'), normCategory('xyz'), normCategory(' SMELL '), normCategory('Dostawa / faktura'), normCategory(null)]);
     ok('normCategory maps names and synonyms, else other', JSON.stringify(nc) === JSON.stringify(['damage', 'other', 'smell', 'delivery', 'other']), JSON.stringify(nc));
@@ -203,7 +203,7 @@ try {
   if (run('vision')) {
     console.log('vision');
     await mock('reset?delay=5');
-    const p = await fresh('#/lab/vision');
+    const p = await fresh('#/lab/vision', '&trainer=1'); // reveals the test without a baseline
     await connect(p);
     const nd = await p.evaluate(() => [normDefect('Dent'), normDefect('wgniecenie'), normDefect('none'), normDefect('smudged code'), normDefect('xyz'), normDefect(' Label shift')]);
     ok('normDefect maps synonyms, unknown -> null', JSON.stringify(nd) === JSON.stringify(['dent', 'dent', 'ok', 'code', null, 'label']), JSON.stringify(nd));

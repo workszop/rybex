@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -126,7 +126,7 @@ try {
     ok('pathState picks the first open step', st.next.id === 'cycle' && st.steps.length === 9, JSON.stringify(st.next));
     ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
     const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
-      const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
+      const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'lb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
     ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","report",true,false]', JSON.stringify(rules));
     ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
     await seed(p, () => { team().onboardedAt = 'x'; });
@@ -172,7 +172,7 @@ try {
     // Review round 1: Next on its own page, fresh bar after lab actions, unavailable steps, sub-view aware current step.
     const f = await fresh('#/home');
     const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
     let acc = [];
     for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
       await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
@@ -187,19 +187,19 @@ try {
     await f.evaluate(() => go('demos', 'split')); await f.click('#pathNext'); await f.waitForTimeout(50);
     ok('Next moves from one required demo to the next', await f.evaluate(() => location.hash) === '#/demos/metr');
     ok('Next focuses the working element', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#pathNext').click(); return document.activeElement.id === 'onboardName'; }));
-    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = []; });
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [{ id: 'mb', ts: '', track: 'maint', note: '', testViews: 0, base: true }]; });
     await f.evaluate(() => go('lab', 'maint')); await f.click('#sv');
     ok('bar fresh after saving an experiment', await f.evaluate(() => document.querySelector('#pathBar').dataset.next === pathState(team()).next.id && pathState(team()).next.id === 'iterate'));
-    await seed(f, () => { const t = team(); t.track = 'vision'; qz(t, 'tok'); t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })); t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
+    await seed(f, () => { const t = team(); t.track = 'vision'; qz(t, 'tok'); t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'vb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); t.decision.vision = { m: 0, why: 'Reguły są tanie i wyjaśnialne.' }; t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
     await f.evaluate(() => go('lab', 'vision')); await f.waitForSelector('#visRv'); await f.click('#visRv');
     ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === (n ? n.id : '') && (!n || n.id !== 'iterate'); }));
     await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
-    const done = await f.evaluate(() => { const t = defaultTeam(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' }));
+    const done = await f.evaluate(() => { const t = defaultTeam(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true });
       const a = pathState(t); t.seen.report = true; const b = pathState(t); return { a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
     ok('report recommended while risk is unavailable', done.a === 'report', JSON.stringify(done));
     ok('path completes without unavailable steps', done.b === null && done.na.na === true && done.na.done === false, JSON.stringify(done));
-    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })); });
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); });
     ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '1' && e.dataset.total === '9'));
     ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórz dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; }); await f.evaluate(() => go('demos', 'split'));
@@ -410,7 +410,7 @@ try {
     // 4: Next on the step's own page says what to do.
     { const f = await fresh('#/home');
       const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
       const txt = { join: 'Podajcie nazwę zespołu', cycle: 'Odpowiedzcie na pytania', task: 'Wybierzcie zadanie', data: 'Otwórzcie dane swojego zadania', demos: 'Odpowiedzcie na pytania', base: 'Uruchomcie metodę odniesienia', iterate: 'Zapiszcie eksperyment', report: 'Wyeksportujcie raport' };
       const acc = [];
       for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
@@ -455,6 +455,45 @@ try {
       ok('exit1 no page errors (7, 8)', !p.errs.length, p.errs.join('|'));
       await p.close(); }
   }
+  if (run('gate')) { for (const [k, sel, key] of [['vision', '#visRv', 'vision'], ['rag', '#ragRv', 'rag'], ['complaints', '#rv', 'compl']]) { const p = await fresh('#/lab/' + k);
+      ok(`gate ${k}: reveal blocked without baseline`, await p.$eval(sel, e => e.dataset.blocked) === 'baseline');
+      await p.click(sel); ok(`gate ${k}: click does not reveal or count`, await p.evaluate(key => !lab()[key].revealed && lab()[key].testViews === 0, key));
+      ok(`gate ${k}: focus moves to the baseline button`, await p.evaluate(() => document.activeElement.id) === 'runBase');
+      await p.click('#runBase'); await p.click('#saveBase');
+      ok(`gate ${k}: now blocked on the justification`, await p.$eval(sel, e => e.dataset.blocked) === 'why');
+      await p.click(sel); ok(`gate ${k}: focus moves to the justification`, await p.evaluate(() => document.activeElement.id) === 'methWhy');
+      await p.fill('#methWhy', 'Reguły są tanie i wyjaśnialne, a danych jest mało.');
+      ok(`gate ${k}: gate open`, await p.$eval(sel, e => e.dataset.blocked) === '');
+      await p.click(sel); ok(`gate ${k}: reveal works and counts once`, await p.evaluate(key => lab()[key].revealed && lab()[key].testViews === 1, key));
+      await p.click(sel); ok(`gate ${k}: hiding is never gated`, await p.evaluate(key => !lab()[key].revealed && lab()[key].testViews === 1, key));
+      ok(`gate ${k}: re-reveal after a hide stays open`, await p.$eval(sel, e => e.dataset.blocked) === '');
+      ok(`gate ${k}: no page errors`, !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    { const p = await fresh('#/lab/vision');
+      await seed(p, () => { S.teams[S.team] = normTeam({ track: 'vision', lab: { vision: { revealed: true, testViews: 3 } } }); });
+      ok('gate old file with a revealed test stays revealed and ungated', await p.evaluate(() => lab().vision.revealed && revealGate('vision') === ''));
+      ok('gate old revealed track counts the path baseline step as done', await p.evaluate(() => pathState(team()).steps.find(s => s.id === 'base').done));
+      await seed(p, () => { S.teams[S.team] = normTeam({ track: 'vision', log: [{ id: 'e1', ts: '', track: 'vision', cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: 0, hi: true } }, note: '', testViews: 0 }] }); });
+      ok('gate path baseline step needs a saved baseline, not any entry', await p.evaluate(() => !pathState(team()).steps.find(s => s.id === 'base').done));
+      await p.close(); }
+    { const t = await fresh('#/lab/vision', '&trainer=1');
+      ok('gate trainer bypasses the gate', await t.evaluate(() => revealGate('vision')) === '' && await t.evaluate(() => document.body.dataset.trainer) === 'true');
+      ok('gate trainer flag is never persisted', await t.evaluate(() => { save(); return !/trainer/.test(localStorage.getItem(STORE_KEY)); }));
+      await t.close(); }
+    { const b = await fresh('#/lab/maint'); await b.click('#runBase'); await b.click('#saveBase');
+      await b.evaluate(() => { lab().mt.thr = 3; save(); render(); }); await b.click('#sv');
+      ok('gate banner compares tuning-set values only', await b.$eval('#baseBanner', e => ['true', 'false'].includes(e.dataset.beaten) && e.dataset.base !== '' && e.dataset.best !== ''));
+      ok('gate participant body flag', await b.evaluate(() => document.body.dataset.trainer) === 'false');
+      await b.close(); }
+    { const f = await fresh('#/lab/forecast');
+      const r = await f.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'forecast', cfg: { base: true }, res: { primary: { m: 'MAPE', v: .3, base: .3, hi: false } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'forecast', cfg: { x: 1 }, res: { primary: { m: 'MAPE', v: .2, base: .3, hi: false } }, note: '', testViews: 0 }]; renderBaseBanner('forecast'); return $('#baseBanner').dataset.beaten; });
+      ok('gate lower error beats the baseline on forecast', r === 'true', r);
+      await f.close(); }
+    { const v = await fresh('#/lab/vision');
+      const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4 }, test: { f1: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
+      ok('gate vision banner never reads a test-set value', r.best === '0.4' && !r.txt.includes('90'), JSON.stringify(r));
+      await v.close(); }
+    ok('gate double click on reveal counts one view', await (async () => { const d = await fresh('#/lab/rag', '&trainer=1'); await d.dblclick('#ragRv'); const n = await d.evaluate(() => lab().rag.testViews); await d.close(); return n >= 1 && n <= 2; })()); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
