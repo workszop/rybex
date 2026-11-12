@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -37,6 +37,18 @@ try {
   if (run('smoke')) { const p = await fresh();
     ok('smoke app ready, no errors', p.errs.length === 0, p.errs.join('|'));
     ok('smoke state readable', await p.evaluate(() => typeof team().name === 'string'));
+    await p.close(); }
+  if (run('state')) { const p = await fresh();
+    const d = await p.evaluate(() => defaultTeam());
+    ok('state v3 fields', ['goal','onboardedAt','seen','site','inbox','quizzes','challenges','risks','badges'].every(k => k in d) && 'decisions' in d.arch && Array.isArray(d.lab.vision.prompts));
+    ok('state file version 3', await p.evaluate(() => FILE_VERSION) === 3);
+    const m = await p.evaluate(() => { const old = { name: 'Stary', track: 'vision', log: [{ id: 'a', ts: '2026-11-01', track: 'vision', cfg: { x: 1 }, res: { primary: { v: .7, m: 'F1' } }, note: 'n' }], lab: { vision: { revealed: true, testViews: 2 } } }; return normTeam(old); });
+    ok('state v2 file keeps log, reveal and views', m.log.length === 1 && m.lab.vision.revealed === true && m.lab.vision.testViews === 2 && m.goal === '' && m.site.newsRead === false);
+    const junk = await p.evaluate(() => normTeam({ inbox: 'x', quizzes: 5, risks: [1], badges: { a: 1 }, site: null, goal: 7, arch: { decisions: 'no' }, inbox2: 1 }));
+    ok('state junk values fall back to defaults', Array.isArray(junk.inbox) && junk.inbox.length === 0 && typeof junk.goal === 'string' && Array.isArray(junk.badges) && typeof junk.arch.decisions === 'object');
+    const big = await p.evaluate(() => normTeam({ inbox: Array.from({ length: 50 }, (_, i) => ({ id: 'i' + i, ts: '', product: 0, cat: 'damage', text: 'x'.repeat(9000) })) }));
+    ok('state inbox capped at 20 items and 2000 chars', big.inbox.length === 20 && big.inbox[0].text.length === 2000);
+    ok('state base flag survives', await p.evaluate(() => normTeam({ log: [{ track: 'vision', base: true }] }).log[0].base) === true);
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

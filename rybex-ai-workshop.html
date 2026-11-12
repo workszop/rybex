@@ -459,7 +459,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 
 <script>
 // ─── Constants ───
-const APP_ID='rybex-ai-workshop',STORE_KEY='rybexws',FILE_VERSION=2,TEAM_COUNT=8,MIN_EXPERIMENTS=3,PREVIEW_ROWS=40,TOAST_MS=8000,TOAST_ACTION_MS=20000,WEAK_SIM=.35,FONT_WAIT_MS=1500;
+const APP_ID='rybex-ai-workshop',STORE_KEY='rybexws',FILE_VERSION=3,TEAM_COUNT=8,MIN_EXPERIMENTS=3,PREVIEW_ROWS=40,TOAST_MS=8000,TOAST_ACTION_MS=20000,WEAK_SIM=.35,FONT_WAIT_MS=1500;
 const TONE={vision:'grape',rag:'blue',complaints:'yellow',forecast:'green',maint:'ink'};
 const INK='#1C1917',INK2='#44403C',INK3='#625B53',LINE='#E0DBD3',LINE2='#C9C2B7',PAPER='#FFFFFF',BLUE='#177AA8',GRAPE='#7A5AC2',GREEN='#078342',RED='#C92823',BERRY='#C6478B',YELLOW='#FFD500';
 
@@ -780,8 +780,8 @@ const SHOTS=[0,2,5,10,20],POOL_N=20,MAX_RUNS=40,KEEP_REPLIES=3;
 const VSHOTS=[0,4,8],MAX_VRUNS=10,KEEP_REASONS=2;
 
 // ─── State ───
-const defaultLab=()=>({vision:{th:null,testViews:0,revealed:false,method:'rules',vshots:0,mruns:[],vsel:''},rag:{k:2,chunk:1,min:.12,msgs:[],testViews:0,revealed:false,gen:'extract',judge:false,mrun:null},compl:{kw:{...KW},safety:SAFETY_KW,testViews:0,revealed:false,sel:0,method:'rules',prompts:[],active:'v1',draft:null,shots:0,runs:[],rsel:'',curve:null,cmp:null},fc:{p:0,h:6,w:3,show:{mean:1,naive:0,snaive:1,ma:0,ts:1}},mt:{thr:4,win:1,f:{temp_c:1,vibration_mm_s:1,pressure_bar:0}}});
-const defaultTeam=()=>({name:'',track:null,decision:{},checks:{},notes:{},arch:{sel:{},infra:'hybrid'},log:[],lab:defaultLab()});
+const defaultLab=()=>({vision:{th:null,testViews:0,revealed:false,method:'rules',vshots:0,mruns:[],vsel:'',prompts:[],active:'v1',draft:null},rag:{k:2,chunk:1,min:.12,msgs:[],testViews:0,revealed:false,gen:'extract',judge:false,mrun:null},compl:{kw:{...KW},safety:SAFETY_KW,testViews:0,revealed:false,sel:0,method:'rules',prompts:[],active:'v1',draft:null,shots:0,runs:[],rsel:'',curve:null,cmp:null},fc:{p:0,h:6,w:3,show:{mean:1,naive:0,snaive:1,ma:0,ts:1}},mt:{thr:4,win:1,f:{temp_c:1,vibration_mm_s:1,pressure_bar:0}}});
+const defaultTeam=()=>({name:'',track:null,decision:{},checks:{},notes:{},arch:{sel:{},infra:'hybrid',decisions:{}},log:[],lab:defaultLab(),goal:'',onboardedAt:'',seen:{},site:{newsRead:false,contactSent:false,intranetOpened:false},inbox:[],quizzes:{},challenges:{},risks:{},badges:[]});
 let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision'},teams:{},ai:{code:'',model:'deepseek'}};
 const AIS={state:'nocode',err:'',checked:false,calls:0,inTok:0,outTok:0,cost:0,teamSpend:null,limits:null,rec:new Map(),replay:undefined,run:null,timeoutMs:AI_TIMEOUT_MS};
 const T=(pl,en)=>S.lang==='pl'?pl:en,langIx=()=>S.lang==='pl'?0:1;
@@ -806,21 +806,31 @@ function cleanCmp(o){if(!isObj(o)||!Array.isArray(o.rows))return null;return{ver
 function cleanRagRun(o){if(!isObj(o)||!Array.isArray(o.rows)||!isObj(o.res)||!isObj(o.sum))return null;const R=o.res;return{sig:String(o.sig||''),set:o.set==='test'?'test':'dev',judge:!!o.judge,sum:cleanSum(o.sum),judgeN:o.judgeN==null?null:clampInt(o.judgeN,0,99,0),failed:clampInt(o.failed,0,99,0),agree:o.agree==null?null:clampNum(o.agree,0,1,0),
  res:{hit:clampInt(R.hit,0,99,0),ok:clampInt(R.ok,0,99,0),ref:clampInt(R.ref,0,99,0),n:clampInt(R.n,0,99,0),nOos:clampInt(R.nOos,0,99,0),prec:clampNum(R.prec,0,1,0),baseOk:clampInt(R.baseOk,0,99,0),extOk:clampInt(R.extOk,0,99,0)},
  rows:o.rows.slice(0,25).filter(isObj).map(r=>({q:String(r.q||''),doc:String(r.doc||''),oos:!!r.oos,a:String(r.a||'').slice(0,600),good:!!r.good,refused:!!r.refused,err:!!r.err,src:Array.isArray(r.src)?r.src.filter(isObj).map(x=>({doc:String(x.doc||''),par:String(x.par||'')})):[],judge:isObj(r.judge)?{correct:!!r.judge.correct,grounded:!!r.judge.grounded,reason:String(r.judge.reason||'').slice(0,200)}:null}))}}
-function cleanLog(l){if(!isObj(l))return null;const o={id:String(l.id||Math.random().toString(36).slice(2)),ts:String(l.ts||''),track:String(l.track||''),note:String(l.note||''),testViews:clampInt(l.testViews,0,1e6,0)};if(typeof l.text==='string')o.text=l.text;if(isObj(l.cfg))o.cfg=l.cfg;if(isObj(l.res))o.res=l.res;return o}
+function cleanLog(l){if(!isObj(l))return null;const o={id:String(l.id||Math.random().toString(36).slice(2)),ts:String(l.ts||''),track:String(l.track||''),note:String(l.note||''),testViews:clampInt(l.testViews,0,1e6,0)};if(typeof l.text==='string')o.text=l.text;if(isObj(l.cfg))o.cfg=l.cfg;if(isObj(l.res))o.res=l.res;if(l.base===true)o.base=true;return o}
+// Copies the entries of a plain object whose key is a short string and whose value passes keep (returns the stored value or undefined).
+function cleanMap(o,keep,keyOk=k=>k.length<=40){const r={};if(isObj(o))for(const k in o){if(k==='__proto__'||!keyOk(k))continue;const v=keep(o[k]);if(v!==undefined)r[k]=v}return r}
+function cleanPrompts(x){return Array.isArray(x)?x.filter(p=>isObj(p)&&typeof p.text==='string'&&/^v\d{1,3}$/.test(p.id)).slice(0,30).map(p=>({id:p.id,text:p.text.slice(0,8000)})):[]}
+function cleanQuiz(q){if(!isObj(q))return undefined;return{answers:cleanMap(q.answers,v=>Number.isInteger(v)&&v>=0&&v<=99?v:undefined),first:cleanMap(q.first,v=>typeof v==='boolean'?v:undefined),doneAt:typeof q.doneAt==='string'?q.doneAt.slice(0,40):''}}
+function cleanInbox(x){return isObj(x)&&typeof x.text==='string'&&Object.hasOwn(CAT,x.cat)&&Number.isInteger(x.product)&&x.product>=0&&x.product<PRODUCTS.length?{id:String(x.id||'').slice(0,40),ts:String(x.ts||'').slice(0,40),product:x.product,cat:x.cat,text:x.text.slice(0,2000)}:null}
 function normTeam(t){const d=defaultTeam();if(!isObj(t))return d;
  d.name=typeof t.name==='string'?t.name.slice(0,120):'';d.track=LAB_KEYS.includes(t.track)?t.track:null;
  if(isObj(t.decision))LAB_KEYS.forEach(k=>{const x=t.decision[k];if(isObj(x))d.decision[k]={m:clampInt(x.m,-1,9,-1),why:String(x.why||'')}});
  if(isObj(t.checks))for(const k in t.checks)d.checks[k]=!!t.checks[k];
  if(isObj(t.notes))for(const k in t.notes)d.notes[k]=String(t.notes[k]);
- if(isObj(t.arch)){const known=new Set(LANES().flatMap(l=>l[2].map(o=>o[0])));if(isObj(t.arch.sel))for(const k in t.arch.sel)if(known.has(k))d.arch.sel[k]=!!t.arch.sel[k];if(INFRA.includes(t.arch.infra))d.arch.infra=t.arch.infra}
+ if(isObj(t.arch)){const known=new Set(LANES().flatMap(l=>l[2].map(o=>o[0])));if(isObj(t.arch.sel))for(const k in t.arch.sel)if(known.has(k))d.arch.sel[k]=!!t.arch.sel[k];if(INFRA.includes(t.arch.infra))d.arch.infra=t.arch.infra;d.arch.decisions=cleanMap(t.arch.decisions,v=>typeof v==='string'&&v.length<=20?v:undefined)}
+ d.goal=typeof t.goal==='string'?t.goal.slice(0,300):'';d.onboardedAt=typeof t.onboardedAt==='string'?t.onboardedAt.slice(0,40):'';
+ d.seen=cleanMap(t.seen,v=>typeof v==='boolean'?v:undefined);if(isObj(t.site))for(const k in d.site)d.site[k]=t.site[k]===true;
+ if(Array.isArray(t.inbox))d.inbox=t.inbox.map(cleanInbox).filter(Boolean).slice(-20);
+ d.quizzes=cleanMap(t.quizzes,cleanQuiz,k=>DEMO_KEYS.includes(k)||k==='risk');d.challenges=cleanMap(t.challenges,v=>v==='done'?v:undefined);
+ d.risks=cleanMap(t.risks,v=>Number.isInteger(v)&&v>=0&&v<=9?v:undefined);if(Array.isArray(t.badges))d.badges=[...new Set(t.badges.filter(b=>typeof b==='string'&&b.length<=40))];
  if(Array.isArray(t.log))d.log=t.log.map(cleanLog).filter(Boolean);
  const L=isObj(t.lab)?t.lab:{},v=isObj(L.vision)?L.vision:{},r=isObj(L.rag)?L.rag:{},c=isObj(L.compl)?L.compl:{},f=isObj(L.fc)?L.fc:{},m=isObj(L.mt)?L.mt:{};
  if(isObj(v.th)&&[v.th.d,v.th.s,v.th.c].every(x=>typeof x==='number'&&isFinite(x)))d.lab.vision.th={d:v.th.d,s:v.th.s,c:v.th.c,fk:typeof v.th.fk==='string'?v.th.fk:''};
- d.lab.vision.testViews=clampInt(v.testViews,0,1e6,0);d.lab.vision.revealed=!!v.revealed;d.lab.vision.method=v.method==='llm'?'llm':'rules';d.lab.vision.vshots=VSHOTS.includes(v.vshots)?v.vshots:0;d.lab.vision.mruns=Array.isArray(v.mruns)?v.mruns.map(cleanVisRun).filter(Boolean).slice(-MAX_VRUNS):[];d.lab.vision.vsel=typeof v.vsel==='string'?v.vsel.slice(0,20):'';
+ d.lab.vision.testViews=clampInt(v.testViews,0,1e6,0);d.lab.vision.revealed=!!v.revealed;d.lab.vision.method=v.method==='llm'?'llm':'rules';d.lab.vision.vshots=VSHOTS.includes(v.vshots)?v.vshots:0;d.lab.vision.mruns=Array.isArray(v.mruns)?v.mruns.map(cleanVisRun).filter(Boolean).slice(-MAX_VRUNS):[];d.lab.vision.vsel=typeof v.vsel==='string'?v.vsel.slice(0,20):'';d.lab.vision.prompts=cleanPrompts(v.prompts);d.lab.vision.active=d.lab.vision.prompts.some(x=>x.id===v.active)?v.active:'v1';d.lab.vision.draft=typeof v.draft==='string'?v.draft.slice(0,8000):null;
  d.lab.rag.k=clampInt(r.k,1,5,2);d.lab.rag.chunk=clampInt(r.chunk,1,4,1);d.lab.rag.min=clampNum(r.min,0,.6,.12);d.lab.rag.testViews=clampInt(r.testViews,0,1e6,0);d.lab.rag.revealed=!!r.revealed;d.lab.rag.gen=r.gen==='llm'?'llm':'extract';d.lab.rag.judge=!!r.judge;d.lab.rag.mrun=cleanRagRun(r.mrun);if(Array.isArray(r.msgs))d.lab.rag.msgs=r.msgs.map(cleanMsg).filter(Boolean);
  if(isObj(c.kw))CK.forEach(k=>{if(typeof c.kw[k]==='string')d.lab.compl.kw[k]=c.kw[k]});
  if(typeof c.safety==='string')d.lab.compl.safety=c.safety;d.lab.compl.testViews=clampInt(c.testViews,0,1e6,0);d.lab.compl.revealed=!!c.revealed;d.lab.compl.sel=clampInt(c.sel,0,59,0);
- d.lab.compl.method=c.method==='llm'?'llm':'rules';if(Array.isArray(c.prompts))d.lab.compl.prompts=c.prompts.filter(x=>isObj(x)&&typeof x.text==='string'&&/^v\d{1,3}$/.test(x.id)).slice(0,30).map(x=>({id:x.id,text:x.text.slice(0,8000)}));d.lab.compl.active=d.lab.compl.prompts.some(x=>x.id===c.active)?c.active:'v1';d.lab.compl.draft=typeof c.draft==='string'?c.draft.slice(0,8000):null;d.lab.compl.shots=SHOTS.includes(c.shots)?c.shots:0;d.lab.compl.runs=Array.isArray(c.runs)?c.runs.map(cleanComplRun).filter(Boolean).slice(-MAX_RUNS):[];d.lab.compl.rsel=typeof c.rsel==='string'?c.rsel.slice(0,20):'';d.lab.compl.curve=cleanCurve(c.curve);d.lab.compl.cmp=cleanCmp(c.cmp);
+ d.lab.compl.method=c.method==='llm'?'llm':'rules';d.lab.compl.prompts=cleanPrompts(c.prompts);d.lab.compl.active=d.lab.compl.prompts.some(x=>x.id===c.active)?c.active:'v1';d.lab.compl.draft=typeof c.draft==='string'?c.draft.slice(0,8000):null;d.lab.compl.shots=SHOTS.includes(c.shots)?c.shots:0;d.lab.compl.runs=Array.isArray(c.runs)?c.runs.map(cleanComplRun).filter(Boolean).slice(-MAX_RUNS):[];d.lab.compl.rsel=typeof c.rsel==='string'?c.rsel.slice(0,20):'';d.lab.compl.curve=cleanCurve(c.curve);d.lab.compl.cmp=cleanCmp(c.cmp);
  d.lab.fc.p=[0,1,2,3].includes(f.p)?f.p:0;d.lab.fc.h=clampInt(f.h,3,9,6);d.lab.fc.w=clampInt(f.w,2,12,3);if(isObj(f.show))for(const k in d.lab.fc.show)if(k in f.show)d.lab.fc.show[k]=f.show[k]?1:0;
  d.lab.mt.thr=clampNum(m.thr,1.5,10,4);d.lab.mt.win=clampInt(m.win,1,8,1);if(isObj(m.f)&&Object.keys(d.lab.mt.f).some(k=>m.f[k]))for(const k in d.lab.mt.f)if(k in m.f)d.lab.mt.f[k]=m.f[k]?1:0;
  return d}
