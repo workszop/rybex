@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -911,6 +911,65 @@ try {
     ok('the RAG recap inside a comparison has a full contour', await v.evaluate(() => { const mk = (id, ok) => ({ id, ts: '2026-11-12', track: 'rag', cfg: { k: 3, chunk: 1, min: .1, lang: 'pl' }, res: { hit: ok, ok, ref: 2, n: 12, nOos: 3, baseOk: 5, prec: .5, test: false, primary: { m: 'x', v: ok / 12, base: 5 / 12, hi: true, test: false } }, note: '', testViews: 0 });
       const box = document.createElement('div'); box.id = 'cmpProbe'; box.innerHTML = renderCompare(mk('r1', 7), mk('r2', 9), 'rag'); document.body.append(box); const r = box.querySelector('.cmp .recap'), s = r && getComputedStyle(r), res = !!s && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; box.remove(); return res; }));
     for (const pg of [p, f, k, m, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
+  if (run('badges')) { const p = await fresh('#/home');
+    ok('nine badges, none earned on a new team', await p.evaluate(() => BADGES().length === 9 && earnedBadges(defaultTeam()).length === 0));
+    ok('no badge depends on a test score or a class code', await p.evaluate(() => { const t = defaultTeam(); t.track = 'vision'; t.lab.vision.testViews = 9; t.lab.vision.revealed = true; return !earnedBadges(t).includes('fairTest'); }));
+    await seed(p, () => { team().site.newsRead = true; });
+    ok('badge shown and listed in the contract', await p.$eval('#badges', e => e.dataset.earned.split(' ').includes('news')));
+    ok('new badge announced once', await p.evaluate(() => team().badges.includes('news')));
+    ok('a new badge shows one toast and one announcement naming it', await p.evaluate(() => new Promise(r => setTimeout(() => r(!toastEl.hidden && toastEl.textContent.includes('Aktualność przeczytana') && liveEl.textContent.includes('Aktualność przeczytana')), 700))));
+    ok('a known badge is not announced again', await p.evaluate(() => { hideToast(); const n = team().badges.length; renderProg(); renderProg(); return toastEl.hidden && team().badges.filter(b => b === 'news').length === 1 && team().badges.length === n; }));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('badges survive reload and are in the team file', await p.evaluate(() => team().badges.includes('news') && JSON.stringify(team()).includes('"badges"')));
+    ok('names are sober', await p.evaluate(() => BADGES().every(b => !/[!🏆🎉]/u.test(b.name + b.desc) && !/\p{Extended_Pictographic}/u.test(b.name + b.desc))));
+    ok('the two spec texts are verbatim', await p.evaluate(() => { const B = Object.fromEntries(BADGES().map(b => [b.id, b])); return B.fairTest.name === 'Uczciwy test' && B.fairTest.desc === 'odsłoniliście zbiór testowy dopiero po baseline i uzasadnieniu, jeden raz.' && B.noGuess.name === 'Linia nie zgaduje' && B.noGuess.desc === 'asystent wiedzy poprawnie odmówił odpowiedzi poza dokumentami.'; }));
+    ok('every badge icon exists in the loaded icon set', await p.evaluate(() => BADGES().every(b => { const n = b.icon.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join(''); return !!window.lucide.icons[n]; })));
+    const conds = await p.evaluate(() => { const T0 = () => defaultTeam(), e = t => earnedBadges(t), out = {};
+      const base = (k, tv = 0) => ({ id: 'b', ts: '', track: k, cfg: { base: true }, res: { primary: { m: 'x', v: .3, base: .3, hi: true } }, note: '', testViews: tv, base: true });
+      let t = T0(); t.log.push(base('vision')); t.track = 'vision'; out.firstBase = e(t).includes('firstBase');
+      t = T0(); t.track = 'vision'; t.log.push(base('vision')); t.decision.vision = { why: 'Bo reguły są przejrzyste.' }; t.lab.vision.testViews = 1; t.lab.vision.revealed = true; out.fair = e(t).includes('fairTest');
+      t.lab.vision.testViews = 2; out.fairTwice = e(t).includes('fairTest');
+      t.lab.vision.testViews = 1; t.decision.vision.why = 'krótko'; out.fairShortWhy = e(t).includes('fairTest');
+      t = T0(); t.track = 'vision'; t.log.push(base('vision', 1)); t.decision.vision = { why: 'Bo reguły są przejrzyste.' }; t.lab.vision.testViews = 1; out.fairBaseAfter = e(t).includes('fairTest');
+      t = T0(); t.track = 'forecast'; t.log.push(base('forecast')); t.decision.forecast = { why: 'Sezonowość jest silna.' }; out.fairForecast = e(t).includes('fairTest');
+      t = T0(); t.challenges.rag_oos = 'done'; out.noGuess = e(t).includes('noGuess');
+      const R = RISK_SCENARIOS().find(s => s.id === 'privacy'), gi = R.options.findIndex(o => o.good), bi = R.options.findIndex(o => !o.good);
+      t = T0(); t.risks.privacy = gi; out.privRisk = e(t).includes('privacy'); t.risks.privacy = bi; out.privRiskBad = e(t).includes('privacy');
+      t = T0(); t.arch.infra = 'local'; out.privInfraOnly = e(t).includes('privacy'); t.arch.decisions.runWhere = 'local'; out.privLocal = e(t).includes('privacy');
+      t = T0(); t.arch.sel.anon = true; out.privAnon = e(t).includes('privacy');
+      t = T0(); t.track = 'maint'; for (let i = 0; i < 3; i++) t.log.push({ id: 'm' + i, ts: '', track: 'maint', cfg: { thr: i }, res: { primary: { m: 'F1', v: .5, base: .2, hi: true } }, note: '', testViews: 0 }); out.three = e(t).includes('threeExp');
+      t.log.pop(); out.two = e(t).includes('threeExp');
+      t = T0(); qz(t, 'life', 'tok', 'rag', 'split'); out.quiz4 = e(t).includes('quizzes'); qz(t, 'metr'); out.quiz5 = e(t).includes('quizzes');
+      t = T0(); t.seen.report = true; out.report = e(t).includes('report');
+      return out; });
+    ok('conditions: first baseline', conds.firstBase, JSON.stringify(conds));
+    ok('conditions: fair test only with one view, a baseline saved before the reveal and a justification', conds.fair && !conds.fairTwice && !conds.fairShortWhy && !conds.fairBaseAfter && !conds.fairForecast, JSON.stringify(conds));
+    ok('conditions: out-of-scope challenge', conds.noGuess, JSON.stringify(conds));
+    ok('conditions: privacy by a good risk answer, a deliberate local answer or anonymisation', conds.privRisk && !conds.privRiskBad && !conds.privInfraOnly && conds.privLocal && conds.privAnon, JSON.stringify(conds));
+    ok('conditions: three experiments, five quizzes, report', conds.three && !conds.two && !conds.quiz4 && conds.quiz5 && conds.report, JSON.stringify(conds));
+    { const f = await fresh('#/lab/forecast');
+      const fb = (v, base, pr) => ({ id: 'e' + pr + v, ts: '', track: 'forecast', cfg: { p: pr, h: 6, w: 3 }, res: { primary: { m: 'MAPE', v, base, hi: false } }, note: '', testViews: 0 });
+      const B = { id: 'b', ts: '', track: 'forecast', cfg: { base: true, p: 0, h: 6 }, res: { primary: { m: 'MAPE', v: .3, base: .3, hi: false } }, note: '', testViews: 0, base: true };
+      const agree = await f.evaluate(([B, E1, E2, E3]) => { team().track = 'forecast'; const r = []; for (const E of [E1, E2, E3]) { team().log = [B, E]; renderBaseBanner('forecast'); r.push([$('#baseBanner').dataset.beaten === 'true', earnedBadges(team()).includes('beatBase')]); } return r; }, [B, fb(.2, .3, 0), fb(.05, .04, 1), fb(.4, .3, 0)]);
+      ok('beat-the-baseline badge agrees with the banner (lower is better, like with like)', agree.every(([a, b]) => a === b) && agree[0][0] && !agree[1][0] && !agree[2][0], JSON.stringify(agree));
+      await f.close(); }
+    { const q = await fresh('#/home');
+      ok('a badge earned on a switched-to team is stored silently', await q.evaluate(() => new Promise(r => { S.teams[2] = normTeam({ site: { newsRead: true } }); hideToast(); S.team = 2; render(); setTimeout(() => r(team().badges.includes('news') && toastEl.hidden && !liveEl.textContent.includes('Aktualność')), 700); })));
+      ok('a badge toast does not replace a gate message', await q.evaluate(() => { toast(GATE_MSG(), { reason: 'baseline' }); team().seen.report = true; renderProg(); return toastEl.dataset.reason === 'baseline' && team().badges.includes('report'); }));
+      ok('the held badge toast follows once the gate message closes', await q.evaluate(() => new Promise(r => { hideToast(); setTimeout(() => r(!toastEl.hidden && toastEl.textContent.includes('Raport wyeksportowany') && !toastEl.dataset.reason && !!window.lucide.icons.Award), 500); })));
+      ok('a badge stays once announced', await q.evaluate(() => { team().seen.report = false; renderProg(); return team().badges.includes('report') && $('#badges').dataset.earned.split(' ').includes('report'); }));
+      ok('earned badges are in both reports by name', await q.evaluate(() => reportMD().includes('Raport wyeksportowany') && reportHTML().includes('Raport wyeksportowany') && !reportMD().includes('Uczciwy test')));
+      await q.evaluate(() => go('deliver'));
+      ok('report view lists all nine with conditions, earned ones marked', await q.evaluate(() => { const L = $$('#badgeList [data-badge]'); return L.length === 9 && L.filter(x => x.dataset.earned === 'true').length === 2 && L.every(x => x.querySelector('.bd-how') || x.dataset.earned === 'true'); }));
+      ok('no ranking or score words in badge texts', await q.evaluate(() => !/ranking|punkt|wynik testow|F1|\d+ ?%/i.test($('#badgeList').textContent + $('#badges').textContent)));
+      await q.close(); }
+    { const m = await fresh('#/home', '', { width: 375, height: 740 });
+      await m.evaluate(() => { const t = team(); t.site.newsRead = true; t.seen.report = true; t.challenges.rag_oos = 'done'; t.arch.sel.anon = true; qz(t, 'life', 'tok', 'rag', 'split', 'metr'); t.badges = BADGES().map(b => b.id); save(); render(); });
+      await m.click('#tbToggle');
+      ok('nine badges fit at 375 px with the team bar open', await m.evaluate(() => { const b = $('#badges').getBoundingClientRect(), x = $('#teamExport').getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && b.right <= innerWidth && x.right <= innerWidth && $('#badges').dataset.earned.split(' ').length === 9; }));
+      await m.close(); }
+    ok('no page errors (badges)', !p.errs.length, p.errs.join(' | '));
+    await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
