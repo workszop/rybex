@@ -429,6 +429,8 @@ body.has-toast #main{padding-bottom:96px}
 .gloss{position:relative;border-bottom:1px dotted currentColor;cursor:help}
 .gloss-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:60;width:max-content;max-width:min(320px,90vw);background:var(--ink);color:var(--paper);font:400 13px/1.4 var(--font-sans);text-transform:none;letter-spacing:0;padding:8px 10px;border-radius:var(--r-sm);box-shadow:var(--shadow-lg);white-space:normal;text-align:left}
 .gloss:hover .gloss-tip,.gloss:focus .gloss-tip{display:block}
+.gloss.gl-off .gloss-tip{display:none}
+#saveBase[aria-disabled=true]{opacity:.7;cursor:default}
 .gloss-tip.up{top:auto;bottom:calc(100% + 6px)}
 
 .foot{padding:18px var(--gutter);border-top:1px solid var(--line);color:var(--ink-3);font-size:var(--caption)}
@@ -958,6 +960,10 @@ const glx=s=>glh(esc(s));
 // Keeps an open tip inside the viewport: shifts it sideways and flips it above the term near the bottom edge.
 function glFit(e){const g=e.target.closest&&e.target.closest('.gloss'),t=g&&g.querySelector('.gloss-tip');if(!t)return;requestAnimationFrame(()=>{const r=t.getBoundingClientRect();if(!r.width)return;const W=document.documentElement.clientWidth,x0=r.left-(parseFloat(t.style.left)||0),gr=g.getBoundingClientRect();let dx=0;if(x0+r.width>W-8)dx=W-8-x0-r.width;if(x0+dx<8)dx=8-x0;t.style.left=dx?dx+'px':'';t.classList.toggle('up',gr.bottom+6+r.height>innerHeight-8&&gr.top-6-r.height>8)})}
 document.addEventListener('mouseover',glFit);document.addEventListener('focusin',glFit);
+// Escape dismisses an open tip (WCAG 1.4.13) without moving focus; the next focus or hover on that term shows it again.
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||inspEl.open)return;const a=document.activeElement,g=new Set([...document.querySelectorAll('.gloss:hover')]);if(a&&a.closest)g.add(a.closest('.gloss'));g.forEach(x=>x&&x.classList.add('gl-off'))});
+const glOn=e=>{const g=e.target.closest&&e.target.closest('.gloss');if(g&&g.classList.contains('gl-off')&&!(e.type==='mouseover'&&e.relatedTarget&&g.contains(e.relatedTarget)))g.classList.remove('gl-off')};
+document.addEventListener('focusin',glOn);document.addEventListener('mouseover',glOn);
 // While a model run is going, actions that rebuild the page ask first instead of cancelling it silently.
 function guardRun(fn){if(!AIS.run)return fn();toast(T('Trwa przebieg modelu. Zaczekaj, aż się skończy, albo przerwij go.','A model run is in progress. Wait for it to finish or cancel it.'),{action:[T('Przerwij i kontynuuj','Cancel and continue'),()=>{aiAbort();fn()}]})}
 // Background re-renders (another tab, layout breakpoint) wait until the run ends.
@@ -971,7 +977,7 @@ function confMat(m,kind='vision'){const K=KIND(kind),r=x=>Math.round(x);return`<
 // Plain-language recap under every result (spec 4.5). Text only: shown on screen and spoken by announce(), never sent to a model or exported.
 const RSET=s=>({val:T('zbioru walidacyjnego','of the validation set'),test:T('zbioru testowego','of the test set'),dev:T('zestawu deweloperskiego','of the development set'),demo:T('przykładowej partii','of the example batch')})[s]||s;
 function recapText(track,m,{set,n}={}){const z=RSET(set),N=x=>num(Math.round(x),0);
- if(track==='vision'){const tp=Math.round(m.tp),fp=Math.round(m.fp),fn=Math.round(m.fn),al=tp+fp;return T(`Na ${N(n)} puszkach ${z} system podniósł alarm ${N(al)} ${plural(al,['raz','razy','razy'],[])}: ${N(tp)} naprawdę wadliwych, ${N(fp)} dobrych (fałszywy alarm). Przegapił ${N(fn)} wadliwych, które przy takim ustawieniu poszłyby dalej do sklepu.`,`On the ${N(n)} cans ${z} the system raised an alarm ${N(al)} ${al===1?'time':'times'}: ${N(tp)} truly defective, ${N(fp)} good (false alarm). It missed ${N(fn)} defective cans, which at this setting would have gone on to the shop.`)}
+ if(track==='vision'){const tp=Math.round(m.tp),fp=Math.round(m.fp),fn=Math.round(m.fn),al=tp+fp;return T(`Na ${N(n)} puszkach ${z} system podniósł alarm ${N(al)} ${plural(al,['raz','razy','razy'],[])}: ${N(tp)} naprawdę wadliwych, ${N(fp)} dobrych (fałszywy alarm). Przegapił ${N(fn)} wadliwych, które przy takim ustawieniu poszłyby dalej do sklepu.`,`On the ${N(n)} cans ${z} the system raised an alarm ${N(al)} ${al===1?'time':'times'}: ${N(tp)} truly defective, ${N(fp)} good ${fp===1?'can (false alarm)':'cans (false alarms)'}. It missed ${N(fn)} defective cans, which at this setting would have gone on to the shop.`)}
  if(track==='maint'){const w=set==='test'?T('W oknie testowym','In the test window'):T(`W oknie ${z}`,`In the window ${z}`);return T(`${w} system dał ${m.tp} trafnych alarmów i ${m.fp} fałszywych. Przegapił ${m.fn} ${plural(m.fn,['minutę','minuty','minut'],[])} awarii. Fałszywy alarm zatrzymuje linię; przegapienie awarii retortu to ryzyko partii.`,`${w} the system gave ${m.tp} true alarms and ${m.fp} false ones. It missed ${m.fn} ${m.fn===1?'minute':'minutes'} of failure. A false alarm stops the line; missing a retort failure puts a batch at risk.`)}
  if(track==='rag')return T(`Z ${m.n} pytań kontrolnych ${z} system odpowiedział poprawnie na ${m.ok}. W ${m.ref} przypadkach poprawnie odmówił odpowiedzi poza zakresem dokumentów. Jeśli odmawia za rzadko, pracownik może dostać zmyśloną procedurę.`,`Of the ${m.n} control questions ${z} the system answered ${m.ok} correctly. In ${m.ref} ${m.ref===1?'case':'cases'} it correctly refused to answer outside the scope of the documents. If it refuses too rarely, an employee may get a made-up procedure.`);
  if(track==='complaints')return T(`Z ${m.n} zgłoszeń ${z} kategoria zgadzała się w ${m.ok} przypadkach. Zgłoszenia o bezpieczeństwie żywności: wykryto ${m.hit} z ${m.total}. Pomyłka w tej grupie oznacza ryzyko dla klienta i dla firmy.`,`Of the ${m.n} complaints ${z} the category matched in ${m.ok} ${m.ok===1?'case':'cases'}. Food-safety complaints: ${m.hit} of ${m.total} detected. A mistake in this group means a risk for the customer and for the company.`);
@@ -1034,7 +1040,7 @@ function publishVisionContract(){
  document.documentElement.dataset.visionFeatures=VIS.featureSource;
  const el=$('#visionAssetStatus');if(el)el.innerHTML=visionStatusInner();
 }
-function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'))}}
+function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true)}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
 // Draw an image at the 320×400 working size and return it as a data URL of the given type.
 function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;c.getContext('2d').drawImage(im,0,0,320,400);resolve(c.toDataURL(type,q))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
@@ -1187,7 +1193,8 @@ function aiStart(id,total,label){aiAbort();const box=$('#'+id),ctl=new AbortCont
 function aiFailToast(e){if(!(e instanceof AiError)||e.kind==='aborted')return;toast(aiErrText(e.kind))}
 
 // ─── Logging ───
-const BASE_NAME=k=>({vision:T('„zawsze OK”','“always OK”'),rag:T('wyszukiwanie dosłowne','literal search'),complaints:T('klasa większościowa','majority class'),forecast:T('średnia historyczna','historical mean'),maint:T('reguła PROCES-05','PROCES-05 rule')})[k]||'';
+// gen: Polish genitive (after "wobec"); English has one form.
+const BASE_NAME=(k,gen)=>({vision:T('„zawsze OK”','“always OK”'),rag:T(gen?'wyszukiwania dosłownego':'wyszukiwanie dosłowne','literal search'),complaints:T(gen?'klasy większościowej':'klasa większościowa','majority class'),forecast:T(gen?'średniej historycznej':'średnia historyczna','historical mean'),maint:T(gen?'reguły PROCES-05':'reguła PROCES-05','PROCES-05 rule')})[k]||'';
 const trackName=k=>(trMeta()[k]||{}).title||k;
 function logText(l){if(l.text)return l.text;try{const s=logTextRaw(l),r=l.res||{};return isObj(r.ai)?`${s} · ${aiSumText(r.ai)}${r.agree!=null?` · ${T('zgodność sędziego z regułą','judge agreement with the rule')} ${pct(r.agree)}`:''}`:s}catch(e){return T('(wpis nieczytelny)','(unreadable entry)')}}
 function logTextRaw(l){const c=l.cfg||{},r=l.res||{};if(l.base){const p=r.primary||{},w=c.set==='val'?T('walidacja','validation'):c.set==='dev'?'dev':l.track==='forecast'&&PRODUCTS[c.p]?`${S.lang==='pl'?PRODUCTS[c.p][0]:PRODUCTS[c.p][1]}, h=${c.h}`:l.track==='maint'?T('minuty 300–600','minutes 300–600'):'';return`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(l.track)}${w?` (${w})`:''}; ${p.m}=${pct(p.v)}`}switch(l.track){
@@ -1203,15 +1210,23 @@ function fmtTs(ts){const d=new Date(ts);return isNaN(d)?String(ts):d.toLocaleStr
 function logSig(cfg,res){return JSON.stringify([cfg,{...res,primary:{...(res||{}).primary,m:''}}])}
 function logAdd(track,cfg,res,primary,opt={}){const t=team(),input=opt.base?null:$('#expNote'),note=input?input.value.trim():'',same=logSig(cfg,{...res,primary});
  if(t.log.some(l=>l.track===track&&l.cfg&&l.res&&logSig(l.cfg,l.res)===same)){toast(T('Ten wynik jest już w dzienniku. Zmień parametr, aby zapisać nowy eksperyment.','This result is already in the log. Change a parameter to save a new experiment.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});return}
- if(!opt.base&&noteRequired(track)&&!note&&!S.trainer){toast(T('Dopiszcie jedno zdanie wniosku – trafi do raportu.','Add one sentence of conclusion – it goes into the report.'));if(input)input.focus();return}
+ if(!opt.base&&noteRequired(track)&&!note&&!S.trainer){toast(NOTE_MSG());noteErr(true);if(input)input.focus();return}
  const tv=track==='vision'?lab().vision.testViews:track==='complaints'?lab().compl.testViews:track==='rag'?lab().rag.testViews:0;
- t.log.push({id:newId(),ts:new Date().toISOString(),track,cfg,res:{...res,primary},note,testViews:tv,...(opt.base?{base:true}:{})});if(input)input.value='';
+ t.log.push({id:newId(),ts:new Date().toISOString(),track,cfg,res:{...res,primary},note,testViews:tv,...(opt.base?{base:true}:{})});if(input)input.value='';noteErr(false);noteSync(track);
  const ok=save();renderProg();renderHeroProg(track);
  if(ok)toast(T('Zapisano w dzienniku zespołu.','Saved to the team log.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});
  else toast(T('Nie zapisano w pamięci przeglądarki. Pobierz plik zespołu.','Not stored in the browser. Download the team file.'))}
-function noteRequired(track){return team().log.filter(l=>l.track===track&&!l.base).length>=2}
-function saveBar(track){return`<div class="card-foot" style="padding:12px 0 0;margin-top:16px;align-items:flex-end"><div class="field" style="flex:1 1 280px"><label for="expNote">${T('Czego się nauczyliśmy? Gdzie system się myli?','What did we learn? Where does the system go wrong?')}</label><input id="expNote" class="input" type="text" placeholder="${track==='vision'?T('Który typ wady (wgniecenie, etykieta, kod) zostaje problemem?','Which defect type (dent, label, code) is still a problem?'):T('Jednym zdaniem: co zmiana parametru poprawiła, a czego nadal nie łapie system?','In one sentence: what did the parameter change improve, and what does the system still miss?')}"></div><button type="button" class="btn" id="sv">${ic('save')}${T('Zapisz wynik w dzienniku','Save result to log')}</button></div>`}
-function expCount(k){return team().log.filter(l=>l.track===k).length}
+function noteRequired(track){return expCount(track)>=2}
+const NOTE_MSG=()=>T('Dopiszcie jedno zdanie wniosku – trafi do raportu.','Add one sentence of conclusion – it goes into the report.');
+const noteReqTxt=r=>r?T('(wymagane)','(required)'):'';
+function saveBar(track){const nr=noteRequired(track);return`<div class="card-foot" style="padding:12px 0 0;margin-top:16px;align-items:flex-end"><div class="field" style="flex:1 1 280px"><label for="expNote">${T('Czego się nauczyliśmy? Gdzie system się myli?','What did we learn? Where does the system go wrong?')} <span id="expNoteReq">${noteReqTxt(nr)}</span></label><input id="expNote" class="input" type="text" data-note-required="${nr}" aria-required="${nr}" aria-describedby="expNoteMsg" placeholder="${track==='vision'?T('Który typ wady (wgniecenie, etykieta, kod) zostaje problemem?','Which defect type (dent, label, code) is still a problem?'):T('Jednym zdaniem: co zmiana parametru poprawiła, a czego nadal nie łapie system?','In one sentence: what did the parameter change improve, and what does the system still miss?')}"><p id="expNoteMsg" class="hint" style="margin:4px 0 0"></p></div><button type="button" class="btn" id="sv">${ic('save')}${T('Zapisz wynik w dzienniku','Save result to log')}</button></div>`}
+// Experiments only: a saved baseline (base:true) is the reference point, not one of the MIN_EXPERIMENTS.
+const expOf=(t,k)=>t.log.filter(l=>l.track===k&&!l.base).length;
+function expCount(k){return expOf(team(),k)}
+// The note field publishes whether the next save needs a conclusion; a held save marks it at the field, typing clears it.
+function noteSync(track){const i=$('#expNote');if(!i)return;const r=noteRequired(track);i.dataset.noteRequired=r;i.setAttribute('aria-required',r);const q=$('#expNoteReq');if(q)q.textContent=noteReqTxt(r)}
+function noteErr(on){const i=$('#expNote'),m=$('#expNoteMsg');if(!i)return;if(on)i.setAttribute('aria-invalid','true');else i.removeAttribute('aria-invalid');if(m)m.textContent=on?NOTE_MSG():''}
+document.addEventListener('input',e=>{if(e.target.id==='expNote'&&e.target.hasAttribute('aria-invalid'))noteErr(false)});
 function renderHeroProg(k){const el=$('#heroProg');if(!el)return;const n=expCount(k),m=MIN_EXPERIMENTS;el.innerHTML=`<span class="gh-num">${n}/${m}</span> <span class="edu-overline">${T('eksperymenty','experiments')}</span><div class="gh-bar"><span style="width:${Math.min(100,n/m*100)}%"></span></div>`}
 
 // ─── Team file ───
@@ -1232,6 +1247,9 @@ function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed
 function go(v,sub){if(AIS.run)return guardRun(()=>go(v,sub));clearInterval(X.ragTimer);aiAbort();if(sub)S.sub[v]=sub;const h=hashFor(v);if(location.hash!==h){try{history.pushState(null,'',h)}catch(e){location.hash=h;return}}applyRoute()}
 // ─── Path ───
 const TEST_TRACKS={vision:'vision',rag:'rag',complaints:'compl'};
+// Each track's own file in the data view; for RAG any process document counts as the team's data.
+const TRACK_FILE={vision:'can_images/ (210)',rag:'PROCES-01.md',complaints:'complaints.csv',forecast:'sales_history.csv',maint:'sensors.csv'};
+const trackFileOk=(k,f)=>!!k&&(k==='rag'?/^PROCES-0\d\.md$/.test(f):Object.hasOwn(TRACK_FILE,k)&&TRACK_FILE[k]===f);
 function hasWork(t){return!!(t.name.trim()||t.log.length||Object.values(t.checks).some(Boolean))}
 function demoDone(t,key){return quizDone(t,key)}
 function reqDemos(track){return['split','metr',...(AI_TRACKS.includes(track)?['tok']:[]),...(track==='rag'?['rag']:[])]}
@@ -1245,9 +1263,9 @@ function PATH_STEPS(){const t=team(),d=reqDemos(t.track).find(k=>!demoDone(t,k))
  {id:'iterate',label:T('Rundy 2–3 i test','Rounds 2–3 and the test'),min:30,go:lb,hint:T(`zapiszcie co najmniej ${MIN_EXPERIMENTS} eksperymenty, zmieniając jedną rzecz naraz`,`save at least ${MIN_EXPERIMENTS} experiments, changing one thing at a time`)},
  {id:'risk',label:T('Ryzyka i wdrożenie','Risks and go-live'),min:20,go:['arch'],hint:T('oceńcie ryzyka i decyzje wdrożeniowe','assess the risks and go-live decisions')},
  {id:'report',label:T('Raport i wystąpienie','Report and presentation'),min:15,go:['deliver'],hint:T('uzupełnijcie listę i wyeksportujcie raport','complete the checklist and export the report')}]}
-function pathState(t){const k=t.track,n=k?t.log.filter(l=>l.track===k).length:0,tl=Object.hasOwn(TEST_TRACKS,k)?t.lab[TEST_TRACKS[k]]:null,
+function pathState(t){const k=t.track,n=k?t.log.filter(l=>l.track===k).length:0,ne=k?expOf(t,k):0,tl=Object.hasOwn(TEST_TRACKS,k)?t.lab[TEST_TRACKS[k]]:null,
  done={join:!!t.onboardedAt||hasWork(t),cycle:demoDone(t,'life'),task:!!(k&&t.goal.trim()),data:!!t.seen.data,demos:reqDemos(k).every(x=>demoDone(t,x)),
-  base:n>=1,iterate:n>=MIN_EXPERIMENTS&&(!tl||tl.testViews>=1),risk:Object.keys(t.risks).length>=4&&Object.keys(t.arch.decisions).length>=4,report:!!t.seen.report};
+  base:n>=1,iterate:ne>=MIN_EXPERIMENTS&&(!tl||tl.testViews>=1),risk:Object.keys(t.risks).length>=4&&Object.keys(t.arch.decisions).length>=4,report:!!t.seen.report};
  const all=PATH_STEPS(),na=id=>!stepAvail(id),steps=all.map(s=>na(s.id)?{id:s.id,done:false,na:true}:{id:s.id,done:!!done[s.id]}),isDone=s=>steps.find(x=>x.id===s.id).done,
   nx=all.find(s=>!na(s.id)&&!done[s.id]),here=all.filter(onStep),last=[...all].reverse().find(isDone);
  const cur=(here.find(s=>!isDone(s))||here[here.length-1]||last||all[0]).id;
@@ -1261,13 +1279,19 @@ function atTarget(s){return s.go[0]===S.view&&(s.go.length<2||s.go[1]===S.sub[S.
 // Next on the step's own page: bring its working element into view instead of a no-op navigation.
 // On a demo page the working element is the first quiz question not yet answered correctly.
 const quizFocus=()=>$('#quiz .qz-q:not([data-state=right]) [data-o]');
-function pathFocus(id){const t=team(),el=({join:()=>$('#onboardName')||$('#memo'),task:()=>t.track?$('#goal'):$('#main [data-t]'),base:()=>$('#runBase'),iterate:()=>$('#expNote'),report:()=>$('#expH'),cycle:quizFocus,demos:quizFocus})[id]?.()||mainEl;
+// Next on the data page opens the team's own file first, then focuses its entry in the folder tree.
+function pathFocus(id){const t=team();if(id==='data'&&t.track&&!trackFileOk(t.track,FSEL)){FSEL=TRACK_FILE[t.track];vData();icons(mainEl)}
+ const el=({data:()=>$('.tree button[aria-current]'),join:()=>$('#onboardName')||$('#memo'),task:()=>t.track?$('#goal'):$('#main [data-t]'),base:()=>$('#runBase'),iterate:()=>$('#expNote'),report:()=>$('#expH'),cycle:quizFocus,demos:quizFocus})[id]?.()||mainEl;
  if(!el.matches('input,button,textarea,select,[tabindex]'))el.setAttribute('tabindex','-1');el.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});el.focus({preventScroll:true})}
 function setHdrH(){const hd=$('.edu-header'),pb=$('#pathBar'),h=hd&&getComputedStyle(hd).position==='sticky'?hd.offsetHeight:0,r=document.documentElement.style;r.setProperty('--hdr-top',h+'px');r.setProperty('--hdr-h',h+(pb?pb.offsetHeight:0)+'px')}
-function renderPathBar(){const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id);
+// Next's text when the next step's target is the current page: the step's action, not a link elsewhere.
+const NEXT_HERE=id=>{const t=team();return({join:()=>$('#onboardName')?T('Podajcie nazwę zespołu','Enter your team name'):T('Przeczytajcie notatkę','Read the memo'),cycle:()=>T('Odpowiedzcie na pytania','Answer the questions'),demos:()=>T('Odpowiedzcie na pytania','Answer the questions'),
+ task:()=>t.track?T('Wpiszcie kryterium sukcesu','Write the success criterion'):T('Wybierzcie zadanie','Choose a task'),data:()=>T('Otwórzcie dane swojego zadania','Open your task’s data'),base:()=>T('Uruchomcie metodę odniesienia','Run the baseline'),
+ iterate:()=>T('Zapiszcie eksperyment','Save an experiment'),report:()=>T('Wyeksportujcie raport','Export the report')})[id]?.()||T('Dalej','Next')};
+function renderPathBar(){const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id),here=!!nx&&atTarget(nx);
  Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:'',na:st.steps.filter(s=>s.na).length});el.setAttribute('aria-label',T('Ścieżka warsztatu','Workshop path'));
- el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''}${s.na?' na':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${ci}/${all.length} ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}"><span class="pb-lbl">${T('Dalej','Next')}: ${nx.label}</span>${ic('arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
- $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const p=PATH_STEPS().find(x=>x.id===s.id);if(atTarget(p)&&!AIS.run)pathFocus(p.id);else go(...p.go)};icons(el);setHdrH()}
+ el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''}${s.na?' na':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${ci}/${all.length} ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}" data-mode="${here?'here':'go'}"><span class="pb-lbl">${here?NEXT_HERE(nx.id):`${T('Dalej','Next')}: ${nx.label}`}</span>${ic(here?'arrow-down':'arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="" data-mode="done">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
+ $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const p=PATH_STEPS().find(x=>x.id===s.id);if(atTarget(p)&&!AIS.run)pathFocus(p.id);else{if(p.id==='data'&&team().track&&!AIS.run)FSEL=TRACK_FILE[team().track];go(...p.go)}};icons(el);setHdrH()}
 
 // ─── Render: shell ───
 const nm=id=>T(...NAV.find(n=>n[0]===id)[2]);
@@ -1330,11 +1354,11 @@ const mdInline=s=>mdEsc(s).replace(/\s*\n\s*/g,' ');
 function logMD(){const t=team();return `# ${T('Dziennik zespołu','Team log')}: ${t.name||T('Zespół','Team')+' '+S.team}\n\n`+(t.log.length?t.log.map(logLineMD).join('\n'):T('(brak wpisów)','(no entries)'))}
 function logLineMD(l){return`- **${fmtTs(l.ts)}** [${mdInline(l.text?l.track:trackName(l.track))}] ${mdInline(logText(l))}${l.testViews?` (${T('test oglądany','test viewed')}: ${l.testViews})`:''}${l.note?`\n  - ${T('Notatka','Note')}: ${mdInline(l.note)}`:''}`}
 function imgLabelRows(){const seen=lab().vision.testViews>0,rows=[];['train','val','test'].forEach(s=>VIS[s].forEach(i=>rows.push({file:i.id+'.'+visExt(i.url),split:s,label:s==='test'&&!seen?'':i.type})));return rows}
-function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team();if(!t.seen.data){t.seen.data=true;save()}
- mainEl.innerHTML=pageHead(`${T('Folder zespołu','Team folder')} – ${esc(t.name||T('Zespół','Team')+' '+S.team)}`,T('Dane wizji łączą dostępne zdjęcia fotograficzne z jawnym syntetycznym fallbackiem. Pobierz pliki i użyj ich w swoim prototypie.','Vision data combines available photographic images with an explicit synthetic fallback. Download files and use them in your prototype.'))
+function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team(),el=F.flatMap(g=>g.f).find(f=>f[0]===FSEL)||F[0].f[0];
+ mainEl.innerHTML=pageHead(`${T('Folder zespołu','Team folder')} – ${esc(t.name||T('Zespół','Team')+' '+S.team)}`,el[1]==='img'?T('Dane wizji łączą dostępne zdjęcia fotograficzne z jawnym syntetycznym fallbackiem. Pobierz pliki i użyj ich w swoim prototypie.','Vision data combines available photographic images with an explicit synthetic fallback. Download files and use them in your prototype.'):T('Opis projektu, dane pięciu zadań, dokumenty procesów i wyniki zespołu. Otwórz plik swojego zadania, przeczytaj kartę danych i pobierz go do prototypu.','The project description, the data of the five tasks, the process documents and the team’s outputs. Open your task’s file, read its data card and download it for your prototype.'))
  +`<section class="sec"><h2 class="sr-only">${T('Pliki zespołu','Team files')}</h2><div class="wrap"><div class="folder"><div class="card"><div class="card-body" style="padding:12px"><div class="tree">${F.map(g=>`<div class="dir">${ic('folder')}${g.d}/</div>${g.f.map(f=>`<button type="button" class="${FSEL===f[0]?'on':''}" data-f="${esc(f[0])}" data-k="${f[1]}" ${FSEL===f[0]?'aria-current="true"':''}>${ic(f[1]==='img'?'images':f[1]==='svg'?'network':'file-text')}${f[0]}</button>`).join('')}`).join('')}</div></div></div><div id="viewer" style="min-width:0;display:grid;gap:18px"></div></div></div></section>`;
  $$('.tree button').forEach(e=>e.onclick=()=>{FSEL=e.dataset.f;vData();icons(mainEl);const b=$(`.tree button[data-f="${CSS.escape(FSEL)}"]`);if(b)b.focus()});
- const el=F.flatMap(g=>g.f).find(f=>f[0]===FSEL)||F[0].f[0],k=el[1],v=$('#viewer'),dlBtn=(txt,id='dlb',alt)=>`<button type="button" class="${alt?'btn-ghost':'btn'}" id="${id}">${ic('download')}${txt}</button>`;
+ const k=el[1],v=$('#viewer'),dlBtn=(txt,id='dlb',alt)=>`<button type="button" class="${alt?'btn-ghost':'btn'}" id="${id}">${ic('download')}${txt}</button>`;
  if(k==='md'){v.innerHTML=card('file-text',el[0],`<pre class="tall">${esc(briefMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl('project_description.md',briefMD())}
  else if(k==='img'){const seen=lab().vision.testViews>0,grp=(s,l,h)=>`<h4 style="margin:14px 0 8px">${l} (${VIS[s].length})</h4><div class="gal">${VIS[s].map((i,n)=>`<button type="button" class="thumb" data-set="${s}" data-i="${n}" aria-label="${esc(i.id)}"><img src="${i.url}" alt=""><span>${h?T('etykieta ukryta','label hidden'):typeName(i.type)}</span></button>`).join('')}</div>`;
   v.innerHTML=dataCard('img')+visionAssetStatusHtml()+card('images',T('can_images/ – wszystkie 210 zdjęć','can_images/ – all 210 images'),`<p class="edu-small">${T('Kliknij zdjęcie, aby je powiększyć. ZIP zawiera wszystkie obrazy i labels.csv.','Click an image to enlarge it. The ZIP has all images and labels.csv.')} ${seen?'':T('Etykiety testowe odblokują się po ocenie końcowej w Laboratorium.','Test labels unlock after the final evaluation in the Build lab.')} ${visionAssetSizeNote()}</p>${grp('train',T('Trening','Training'))}${grp('val',T('Walidacja','Validation'))}${grp('test','Test',!seen)}`,{tone:'grape',foot:dlBtn(T('Pobierz wszystko (ZIP)','Download all (ZIP)'),'dlzip')});
@@ -1345,7 +1369,9 @@ function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team(
   if(isC){$('#dlc1').onclick=()=>dl('complaints_dev.csv',toCSV(rows.slice(0,36)),'text/csv');$('#dlc2').onclick=()=>dl('complaints_test_unlabeled.csv',toCSV(rows.slice(36).map(({id,product,text})=>({id,product,text}))),'text/csv');if(seen)$('#dlc3').onclick=()=>dl('complaints.csv',toCSV(rows),'text/csv')}else $('#dlb').onclick=()=>dl(name,toCSV(rows),'text/csv')}
  else if(k.startsWith('doc:')){const d=DOCS.find(x=>x.id===k.slice(4)),i=langIx(),txt=`# ${d.id} ${d.t[i]}\n\n`+d.p[i].map((p,n)=>`§${n+1} ${p}`).join('\n\n');v.innerHTML=dataCard('doc')+card('file-text',`${d.id} – ${d.t[i]}`,`<pre>${esc(txt)}</pre>`,{tone:'blue',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl(d.id+'.md',txt)}
  else if(k==='log'){v.innerHTML=card('notebook-pen','team_log.md',`<pre class="tall">${esc(logMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl('team_log.md',logMD())}
- else{const s=archSVG();v.innerHTML=card('network','architecture.svg',s?`<div class="diagram" style="--dw:${archWidth()}px">${s}</div>`:`<p>${T('Brak schematu – zbuduj go w zakładce Architektura.','No diagram yet – build it in the Architecture tab.')}</p>`,{tone:'stone',foot:s?dlBtn(T('Pobierz SVG','Download SVG')):`<button type="button" class="btn-ghost" data-go="arch">${T('Przejdź do Architektury','Go to Architecture')}</button>`});if(s)$('#dlb').onclick=()=>dl('architecture.svg',s,'image/svg+xml');else $('[data-go]',v).onclick=()=>go('arch')}}
+ else{const s=archSVG();v.innerHTML=card('network','architecture.svg',s?`<div class="diagram" style="--dw:${archWidth()}px">${s}</div>`:`<p>${T('Brak schematu – zbuduj go w zakładce Architektura.','No diagram yet – build it in the Architecture tab.')}</p>`,{tone:'stone',foot:s?dlBtn(T('Pobierz SVG','Download SVG')):`<button type="button" class="btn-ghost" data-go="arch">${T('Przejdź do Architektury','Go to Architecture')}</button>`});if(s)$('#dlb').onclick=()=>dl('architecture.svg',s,'image/svg+xml');else $('[data-go]',v).onclick=()=>go('arch')}
+ // The data step counts only when the team's own file is on screen (every track file is shown with its data card).
+ if(!t.seen.data&&trackFileOk(t.track,el[0])){t.seen.data=true;save();renderPathBar()}}
 
 function openInspector(set,idx,hideLabel){visInit();const it=VIS[set][idx],th=visTh(),ph=VIS.featureSource==='photo',rows=[['dent',ph?T('Piksele odstające nad etykietą, ‰ (wgniecenie)','Outlier pixels above the label, ‰ (dent)'):T('Ciemne piksele (wgniecenie)','Dark pixels (dent)'),it.f.dent,th.d,it.f.dent>th.d,'>'],['shift',ph?T('Przesunięcie środka etykiety (px)','Label centre shift (px)'):T('Przesunięcie etykiety (px)','Label shift (px)'),it.f.shift,th.s,it.f.shift>th.s,'>'],['code',T('Energia krawędzi kodu','Code edge energy'),it.f.code,th.c,it.f.code<th.c,'<']],fired=rows.filter(r=>r[4]),pred=fired.length>0;
  const verdict=hideLabel?'':(it.bad&&pred?T('Wada wykryta','Defect caught'):it.bad?T('Wada przeoczona','Defect missed'):pred?T('Fałszywy alarm','False alarm'):T('Poprawnie OK','Correctly OK'));
@@ -1452,13 +1478,13 @@ function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=
  renderHeroProg(k);bindJump();
  $$('#trackTabs button').forEach(b=>b.onclick=()=>go('lab',b.dataset.k));
  $('#pickTrack').onclick=()=>guardRun(()=>{const tt=team();tt.track=tt.track===k?null:k;save();render();const b=$('#pickTrack');if(b)b.focus()});
- $('#tod').onclick=()=>{FSEL={vision:'can_images/ (210)',rag:'PROCES-01.md',complaints:'complaints.csv',forecast:'sales_history.csv',maint:'sensors.csv'}[k];go('data')};
+ $('#tod').onclick=()=>{FSEL=TRACK_FILE[k];go('data')};
  const dset=()=>{const tt=team();return tt.decision[k]||(tt.decision[k]={m:-1,why:''})};
  $$('input[name=meth]').forEach(r=>r.onchange=e=>{dset().m=+e.target.value;save()});$('#methWhy').oninput=e=>{dset().why=e.target.value;save()};
  $('#labMethod details').ontoggle=e=>{(X.methOpen||(X.methOpen={}))[k]=e.target.open};
  $('#runBase').onclick=()=>{(X.baseOn||(X.baseOn={}))[k]=true;showBase(k);const o=$('#baseOut');if(o)o.scrollIntoView({block:'nearest'})};
  ({vision:labVision,rag:labRag,complaints:labCompl,forecast:labFc,maint:labMaint})[k]();
- if((X.baseOn||{})[k])showBase(k)}
+ if((X.baseOn||{})[k]||t.log.some(l=>l.track===k&&l.base))showBase(k,!(X.baseOn||{})[k])}
 // The AI bar is shown only while the lab's method is the model (spec 4.18); method switches re-render #proto and call this.
 const aiWanted=k=>k==='vision'?lab().vision.method==='llm':k==='complaints'?lab().compl.method==='llm':k==='rag'?lab().rag.gen==='llm':false;
 function syncAiBar(){const slot=$('#aiSlot');if(!slot)return;const want=AI_TRACKS.includes(S.sub.lab)&&aiWanted(S.sub.lab);
@@ -1477,13 +1503,15 @@ function baseRun(k){
  if(k==='complaints'){const rows=DATA.compl.slice(0,36),cn={};rows.forEach(r=>cn[r.category]=(cn[r.category]||0)+1);const top=Object.keys(cn).sort((a,b)=>cn[b]-cn[a])[0],ok=cn[top],nh=rows.filter(r=>r.hazard).length,acc=ok/rows.length,m={n:rows.length,ok,hit:0,total:nh};
   return{set:'dev',html:essentials([[pct(acc),`${T('Trafność kategorii','Category accuracy')} (${gl('dev')})`,'blue'],[`0/${nh}`,T('Wykryte zgłoszenia o bezpieczeństwie żywności','Food-safety complaints detected'),'red']],[],{recap:plainRecap('complaints',m,{set:'dev',n:rows.length}),extra:`<p class="hint">${T('Najczęstsza kategoria','Most common category')}: ${catName(top)}. ${T('Ta metoda nie oznacza żadnego zagrożenia bezpieczeństwa żywności.','This method flags no food-safety hazard at all.')}</p>`}),cfg:{base:true,set:'dev'},res:{dev:acc,base:acc,safety:0},primary:{m:T('trafność (dev)','accuracy (dev)'),v:acc,base:acc,hi:true,test:false}}}
  if(k==='forecast'){const L=lab().fc,R=fcCompute(L),e=R.mt.mean;
-  return{set:'test',html:essentials([[pct(e.mape),`${T('Błąd metody odniesienia','Error of the baseline')} (${gl('mape','MAPE')}): ${fcName('mean')}`,'ink'],[num(e.mae),T('Średni błąd w tys. sztuk (MAE)','Mean error in thousand units (MAE)'),'blue']],[],{recap:`<p class="recap" data-track="forecast" data-set="test">${esc(T(`Na horyzoncie ${L.h} mies. metoda odniesienia (średnia historyczna) ma błąd ${pct(e.mape)}. To wynik, który wasza metoda ma pobić.`,`Over a horizon of ${L.h} months the baseline (historical mean) has an error of ${pct(e.mape)}. That is the result your method has to beat.`))}</p>`,extra:`<p class="hint">${T('Produkt','Product')}: ${S.lang==='pl'?PRODUCTS[L.p][0]:PRODUCTS[L.p][1]} · ${T('ocena na ostatnich miesiącach','scored on the last months')}: ${L.h}. ${T('Zmień produkt lub horyzont w prototypie i uruchom metodę odniesienia ponownie.','Change the product or horizon in the prototype and run the baseline again.')}</p>`}),cfg:{base:true,p:L.p,h:L.h},res:{mape:{mean:e.mape},best:'mean'},primary:{m:'MAPE',v:e.mape,base:e.mape,hi:false,test:false}}}
+  return{set:'test',html:essentials([[pct(e.mape),`${T('Błąd metody odniesienia','Error of the baseline')} (${gl('mape','MAPE')}): ${BASE_NAME('forecast')}`,'ink'],[num(e.mae),T('Średni błąd w tys. sztuk (MAE)','Mean error in thousand units (MAE)'),'blue']],[],{recap:`<p class="recap" data-track="forecast" data-set="test">${esc(T(`Na horyzoncie ${L.h} mies. metoda odniesienia (średnia historyczna) ma błąd ${pct(e.mape)}. To wynik, który wasza metoda ma pobić.`,`Over a horizon of ${L.h} months the baseline (historical mean) has an error of ${pct(e.mape)}. That is the result your method has to beat.`))}</p>`,extra:`<p class="hint">${T('Produkt','Product')}: ${S.lang==='pl'?PRODUCTS[L.p][0]:PRODUCTS[L.p][1]} · ${T('ocena na ostatnich miesiącach','scored on the last months')}: ${L.h}. ${T('Zmień produkt lub horyzont w prototypie i uruchom metodę odniesienia ponownie.','Change the product or horizon in the prototype and run the baseline again.')}</p>`}),cfg:{base:true,p:L.p,h:L.h},res:{mape:{mean:e.mape},best:'mean'},primary:{m:'MAPE',v:e.mape,base:e.mape,hi:false,test:false}}}
  if(k==='maint'){const R=mtCompute(lab().mt),b=R.bl;
   return{set:'test',html:kpis(b,{kind:'maint',recap:plainRecap('maint',b,{set:'test',n:300})}),cfg:{base:true,from:300,to:600},res:{f1:f0(b.f1),p:f0(b.p),r:f0(b.r),base:f0(b.f1)},primary:{m:'F1',v:f0(b.f1),base:f0(b.f1),hi:true,test:false}}}
  return null}
-function showBase(k,quiet){const o=$('#baseOut'),b=baseRun(k);if(!o||!b)return;Object.assign(o.dataset,{track:k,v:b.primary.v,set:b.set});o.hidden=false;
- o.innerHTML=card('flag',`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(k)}`,b.html+`<div class="row mt"><button type="button" class="btn-ghost" id="saveBase">${ic('save')}${T('Zapisz metodę odniesienia w dzienniku','Save the baseline to the log')}</button></div>`,{tone:TONE[k]});icons(o);
- $('#saveBase').onclick=()=>logAdd(k,b.cfg,b.res,b.primary,{base:true});
+// The shown baseline is already in the log when an entry with the same settings and result exists (logAdd's duplicate rule).
+const baseSaved=(k,b)=>{const sg=logSig(b.cfg,{...b.res,primary:b.primary});return team().log.some(l=>l.track===k&&l.base&&l.cfg&&l.res&&logSig(l.cfg,l.res)===sg)};
+function showBase(k,quiet){const o=$('#baseOut'),b=baseRun(k);if(!o||!b)return;const sv=baseSaved(k,b);Object.assign(o.dataset,{track:k,v:b.primary.v,set:b.set,saved:sv});o.hidden=false;
+ o.innerHTML=card('flag',`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(k)}`,b.html+`<div class="row mt"><button type="button" class="btn-ghost" id="saveBase"${sv?' aria-disabled="true"':''}>${ic(sv?'check':'save')}${sv?T('Metoda odniesienia jest zapisana w dzienniku','The baseline is saved in the log'):T('Zapisz metodę odniesienia w dzienniku','Save the baseline to the log')}</button></div>`,{tone:TONE[k]});icons(o);
+ $('#saveBase').onclick=()=>{if(sv)return;logAdd(k,b.cfg,b.res,b.primary,{base:true});if(baseSaved(k,b)){showBase(k,true);const s=$('#saveBase');if(s)s.focus()}};
  const rc=$('.recap',o);if(rc&&!quiet)announce(rc.textContent)}
 
 // ─── Lab: vision ───
@@ -1926,7 +1954,7 @@ function bestRun(t,k){const e=t.log.filter(l=>l.track===k&&!l.base&&l.res&&isObj
  const b=dev.reduce((a,x)=>better(devScore(x),devScore(a))?x:a),te=testScore(b)!=null?b:[...e].reverse().find(x=>x!==b&&cfgKey(x)===cfgKey(b)&&testScore(x)!=null)||null;
  return{entry:b,dev:devScore(b),test:te?testScore(te):null,testEntry:te}}
 const BEST_METRIC=k=>({vision:'F1',complaints:T('trafność','accuracy'),rag:T('poprawne odpowiedzi','correct answers')})[k]||'';
-function bestText(k,b){if(!b)return T('(brak zapisanych eksperymentów)','(no saved experiments)');const p=b.entry.res.primary,base=`${T('wobec','vs')} ${BASE_NAME(k)}: ${pct(p.base)}`,views=b.testEntry&&b.testEntry.testViews?` (${T('test oglądany','test viewed')}: ${b.testEntry.testViews}×)`:'';
+function bestText(k,b){if(!b)return T('(brak zapisanych eksperymentów)','(no saved experiments)');const p=b.entry.res.primary,base=`${T('wobec','vs')} ${BASE_NAME(k,true)}: ${pct(p.base)}`,views=b.testEntry&&b.testEntry.testViews?` (${T('test oglądany','test viewed')}: ${b.testEntry.testViews}×)`:'';
  if(b.dev==null)return`${p.m}: ${pct(p.v)} ${base}${views}`;
  const m=BEST_METRIC(k),dl=k==='vision'?T('walidacja','validation'):'dev';
  return`${m} (${dl}): ${pct(b.dev)} ${base} · `+(b.test!=null?`${m} (test): ${pct(b.test)}${views}`:T('ten wariant nie był jeszcze oceniony na zbiorze testowym','this configuration has not been scored on the test set yet'))}

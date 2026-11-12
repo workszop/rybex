@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -137,7 +137,7 @@ try {
     await p.evaluate(() => { AIS.run = { fake: true }; }); await p.click('#pathNext');
     ok('Next is guarded during a model run', await p.evaluate(() => S.view) === 'lab'); await p.evaluate(() => { AIS.run = null; hideToast(); });
     ok('path bar contract', await p.$eval('#pathBar', e => e.dataset.total === '9' && e.dataset.step !== undefined && e.dataset.done !== undefined));
-    ok('page usable after the guarded click', await p.evaluate(() => { go('data'); return S.view === 'data' && team().seen.data === true; }));
+    ok('page usable after the guarded click', await p.evaluate(() => { FSEL = TRACK_FILE[team().track]; go('data'); return S.view === 'data' && team().seen.data === true; }));
     ok('Next button names the step', await p.$eval('#pathNext', e => /^Dalej: /.test(e.textContent.trim())));
     await p.evaluate(() => go('deliver')); await Promise.all([p.waitForEvent('download'), p.click('#exp')]);
     ok('report export recorded', await p.evaluate(() => team().seen.report === true));
@@ -180,7 +180,7 @@ try {
       await f.click('#pathNext'); await f.waitForTimeout(50);
       const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
       // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
-      const own = { join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
+      const own = { data: '.tree button[aria-current]', join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
       const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
       ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
     await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; t.seen.data = true; qz(t, 'life', 'split'); delete t.quizzes.metr; });
@@ -243,7 +243,7 @@ try {
     await p.click('#runBase'); ok(`${k}: baseline result with recap`, await p.$eval('#baseOut', e => e.dataset.track && e.dataset.v !== undefined && !!e.querySelector('.recap')));
     ok(`${k}: baseline shows two headline numbers on the tuning set`, await p.$$eval('#baseOut .headline .stat', e => e.length) === 2 && await p.$eval('#baseOut .recap', e => e.dataset.set) === ({ vision: 'val', rag: 'dev', complaints: 'dev', forecast: 'test', maint: 'test' })[k]);
     await p.click('#saveBase'); ok(`${k}: baseline saved with flag`, await p.evaluate(k => team().log.some(l => l.track === k && l.base === true), k));
-    await p.click('#saveBase'); ok(`${k}: second save is refused as duplicate`, await p.evaluate(k => team().log.filter(l => l.track === k && l.base).length, k) === 1);
+    await p.$eval('#saveBase', b => b.click()); ok(`${k}: second save is refused as duplicate`, await p.evaluate(k => team().log.filter(l => l.track === k && l.base).length, k) === 1);
     ok(`${k}: baseline entry readable in the log`, await p.evaluate(k => { const l = team().log.find(x => x.track === k && x.base); const s = logText(l); return s.includes(BASE_NAME(k)) && !/unreadable|nieczytelny/.test(s); }, k));
     ok(`${k}: labstart no page errors`, !p.errs.length, p.errs.join('|'));
     await p.close(); }
@@ -328,10 +328,10 @@ try {
     await saveWith(3); await saveWith(3.5);
     ok('first two saves need no note', await p.evaluate(() => expCount('maint')) === 2);
     await saveWith(3.5);
-    ok('a duplicate third save shows the duplicate message, not the note request', await p.evaluate(() => expCount('maint') === 2 && /już w dzienniku|already in the log/.test(toastEl.textContent)));
+    ok('a duplicate third save shows the duplicate message, not the note request', await p.evaluate(() => expCount('maint') === 2 && /już w dzienniku|already in the log/.test(toastEl.textContent) && !document.querySelector('#expNote').hasAttribute('aria-invalid') && document.querySelector('#expNoteMsg').textContent === ''));
     await saveWith(4.5);
     ok('third save without a note is held', await p.evaluate(() => expCount('maint')) === 2 && await p.evaluate(() => document.activeElement.id) === 'expNote');
-    ok('held save asks for one sentence', await p.evaluate(() => /zdanie wniosku|sentence of conclusion/.test(toastEl.textContent)));
+    ok('held save asks for one sentence', await p.evaluate(() => { const e = document.querySelector('#expNote'); return e.dataset.noteRequired === 'true' && e.getAttribute('aria-invalid') === 'true' && document.querySelector('#expNoteMsg').textContent.trim() !== ''; }));
     await saveWith(4.5, 'Wyższy próg: mniej fałszywych alarmów, retort nadal przeoczony');
     ok('third save with a note goes through', await p.evaluate(() => expCount('maint') === 3 && team().log.at(-1).note.startsWith('Wyższy próg')));
     ok('note appears in the Markdown report', await p.evaluate(() => { team().track = 'maint'; return reportMD().includes('Wyższy próg'); }));
@@ -349,6 +349,112 @@ try {
     await p.keyboard.press('Enter'); ok('skip link on a lab view keeps the route', await p.evaluate(() => document.activeElement.id === 'main' && location.hash === '#/lab/maint'));
     ok('note no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
+  if (run('exit1')) {
+    // 1 + 6: the baseline is not an experiment; the note field says when it is required.
+    { const p = await fresh('#/lab/maint');
+      await seed(p, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = []; });
+      await p.click('#runBase'); await p.click('#saveBase');
+      const saveWith = async (thr, note) => { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); if (note) await p.fill('#expNote', note); await p.click('#sv'); };
+      ok('exit1 note not required after the baseline only', await p.$eval('#expNote', e => e.dataset.noteRequired === 'false' && e.getAttribute('aria-required') === 'false'));
+      await saveWith(3); ok('exit1 note not required after one experiment', await p.$eval('#expNote', e => e.dataset.noteRequired) === 'false');
+      await saveWith(3.5);
+      ok('exit1 hero counter ignores the baseline (2/3)', await p.$eval('#heroProg .gh-num', e => e.textContent) === '2/3', await p.$eval('#heroProg .gh-num', e => e.textContent));
+      ok('exit1 team bar counts experiments only', await p.$eval('#tbProg', e => e.textContent.includes(': 2/3')), await p.$eval('#tbProg', e => e.textContent));
+      ok('exit1 iterate is next after baseline + 2 experiments', await p.evaluate(() => pathState(team()).next.id) === 'iterate');
+      ok('exit1 note required after two experiments (updated by the save)', await p.$eval('#expNote', e => e.dataset.noteRequired === 'true' && e.getAttribute('aria-required') === 'true') && /\(wymagane\)/.test(await p.$eval('label[for=expNote]', e => e.textContent)));
+      await saveWith(4.5);
+      ok('exit1 third experiment without a note is held', await p.evaluate(() => team().log.filter(l => l.track === 'maint' && !l.base).length) === 2);
+      ok('exit1 held save marks the field', await p.$eval('#expNote', e => e.getAttribute('aria-invalid') === 'true' && (e.getAttribute('aria-describedby') || '').split(' ').includes('expNoteMsg')) && /zdanie wniosku/.test(await p.$eval('#expNoteMsg', e => e.textContent)));
+      await p.type('#expNote', 'W');
+      ok('exit1 typing clears the field error', await p.$eval('#expNote', e => e.getAttribute('aria-invalid') !== 'true') && (await p.$eval('#expNoteMsg', e => e.textContent)).trim() === '');
+      await p.fill('#expNote', 'Wyższy próg: mniej fałszywych alarmów'); await p.click('#sv');
+      ok('exit1 with a note: 3/3 and the path moves on', await p.$eval('#heroProg .gh-num', e => e.textContent) === '3/3' && await p.evaluate(() => pathState(team()).next.id !== 'iterate'));
+      // 3: the saved baseline card survives a reload, without writing anything.
+      const n0 = await p.evaluate(() => JSON.stringify(team().log.map(l => l.id))); await p.reload(); await p.waitForSelector('#baseOut .recap');
+      ok('exit1 baseline card after reload', await p.$eval('#baseOut', e => !e.hidden && e.dataset.v !== undefined && !!e.querySelector('.recap') && e.dataset.saved === 'true'));
+      ok('exit1 saved baseline cannot be saved again', await p.evaluate(() => { const b = document.querySelector('#saveBase'); return !b || b.disabled || b.hidden || b.getAttribute('aria-disabled') === 'true'; }));
+      const rl = await p.evaluate(n0 => [JSON.stringify(team().log.map(l => l.id)) === n0, !VIS.initialized], n0);
+      ok('exit1 reload writes nothing and loads no photos', rl[0] && rl[1], JSON.stringify(rl));
+      ok('exit1 no page errors (1, 3, 6)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 3 on the vision track: the card is built before the photos load and must match the saved entry once they have.
+    { const p = await fresh('#/lab/vision'); const ready = () => p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 15000 });
+      await ready(); await p.click('#runBase'); await p.click('#saveBase');
+      ok('exit1 vision baseline marked saved right after saving', await p.$eval('#baseOut', e => e.dataset.saved) === 'true');
+      await p.reload(); await ready(); await p.waitForTimeout(200);
+      ok('exit1 vision baseline card after reload', await p.$eval('#baseOut', e => !e.hidden && !!e.querySelector('.recap') && e.dataset.saved === 'true'), await p.$eval('#baseOut', e => JSON.stringify(e.dataset)));
+      ok('exit1 no page errors (3, vision)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 2: the data step needs the team's own data.
+    { const p = await fresh('#/brief');
+      await seed(p, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); qz(t, 'life'); t.seen.data = false; });
+      ok('exit1 data is the next step', await p.$eval('#pathBar', e => e.dataset.next) === 'data');
+      await p.click('#pathNext');
+      ok('exit1 Next opens the forecast file with its card', await p.evaluate(() => S.view === 'data' && FSEL === 'sales_history.csv' && team().seen.data === true && [...document.querySelectorAll('#viewer h3')].some(h => /Karta zbioru danych/.test(h.textContent) && h.offsetParent)));
+      ok('exit1 lead does not talk about vision data for sales_history.csv', !/wizj|zdję/i.test(await p.$eval('.page-head .edu-lead', e => e.textContent)));
+      await seed(p, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; }); await p.evaluate(() => { FSEL = 'project_description.md'; go('data'); });
+      ok('exit1 team without a track does not complete the data step', await p.evaluate(() => S.view === 'data' && !team().seen.data));
+      await p.evaluate(() => { FSEL = 'sales_history.csv'; vData(); });
+      ok('exit1 team without a track: any file leaves the step open', await p.evaluate(() => !team().seen.data));
+      await seed(p, () => { FSEL = 'project_description.md'; const t = team(); Object.assign(t, { track: 'forecast', goal: 'g' }); }); await p.evaluate(() => { go('home'); go('data'); });
+      ok('exit1 forecast team on the project description: step open', await p.evaluate(() => S.view === 'data' && !team().seen.data));
+      await p.click('.tree button[data-k=img]');
+      ok('exit1 forecast team opening only the photos does not complete it', await p.evaluate(() => FSEL === 'can_images/ (210)' && !team().seen.data));
+      await p.click('.tree button[data-k=sales]'); ok('exit1 forecast team opening its file completes it', await p.evaluate(() => team().seen.data === true));
+      await seed(p, () => { const t = team(); t.track = 'rag'; t.seen.data = false; }); await p.evaluate(() => { FSEL = 'PROCES-03.md'; vData(); });
+      ok('exit1 RAG: any PROCES document counts', await p.evaluate(() => team().seen.data === true));
+      await seed(p, () => { const t = team(); t.track = 'forecast'; t.seen.data = false; }); await p.evaluate(() => { FSEL = 'project_description.md'; go('lab', 'forecast'); }); await p.click('#tod');
+      ok('exit1 lab data link opens the track file', await p.evaluate(() => S.view === 'data' && FSEL === 'sales_history.csv' && team().seen.data === true));
+      ok('exit1 no page errors (2)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 4: Next on the step's own page says what to do.
+    { const f = await fresh('#/home');
+      const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
+        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+      const txt = { join: 'Podajcie nazwę zespołu', cycle: 'Odpowiedzcie na pytania', task: 'Wybierzcie zadanie', data: 'Otwórzcie dane swojego zadania', demos: 'Odpowiedzcie na pytania', base: 'Uruchomcie metodę odniesienia', iterate: 'Zapiszcie eksperyment', report: 'Wyeksportujcie raport' };
+      const acc = [];
+      for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
+        const r = await f.evaluate(([src, id]) => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); FSEL = 'project_description.md';
+          const s = PATH_STEPS().find(x => x.id === id); go(...s.go); const b = document.querySelector('#pathNext'), here = { next: document.querySelector('#pathBar').dataset.next, mode: b.dataset.mode, text: b.textContent.trim() };
+          go('arch'); const g = document.querySelector('#pathNext'); return { here, go: { mode: g.dataset.mode, text: g.textContent.trim() } }; }, [acc, id]);
+        ok(`exit1 Next on its own page names the action (${id})`, r.here.next === id && r.here.mode === 'here' && !/^Dalej/.test(r.here.text) && r.here.text === txt[id], JSON.stringify(r.here));
+        ok(`exit1 Next elsewhere says Dalej (${id})`, r.go.mode === 'go' && /^Dalej: /.test(r.go.text), JSON.stringify(r.go)); }
+      ok('exit1 join without the card: read the memo', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#onboard').remove(); renderPathBar(); return document.querySelector('#pathNext').textContent.trim() === 'Przeczytajcie notatkę'; }));
+      ok('exit1 task with a chosen track: write the criterion', await f.evaluate(() => { const t = team(); t.onboardedAt = 'x'; qz(t, 'life'); t.track = 'forecast'; save(); go('brief'); return document.querySelector('#pathNext').textContent.trim() === 'Wpiszcie kryterium sukcesu'; }));
+      ok('exit1 English action text', await f.evaluate(() => { S.lang = 'en'; render(); const s = document.querySelector('#pathNext').textContent.trim(); S.lang = 'pl'; render(); return s === 'Write the success criterion'; }));
+      ok('exit1 no page errors (4)', !f.errs.length, f.errs.join('|'));
+      await f.close(); }
+    // 5: Escape closes a glossary tooltip without moving focus.
+    { const p = await fresh('#/lab/vision'); await p.mouse.move(0, 0);
+      const tip = () => p.$eval('#proto .gloss .gloss-tip', e => getComputedStyle(e).display !== 'none');
+      await p.focus('#proto .gloss'); const a = await tip();
+      await p.keyboard.press('Escape');
+      ok('exit1 Escape hides the glossary tip and keeps focus', a && !(await tip()) && await p.$eval('#proto .gloss', e => e === document.activeElement));
+      await p.evaluate(() => document.activeElement.blur()); await p.focus('#proto .gloss');
+      ok('exit1 tip shows again on the next focus', await tip());
+      await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement.blur()); await p.hover('#proto .gloss');
+      ok('exit1 tip shows again on the next hover', await tip());
+      await p.keyboard.press('Escape'); ok('exit1 Escape hides a hovered tip', !(await tip()));
+      await p.mouse.move(0, 0); await p.keyboard.press('2'); ok('exit1 keys 1-7 still work after Escape', await p.evaluate(() => S.view) === 'brief');
+      ok('exit1 no page errors (5)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 7 + 8: report grammar and English wording.
+    { const p = await fresh('#/lab/forecast');
+      const gen = { vision: '„zawsze OK”', rag: 'wyszukiwania dosłownego', complaints: 'klasy większościowej', forecast: 'średniej historycznej', maint: 'reguły PROCES-05' };
+      const nom = ['wyszukiwanie dosłowne', 'klasa większościowa', 'średnia historyczna', 'reguła PROCES-05'];
+      for (const k of Object.keys(gen)) {
+        const md = await p.evaluate(k => { const t = team(); t.track = k; t.log = [{ id: 'r1', ts: '', track: k, cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: .3, hi: true } }, note: '', testViews: 0 }]; return reportMD(); }, k);
+        ok(`exit1 report declines the baseline name (${k})`, md.includes('wobec ' + gen[k]) && !nom.some(n => md.includes('wobec ' + n)), (md.match(/wobec [^:]*/) || [''])[0]); }
+      const en = await p.evaluate(() => { S.lang = 'en'; const r = [0, 1, 2].map(fp => recapText('vision', { tp: 1, fp, fn: 0 }, { set: 'val', n: 60 })); const md = reportMD(); S.lang = 'pl'; return { r, md }; });
+      ok('exit1 English vision recap: false alarm forms', en.r[0].includes('0 good cans (false alarms)') && en.r[1].includes('1 good can (false alarm)') && en.r[2].includes('2 good cans (false alarms)'), JSON.stringify(en.r));
+      ok('exit1 English report unchanged (vs)', en.md.includes('vs PROCES-05 rule'), (en.md.match(/vs [^:]*/) || [''])[0]);
+      await p.click('#runBase'); const pl = await p.$eval('#baseOut .headline .stat', e => e.textContent);
+      await p.click('#langSeg button[data-l=en]'); await p.click('#runBase'); const enh = await p.$eval('#baseOut .headline .stat', e => e.textContent);
+      const cnt = (s, re) => (s.match(re) || []).length;
+      ok('exit1 forecast headline says baseline once', cnt(pl, /baseline|odniesienia/gi) <= 1 && cnt(enh, /baseline|odniesienia/gi) <= 1, JSON.stringify([pl, enh]));
+      ok('exit1 no page errors (7, 8)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+  }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
