@@ -963,6 +963,37 @@ try {
       ok('report view lists all nine with conditions, earned ones marked', await q.evaluate(() => { const L = $$('#badgeList [data-badge]'); return L.length === 9 && L.filter(x => x.dataset.earned === 'true').length === 2 && L.every(x => x.querySelector('.bd-how') || x.dataset.earned === 'true'); }));
       ok('no ranking or score words in badge texts', await q.evaluate(() => !/ranking|punkt|wynik testow|F1|\d+ ?%/i.test($('#badgeList').textContent + $('#badges').textContent)));
       await q.close(); }
+    // Review round 1: badge toasts wait for the toast area, several queued badges are not lost, announcements join.
+    { const u = await fresh('#/lab/maint'), wait = ms => u.waitForTimeout(ms), tx = () => u.$eval('#toast', e => e.hidden ? '' : e.textContent);
+      await seed(u, () => { team().track = 'maint'; }); // the team's task, chosen at onboarding
+      await u.click('#runBase'); await u.click('#saveBase'); await wait(400);
+      const t1 = await tx();
+      ok('the log toast is shown first, not replaced by the badge', /dzienniku/.test(t1) && !/Odznaka/.test(t1), t1);
+      await u.click('#toast .toast-x'); await wait(500);
+      const t2 = await tx();
+      ok('after it is dismissed the first-baseline badge toast follows', t2.includes('Metoda odniesienia zapisana'), t2);
+      await u.click('#toast .toast-x');
+      for (const [thr, note] of [[3], [3.5], [4.5, 'Wyższy próg łapie mniej fałszywych alarmów.']]) { await u.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); if (note) await u.fill('#expNote', note); await u.click('#sv'); await wait(100); if (await tx()) await u.click('#toast .toast-x'); await wait(450); }
+      const seen3 = await u.evaluate(() => team().badges.includes('threeExp'));
+      const t3 = await tx();
+      ok('three saved experiments: the three-experiments badge toast is shown', seen3 && /Trzy eksperymenty/.test(t3), t3);
+      const two = await u.evaluate(() => new Promise(r => { toast('x', { action: ['Cofnij', () => {}] }); team().site.newsRead = true; renderProg(); team().seen.report = true; renderProg();
+        setTimeout(() => { const held = toastEl.textContent.startsWith('x'), live = liveEl.textContent; hideToast(); setTimeout(() => r({ held, live, t: toastEl.textContent }), 500); }, 700); }));
+      ok('two badges in a row while a toast is up: both shown after it, none lost', two.held && two.t.includes('Aktualność przeczytana') && two.t.includes('Raport wyeksportowany'), JSON.stringify(two));
+      ok('consecutive announcements in one task join', await u.evaluate(() => new Promise(r => { announce('A1'); announce('B2'); setTimeout(() => r(liveEl.textContent === 'A1 B2'), 650); })));
+      ok('a later announcement still replaces an earlier one', await u.evaluate(() => new Promise(r => { announce('C3'); setTimeout(() => { announce('D4'); setTimeout(() => r(liveEl.textContent === 'D4'), 650); }, 0); })));
+      ok('no page errors (badge toasts)', !u.errs.length, u.errs.join(' | '));
+      await u.close(); }
+    { const c = await fresh('#/lab/rag');
+      // The pass itself is stubbed (reaching it needs a live question); the path under test is renderChallenge's save, renderProg and announce.
+      const live = await c.evaluate(() => new Promise(r => { const o = chFacts; window.chFacts = (id, opt) => id === 'rag_oos' ? { pass: true, msg: '' } : o(id, opt); renderChallenge('rag'); window.chFacts = o; setTimeout(() => r(liveEl.textContent), 650); }));
+      ok('a challenge pass keeps the badge announcement next to its own', live.includes('Linia nie zgaduje') && live.includes('Wyzwanie zaliczone'), live);
+      ok('privacy description names all three ways', await c.evaluate(() => { const b = BADGES().find(x => x.id === 'privacy'); return /lokalne/.test(b.desc) && /anonimizację/.test(b.desc) && /ryzyku/.test(b.desc); }));
+      await c.close(); }
+    { const m = await fresh('#/home', '', { width: 375, height: 740 });
+      await m.evaluate(() => { const t = team(); t.site.newsRead = true; t.seen.report = true; t.arch.sel.anon = true; save(); render(); });
+      ok('collapsed team bar shows the badge count at 375 px', await m.evaluate(() => { const b = $('#tbToggle'); return $('#teamBar').classList.contains('open') === false && /· odznaki 3\/9/.test(b.textContent) && document.documentElement.scrollWidth <= innerWidth; }), await m.$eval('#tbToggle', e => e.textContent));
+      await m.close(); }
     { const m = await fresh('#/home', '', { width: 375, height: 740 });
       await m.evaluate(() => { const t = team(); t.site.newsRead = true; t.seen.report = true; t.challenges.rag_oos = 'done'; t.arch.sel.anon = true; qz(t, 'life', 'tok', 'rag', 'split', 'metr'); t.badges = BADGES().map(b => b.id); save(); render(); });
       await m.click('#tbToggle');
