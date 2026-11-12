@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -49,6 +49,19 @@ try {
     const big = await p.evaluate(() => normTeam({ inbox: Array.from({ length: 50 }, (_, i) => ({ id: 'i' + i, ts: '', product: 0, cat: 'damage', text: 'x'.repeat(9000) })) }));
     ok('state inbox capped at 20 items and 2000 chars', big.inbox.length === 20 && big.inbox[0].text.length === 2000);
     ok('state base flag survives', await p.evaluate(() => normTeam({ log: [{ track: 'vision', base: true }] }).log[0].base) === true);
+    await p.close(); }
+  if (run('gloss')) { const p = await fresh('#/lab/vision');
+    const ids = await p.evaluate(() => Object.keys(GLOSS()));
+    ok('gloss at least 25 terms', ids.length >= 25, String(ids.length));
+    ok('gloss every term has PL and EN definition', await p.evaluate(() => { const pl = GLOSS(); S.lang = 'en'; const en = GLOSS(); S.lang = 'pl'; return Object.keys(pl).every(k => pl[k].d && en[k].d && pl[k].d !== en[k].d); }));
+    ok('gloss Polish inflection matched', await p.evaluate(() => /data-term="precision"/.test(glx('Niska precyzja i czułość')) && /data-term="recall"/.test(glx('wysoką czułością'))));
+    ok('gloss first occurrence only', await p.evaluate(() => (glx('token token token').match(/class="gloss"/g) || []).length) === 1);
+    ok('gloss glh leaves tags, code and attributes alone', await p.evaluate(() => { const h = glh('<b title="token">RAG</b> <code>token</code> <a href="#/demos/tok">token</a>'); return /title="token"/.test(h) && /<code>token<\/code>/.test(h) && /<a href="#\/demos\/tok">token<\/a>/.test(h) && /data-term="rag"/.test(h); }));
+    ok('gloss no nested gloss', await p.evaluate(() => !/gloss-tip[^<]*<span class="gloss"/.test(glh(glx('baseline i F1')))));
+    ok('gloss numbers untouched', await p.evaluate(() => glx('F1 0,73').includes('0,73')));
+    ok('gloss terms on the lab page', await p.$$eval('#labMethod .gloss, #proto .gloss', e => e.length) >= 3);
+    await p.focus('#proto .gloss'); ok('gloss tooltip reachable by keyboard', await p.$eval('#proto .gloss:focus .gloss-tip', e => getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none'));
+    await p.evaluate(() => go('demos', 'metr')); ok('gloss terms in the metrics demo', await p.$$eval('#demo .gloss', e => e.length) >= 2);
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

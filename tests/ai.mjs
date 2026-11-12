@@ -452,9 +452,9 @@ try {
     ok('jump link brings the section just below the sticky bars', top >= 0 && top < 260, String(top));
     await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cStats');
     const gl = await p.$$eval('.gloss', g => g.map(x => x.dataset.term));
-    ok('glossary tips for baseline, macro-F1 and dev', ['baseline', 'macro-F1', 'dev'].every(t => gl.includes(t)), JSON.stringify(gl));
-    await p.focus('.gloss[data-term="macro-F1"]');
-    ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="macro-F1"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
+    ok('glossary tips for baseline, macro-F1 and dev', ['baseline', 'macro-f1', 'dev'].every(t => gl.includes(t)), JSON.stringify(gl));
+    await p.focus('.gloss[data-term="macro-f1"]');
+    ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="macro-f1"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
     await p.click('#cMethod button[data-m=llm]');
     ok('few-shot has a glossary tip', await p.$$eval('.gloss[data-term="few-shot"]', g => g.length) > 0);
     ok('no page errors (audit UI)', !p.errs.length, p.errs.join(' | '));
