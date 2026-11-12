@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -127,7 +127,7 @@ try {
     ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
     const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.site.newsRead = true; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
       const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'lb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
-    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","report",true,false]', JSON.stringify(rules));
+    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","risk",true,false]', JSON.stringify(rules));
     ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
     await seed(p, () => { team().onboardedAt = 'x'; team().site.newsRead = true; });
     const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
@@ -174,7 +174,7 @@ try {
     // Review round 1: Next on its own page, fresh bar after lab actions, unavailable steps, sub-view aware current step.
     const f = await fresh('#/home');
     const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; t.site.newsRead = true; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; } };
     let acc = [];
     for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
       await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
@@ -182,7 +182,7 @@ try {
       await f.click('#pathNext'); await f.waitForTimeout(50);
       const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
       // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
-      const own = { data: '.tree button[aria-current]', join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
+      const own = { data: '.tree button[aria-current]', join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', risk: '#riskDemo [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
       const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
       ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
     await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; t.seen.data = true; qz(t, 'life', 'split'); delete t.quizzes.metr; });
@@ -198,11 +198,12 @@ try {
     await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; t.site.newsRead = true; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
     const done = await f.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true });
-      const a = pathState(t); t.seen.report = true; const b = pathState(t); return { a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
-    ok('report recommended while risk is unavailable', done.a === 'report', JSON.stringify(done));
-    ok('path completes without unavailable steps', done.b === null && done.na.na === true && done.na.done === false, JSON.stringify(done));
-    await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); });
-    ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '1' && e.dataset.total === '9'));
+      const r = pathState(t).next.id; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 };
+      const a = pathState(t); t.seen.report = true; const b = pathState(t); return { r, a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
+    ok('risk before the report, report recommended once four risks are answered', done.r === 'risk' && done.a === 'report', JSON.stringify(done));
+    ok('path completes with the risk step done', done.b === null && !done.na.na && done.na.done === true, JSON.stringify(done));
+    await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; });
+    ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '0' && e.dataset.total === '9'));
     ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórz dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; team().site.newsRead = true; }); await f.evaluate(() => go('demos', 'split'));
     ok('current step follows the sub view', await f.$eval('#pathBar', e => e.dataset.step) === 'demos');
@@ -412,8 +413,8 @@ try {
     // 4: Next on the step's own page says what to do.
     { const f = await fresh('#/home');
       const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; t.site.newsRead = true; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
-      const txt = { join: 'Podajcie nazwę zespołu', cycle: 'Odpowiedzcie na pytania', task: 'Wybierzcie zadanie', data: 'Otwórzcie dane swojego zadania', demos: 'Odpowiedzcie na pytania', base: 'Uruchomcie metodę odniesienia', iterate: 'Zapiszcie eksperyment', report: 'Wyeksportujcie raport' };
+        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; } };
+      const txt = { join: 'Podajcie nazwę zespołu', cycle: 'Odpowiedzcie na pytania', task: 'Wybierzcie zadanie', data: 'Otwórzcie dane swojego zadania', demos: 'Odpowiedzcie na pytania', base: 'Uruchomcie metodę odniesienia', iterate: 'Zapiszcie eksperyment', risk: 'Odpowiedzcie na pytania o ryzyka', report: 'Wyeksportujcie raport' };
       const acc = [];
       for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
         const r = await f.evaluate(([src, id]) => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); FSEL = 'project_description.md';
@@ -652,6 +653,50 @@ try {
       ok(`persona quote fits at ${vp.width}`, await m.evaluate(() => [...document.querySelectorAll('figure.persona')].every(f => f.scrollWidth <= f.clientWidth + 1 && f.getBoundingClientRect().right <= innerWidth)) && await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       for (const pg of ['contact', 'intranet']) { await m.evaluate(pg => go('rybex', pg), pg); ok(`site ${pg} no horizontal scroll at ${vp.width}`, await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth)); }
       await m.close(); } }
+  if (run('risk')) { const p = await fresh('#/demos/risk');
+    ok('five scenarios, each with a good option and feedback on every option', await p.evaluate(() => { const r = RISK_SCENARIOS(); return r.length === 5 && r.every(s => s.options.length >= 3 && s.options.some(o => o.good) && s.options.every(o => o.fb)); }));
+    ok('works without a class code', await p.$eval('#riskDemo', e => e.dataset.total === '5' && e.dataset.answered === '0'));
+    ok('ids, signatures and exactly one good option per scenario', await p.evaluate(() => { const r = RISK_SCENARIOS(), sig = { privacy: 'marek', hallucination: 'piotr', aiact: 'piotr', bias: 'magda', injection: 'magda' };
+      return r.map(s => s.id).join() === 'privacy,hallucination,aiact,bias,injection' && r.every(s => s.persona === sig[s.id] && s.options.filter(o => o.good).length === 1 && s.title && s.situation && s.question && Array.isArray(s.link)); }));
+    ok('the good option is not always in the same place', await p.evaluate(() => new Set(RISK_SCENARIOS().map(s => s.options.findIndex(o => o.good))).size >= 2));
+    ok('cards carry the persona signature, real option buttons and a live feedback region', await p.$$eval('#riskDemo [data-r]', cs => cs.length === 5 && cs.every(c => c.querySelector('figure.persona[data-persona]') && c.querySelectorAll('button[data-o]').length >= 3 && c.querySelector('.fb[aria-live=polite]'))));
+    for (const id of ['privacy', 'hallucination', 'aiact', 'bias']) await p.click(`#riskDemo [data-r="${id}"] [data-o="0"]`);
+    ok('answers stored with feedback shown', await p.evaluate(() => Object.keys(team().risks).length === 4) && await p.$$eval('#riskDemo .fb:not(:empty)', e => e.length) === 4);
+    await p.click('#riskDemo [data-r="privacy"] [data-o="2"]');
+    ok('an answer can be changed; the latest choice is stored and shown', await p.evaluate(() => team().risks.privacy === 2) && await p.$eval('#riskDemo [data-r="privacy"]', c => c.dataset.choice === '2' && c.querySelector('[data-o="2"]').getAttribute('aria-pressed') === 'true' && c.querySelector('[data-o="0"]').getAttribute('aria-pressed') === 'false' && c.querySelector('.fb').textContent === RISK_SCENARIOS()[0].options[2].fb));
+    await p.click('#langSeg button[data-l=en]'); ok('language switch keeps answers', await p.$eval('#riskDemo', e => e.dataset.answered) === '4');
+    ok('feedback in English after the switch', await p.$eval('#riskDemo [data-r="privacy"] .fb', e => e.textContent === RISK_SCENARIOS()[0].options[2].fb && /[a-z]/.test(e.textContent)));
+    ok('AI Act card disclaims legal advice', /not legal advice|nie jest opini/i.test(await p.$eval('#riskDemo [data-r="aiact"]', e => e.textContent)));
+    ok('AI Act sentence verbatim (pl)', await p.evaluate(() => { S.lang = 'pl'; const n = RISK_SCENARIOS().find(s => s.id === 'aiact'); S.lang = 'en'; return /To nie jest opinia prawna; ma tylko pokazać, o co zapyta regulator albo dział zgodności\./.test(n.note); }));
+    ok('each card links into the app', await p.$$eval('#riskDemo [data-r] [data-link]', e => e.length) === 5);
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('answers and feedback survive a reload', await p.$eval('#riskDemo', e => e.dataset.answered === '4') && await p.$$eval('#riskDemo .fb:not(:empty)', e => e.length) === 4);
+    ok('report has the risk section with the choices', await p.evaluate(() => { S.lang = 'pl'; team().track = 'complaints'; return /Ryzyka i ograniczenia/.test(reportMD()) && /Ryzyka i ograniczenia/.test(reportHTML()); }));
+    ok('report lists chosen options, the count and the unanswered one', await p.evaluate(() => { const R = RISK_SCENARIOS(), md = reportMD(), h = reportHTML(), inj = R.find(s => s.id === 'injection'), pr = R[0];
+      return md.includes(mdInline(pr.options[2].t)) && h.includes(esc(pr.options[2].t)) && /4 z 5|4 \/ 5/.test(md) && /4 z 5|4 \/ 5/.test(h) && md.includes(mdInline(inj.title)) && /nie udzielono odpowiedzi|bez odpowiedzi/.test(md.split('Ryzyka i ograniczenia')[1]); }));
+    ok('report escapes the risk section and leaves out the inbox', await p.evaluate(() => { team().inbox = [{ id: 'i1', ts: '', product: 0, cat: 'damage', text: 'SEKRETNY_TEKST_SKRZYNKI' }]; const orig = window.RISK_SCENARIOS;
+      window.RISK_SCENARIOS = () => orig().map(s => ({ ...s, title: s.title + '<i>x</i>', options: s.options.map(o => ({ ...o, t: o.t + '<b>y</b>' })) }));
+      let h, md; try { h = reportHTML(); md = reportMD(); } finally { window.RISK_SCENARIOS = orig; }
+      return !md.includes('SEKRETNY_TEKST_SKRZYNKI') && !h.includes('SEKRETNY_TEKST_SKRZYNKI') && !h.includes('<i>x</i>') && !h.includes('<b>y</b>') && h.includes('&lt;i&gt;x') && !md.includes('<i>x</i>'); }));
+    ok('no quiz under the risk tab', !(await p.$('.quiz')));
+    ok('risk step available, targets the risk tab, done at four answers', await p.evaluate(() => { const t = defaultTeam(), s = PATH_STEPS().find(x => x.id === 'risk'), a = pathState(t).steps.find(x => x.id === 'risk');
+      t.risks = { privacy: 0, bias: 1, aiact: 2 }; const b = riskDone(t); t.risks.injection = 0; const c = riskDone(t); return stepAvail('risk') && !a.na && s.go.join('/') === 'demos/risk' && !b && c && pathState(t).steps.find(x => x.id === 'risk').done; }));
+    ok('Next on the risk page names the action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true });
+      S.teams[S.team] = t; save(); go('demos', 'risk'); const b = document.querySelector('#pathNext'), pl = b.textContent.trim(), m = b.dataset.mode; S.lang = 'en'; render(); const en = document.querySelector('#pathNext').textContent.trim(); S.lang = 'pl'; render();
+      return document.querySelector('#pathBar').dataset.next === 'risk' && m === 'here' && pl === 'Odpowiedzcie na pytania o ryzyka' && en === 'Answer the questions about the risks'; }));
+    await p.click('#pathNext'); await p.waitForTimeout(50);
+    ok('Next on the risk page focuses the first unanswered option', await p.evaluate(() => document.activeElement.matches('#riskDemo [data-r] [data-o]') && !Object.hasOwn(team().risks, document.activeElement.closest('[data-r]').dataset.r)));
+    await p.click('#riskDemo [data-r="injection"] [data-link]');
+    ok('injection card links to the company complaint form', await p.evaluate(() => location.hash === '#/rybex/contact' && S.view === 'rybex'));
+    await p.evaluate(() => go('demos', 'risk')); await p.click('#riskDemo [data-r="hallucination"] [data-link]');
+    ok('hallucination card links to the RAG lab', await p.evaluate(() => location.hash === '#/lab/rag'));
+    ok('existing demo tabs unaffected', await p.evaluate(() => { go('demos', 'life'); return !!document.querySelector('#demo').children.length; }));
+    ok('risk no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+    const m = await fresh('#/demos/risk', '', { width: 375, height: 740 });
+    ok('six demo tabs wrap without horizontal scroll at 375', await m.evaluate(() => { const b = [...document.querySelectorAll('#demoTabs button')]; return b.length === 6 && b.every(x => x.getBoundingClientRect().right <= innerWidth) && document.documentElement.scrollWidth <= innerWidth; }));
+    for (const id of ['privacy', 'hallucination', 'aiact', 'bias']) await m.click(`#riskDemo [data-r="${id}"] [data-o="1"]`);
+    ok('risk cards with answers fit at 375', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#riskDemo [data-r]')].every(c => c.getBoundingClientRect().right <= innerWidth)));
+    await m.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
