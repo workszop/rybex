@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -849,6 +849,55 @@ try {
     await m.click('.challenge summary');
     ok('challenge panel fits at 375 and uses a full contour', await m.evaluate(() => { const c = document.querySelector('.challenge'), s = getComputedStyle(c); return document.documentElement.scrollWidth <= innerWidth && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; }));
     await m.close(); }
+  if (run('compare')) { const p = await fresh('#/lab/maint');
+    for (const thr of [3, 5]) { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await p.click('#sv'); }
+    ok('two saved runs can be selected in the lab', await p.$$eval('#labExp input[data-cmp]', e => e.length) === 2);
+    ok('compare disabled until two are picked', await p.$eval('#cmpGo', e => e.disabled));
+    for (const c of await p.$$('#labExp input[data-cmp]')) await c.check(); await p.click('#cmpGo');
+    ok('comparison rendered on the tuning set', await p.$eval('#cmp', e => e.dataset.a && e.dataset.b && e.dataset.a !== e.dataset.b && e.dataset.set !== 'test'));
+    ok('difference in percentage points shown', /pp\.?|p\.p\./.test(await p.$eval('#cmp', e => e.textContent)));
+    const mt = await p.$eval('#cmp', e => e.textContent);
+    ok('one sentence says which version scores higher, or that they tie', /Wersja [AB] ma wyższy F1 na ocenianych minutach o [\d,]+ pp\.|Obie wersje/.test(mt), mt);
+    ok('what changed is named', /próg: 3,0 → 5,0/.test(mt), mt);
+    await p.evaluate(() => { $('#labExp').dataset.mark = '1'; $('#expNote').value = 'n'; logAdd('maint', { f: { ...lab().mt.f }, thr: 9, win: 1, keys: ['x'] }, { f1: .1, p: .1, r: .1, base: .2 }, { m: 'F1', v: .1, base: .2, hi: true, test: true }); });
+    ok('the list refreshes after a save without a full render', await p.evaluate(() => $('#labExp').dataset.mark === '1' && $$('#labExp input[data-cmp]').length === 3));
+    for (const c of await p.$$('#labExp input[data-cmp]')) await c.check();
+    ok('checking a third box unchecks the oldest choice', await p.evaluate(() => { const b = $$('#labExp input[data-cmp]'); return b.filter(x => x.checked).length === 2 && !b[0].checked && b[1].checked && b[2].checked && !$('#cmpGo').disabled; }));
+    await p.click('#runBase'); await p.click('#saveBase');
+    ok('the saved baseline is listed as the reference method', await p.evaluate(() => { const r = $('#labExp input[data-cmp][data-base="true"]'); return !!r && /Metoda odniesienia/.test(r.closest('li').textContent); }));
+    ok('renderCompare refuses entries of another track', await p.evaluate(() => { const l = team().log; return renderCompare(l[0], { ...l[1], track: 'forecast' }, 'maint') === '' && renderCompare(l[0], l[1], 'forecast') === ''; }));
+    await p.evaluate(() => go('deliver')); await p.click('#logBox button[data-cb]');
+    ok('report log row compares with the current best', await p.evaluate(() => { const c = $('#logBox tr.cmp-row #cmp'), b = bestRun(team(), 'maint').entry; return !!c && c.dataset.b === b.id && c.dataset.a !== b.id && !$('#logBox button[data-cb="' + team().log.indexOf(b) + '"]'); }));
+    await p.evaluate(() => go('lab', 'maint'));
+    // pick(page, indexes in the list, newest first) -> the rendered comparison
+    const pick = async (pg, ids) => { await pg.evaluate(ids => { const b = $$('#labExp input[data-cmp]'); b.forEach(x => { if (x.checked) x.click(); }); ids.forEach(i => b[i].click()); }, ids); await pg.click('#cmpGo'); return pg.$eval('#cmp', e => ({ t: e.textContent, same: e.dataset.same, diff: e.dataset.diff, set: e.dataset.set })); };
+    const f = await fresh('#/lab/forecast');
+    for (const [pr, w] of [[0, 3], [0, 6], [1, 6]]) { await f.evaluate(([pr, w]) => { Object.assign(lab().fc, { p: pr, w }); save(); render(); }, [pr, w]); await f.fill('#expNote', 'n'); await f.click('#sv'); }
+    let c = await pick(f, [1, 2]);
+    ok('forecast, same product: lower error named in pp.', c.same === 'true' && c.diff !== undefined && /Wersja [AB] ma niższy błąd prognozy \(MAPE\) na ocenianych miesiącach o [\d,]+ pp\.|Obie wersje/.test(c.t), c.t);
+    c = await pick(f, [0, 1]);
+    ok('forecast, different products: no winner, a plain note on different data', c.same === 'false' && c.diff === undefined && /różnych danych/.test(c.t) && !/ma niższy/.test(c.t), c.t);
+    const k = await fresh('#/lab/complaints');
+    for (const extra of ['', ', pleśń']) { await k.evaluate(x => { lab().compl.safety = SAFETY_KW + x; save(); render(); }, extra); await k.click('#sv'); }
+    c = await pick(k, [0, 1]);
+    ok('complaints rules: compared on the dev set by accuracy', c.set === 'dev' && /na zestawie deweloperskim/.test(c.t), c.t);
+    ok('cost appears only when both entries carry it, in the 4.9 sentence form', await k.evaluate(() => { const mk = (id, acc, cost) => ({ id, ts: '2026-11-12T10:00', track: 'complaints', cfg: { mode: 'llm', model: 'x', ver: id === 'p' ? 'v1' : 'v2', shots: id === 'p' ? 0 : 5, set: 'dev' }, res: { acc, macro: acc, safety: 1, safetyFalse: 0, base: .4, test: null, ai: { model: 'x', calls: 36, inTok: 1, outTok: 1, cost }, run: id, maj: .3, primary: { m: 'x', v: acc, base: .4, hi: true, test: false } }, note: '', testViews: 0 });
+      const a = mk('p', .5, .01), b = mk('q', .58, .02), d = document.createElement('div'); d.innerHTML = renderCompare(a, b, 'complaints'); const t = d.textContent;
+      const noCost = renderCompare(a, { ...b, res: { ...b.res, ai: undefined } }, 'complaints');
+      return /Wersja A \(prompt v1, 0 przykładów\)/.test(t) && /Wersja B ma wyższą trafność na zestawie deweloperskim o 8,0 pp\., ale koszt przebiegu rośnie z \$0,0100 do \$0,0200/.test(t) && !/koszt przebiegu/.test(noCost); }));
+    const m = await fresh('#/lab/maint', '', { width: 375, height: 740 });
+    for (const thr of [3, 5]) { await m.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await m.click('#sv'); }
+    await pick(m, [0, 1]);
+    ok('comparison fits at 375 px', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && $('#cmp').getBoundingClientRect().right <= innerWidth));
+    const v = await fresh('#/lab/vision', '&trainer=1');
+    // Real shapes: rules entries keep val and test side by side (primary.v is the test F1 once revealed); model entries saved on the test keep only test.
+    await v.evaluate(() => { const mk = (id, f1, tf1) => ({ id, ts: '2026-11-12', track: 'vision', cfg: { th: { d: 1, s: 2, c: 3 } }, res: { val: { p: f1, r: f1, f1 }, test: { f1: tf1, p: tf1, r: tf1 }, primary: { v: tf1, m: 'F1 (test)', base: 0, hi: true, test: true } }, note: '', testViews: 1 });
+      team().log.push(mk('a', .6, .99), mk('b', .7, .11), { id: 'c', ts: '2026-11-12', track: 'vision', cfg: { mode: 'llm', model: 'x', ver: 'v1', shots: 0, set: 'test' }, res: { val: null, test: { f1: .99, p: .99, r: .99 }, run: 'r', primary: { v: .99, m: 'F1 (test)', base: 0, hi: true, test: true } }, note: '', testViews: 1 }); save(); render(); });
+    ok('comparison never prints test results while the test is hidden', await v.evaluate(() => !renderCompare(team().log[0], team().log[1], 'vision').includes('99') && !/data-set="test"/.test(renderCompare(team().log[0], team().log[1], 'vision'))));
+    ok('a test-only entry has no tuning value and no difference', await v.evaluate(() => { const h = renderCompare(team().log[0], team().log[2], 'vision'); return !h.includes('99') && h.includes('brak wyniku na zbiorze do strojenia') && !/data-diff=/.test(h); }));
+    ok('entries saved with the test revealed are marked and still compared on validation', await v.evaluate(() => { const h = renderCompare(team().log[0], team().log[1], 'vision'); return h.includes('zapisano przy odsłoniętym teście') && /60,0%/.test(h) && /70,0%/.test(h) && /data-diff="/.test(h); }));
+    ok('same run twice is refused', await v.evaluate(() => renderCompare(team().log[0], team().log[0], 'vision') === ''));
+    for (const pg of [p, f, k, m, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
