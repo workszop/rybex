@@ -658,6 +658,10 @@ try {
     ok('works without a class code', await p.$eval('#riskDemo', e => e.dataset.total === '5' && e.dataset.answered === '0'));
     ok('ids, signatures and exactly one good option per scenario', await p.evaluate(() => { const r = RISK_SCENARIOS(), sig = { privacy: 'marek', hallucination: 'piotr', aiact: 'piotr', bias: 'magda', injection: 'magda' };
       return r.map(s => s.id).join() === 'privacy,hallucination,aiact,bias,injection' && r.every(s => s.persona === sig[s.id] && s.options.filter(o => o.good).length === 1 && s.title && s.situation && s.question && Array.isArray(s.link)); }));
+    ok('options of similar length, the good one rarely the longest (pl and en)', await p.evaluate(() => { const res = []; for (const l of ['pl', 'en']) { S.lang = l; const R = RISK_SCENARIOS(); let gl = 0;
+      for (const s of R) { const L = s.options.map(o => o.t.length), g = s.options.findIndex(o => o.good); if (Math.max(...L) / Math.min(...L) > 1.35) res.push(l + ':' + s.id + ':' + L); if (L.every((x, j) => j === g || x < L[g])) gl++; }
+      if (gl > 2) res.push(l + ':good longest in ' + gl); } S.lang = 'pl'; return res.length ? res.join(' ') : true; }) === true);
+    ok('good feedback opens with Słusznie / Right', await p.evaluate(() => { const r = []; for (const l of ['pl', 'en']) { S.lang = l; r.push(RISK_SCENARIOS().every(s => s.options.find(o => o.good).fb.startsWith(l === 'pl' ? 'Słusznie –' : 'Right –'))); } S.lang = 'pl'; return r.every(Boolean); }));
     ok('the good option is not always in the same place', await p.evaluate(() => new Set(RISK_SCENARIOS().map(s => s.options.findIndex(o => o.good))).size >= 2));
     ok('cards carry the persona signature, real option buttons and a live feedback region', await p.$$eval('#riskDemo [data-r]', cs => cs.length === 5 && cs.every(c => c.querySelector('figure.persona[data-persona]') && c.querySelectorAll('button[data-o]').length >= 3 && c.querySelector('.fb[aria-live=polite]'))));
     for (const id of ['privacy', 'hallucination', 'aiact', 'bias']) await p.click(`#riskDemo [data-r="${id}"] [data-o="0"]`);
@@ -691,6 +695,9 @@ try {
     await p.evaluate(() => go('demos', 'risk')); await p.click('#riskDemo [data-r="hallucination"] [data-link]');
     ok('hallucination card links to the RAG lab', await p.evaluate(() => location.hash === '#/lab/rag'));
     ok('existing demo tabs unaffected', await p.evaluate(() => { go('demos', 'life'); return !!document.querySelector('#demo').children.length; }));
+    await seed(p, () => { team().risks = { bias: 5 }; }); await p.evaluate(() => go('demos', 'risk'));
+    ok('an out-of-range stored answer counts as unanswered', await p.$eval('#riskDemo', e => e.dataset.answered === '0' && e.querySelector('[data-r="bias"]').dataset.state === 'open' && !e.querySelector('[data-r="bias"] .sel')) && await p.evaluate(() => riskCount(team()) === 0));
+    ok('risk step hint speaks only about the risk cards', await p.evaluate(() => { const s = PATH_STEPS().find(x => x.id === 'risk'); S.lang = 'en'; const e = PATH_STEPS().find(x => x.id === 'risk'); S.lang = 'pl'; return !/wdrożen/.test(s.hint) && !/go-live/.test(e.hint) && /ryzyk/.test(s.hint); }));
     ok('risk no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     const m = await fresh('#/demos/risk', '', { width: 375, height: 740 });
     ok('six demo tabs wrap without horizontal scroll at 375', await m.evaluate(() => { const b = [...document.querySelectorAll('#demoTabs button')]; return b.length === 6 && b.every(x => x.getBoundingClientRect().right <= innerWidth) && document.documentElement.scrollWidth <= innerWidth; }));
