@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -204,7 +204,7 @@ try {
     ok('path completes with the risk step done', done.b === null && !done.na.na && done.na.done === true, JSON.stringify(done));
     await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; });
     ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '0' && e.dataset.total === '9'));
-    ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórz dane wybranego zadania')));
+    ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórzcie dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; team().site.newsRead = true; }); await f.evaluate(() => go('demos', 'split'));
     ok('current step follows the sub view', await f.$eval('#pathBar', e => e.dataset.step) === 'demos');
     ok('review round no page errors', !f.errs.length, f.errs.join('|'));
@@ -554,7 +554,7 @@ try {
     await p.evaluate(() => { team().name = 'Zespół Szprot'; save(); go('rybex', 'career'); }); ok('site career names the new team', await p.$eval('.rybex-frame', e => e.textContent.includes('Zespół Szprot')));
     await p.evaluate(() => go('rybex', 'about')); await p.click('.rybex-frame nav[aria-label] [data-rp=news]'); ok('site menu button switches the page', await p.evaluate(() => S.sub.rybex === 'news' && location.hash === '#/rybex/news'));
     await p.evaluate(() => go('rybex', 'home')); await p.keyboard.press('7'); ok('site workshop keys still work inside the frame', await p.evaluate(() => S.view) === 'deliver');
-    await p.evaluate(() => go('rybex', 'home')); const want = await p.evaluate(() => { const s = pathState(team()).next; return s ? s.go[0] : 'home'; });
+    await p.evaluate(() => go('rybex', 'home')); await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready')); const want = await p.evaluate(() => { const s = pathState(team()).next; return s ? s.go[0] : 'home'; });
     await p.click('#backToWs'); ok('site back button goes to the next path step', await p.evaluate(() => S.view) === want, want);
     await p.evaluate(() => go('rybex', 'home')); await p.click('#pathNext'); ok('site path bar Next works from the site', await p.evaluate(() => S.view !== 'rybex'));
     await p.goto(p.url().replace(/#.*/, '#/rybex/nope')); await p.waitForTimeout(50); ok('site unknown page falls back to site home', await p.evaluate(() => S.sub.rybex) === 'home');
@@ -956,7 +956,7 @@ try {
     { const q = await fresh('#/home');
       ok('a badge earned on a switched-to team is stored silently', await q.evaluate(() => new Promise(r => { S.teams[2] = normTeam({ site: { newsRead: true } }); hideToast(); S.team = 2; render(); setTimeout(() => r(team().badges.includes('news') && toastEl.hidden && !liveEl.textContent.includes('Aktualność')), 700); })));
       ok('a badge toast does not replace a gate message', await q.evaluate(() => { toast(GATE_MSG(), { reason: 'baseline' }); team().seen.report = true; renderProg(); return toastEl.dataset.reason === 'baseline' && team().badges.includes('report'); }));
-      ok('the held badge toast follows once the gate message closes', await q.evaluate(() => new Promise(r => { hideToast(); setTimeout(() => r(!toastEl.hidden && toastEl.textContent.includes('Raport wyeksportowany') && !toastEl.dataset.reason && !!window.lucide.icons.Award), 500); })));
+      ok('the badge line sits under the gate message, nothing follows once it closes', await q.evaluate(() => new Promise(r => setTimeout(() => { const under = toastEl.dataset.reason === 'baseline' && toastEl.textContent.startsWith(GATE_MSG()) && toastEl.querySelector('.toast-bd').textContent.includes('Raport wyeksportowany') && !!window.lucide.icons.Award; hideToast(); setTimeout(() => r(under && toastEl.hidden && !badgeQ.length), 500); }, 50))));
       ok('a badge stays once announced', await q.evaluate(() => { team().seen.report = false; renderProg(); return team().badges.includes('report') && $('#badges').dataset.earned.split(' ').includes('report'); }));
       ok('earned badges are in both reports by name', await q.evaluate(() => reportMD().includes('Raport wyeksportowany') && reportHTML().includes('Raport wyeksportowany') && !reportMD().includes('Uczciwy test')));
       await q.evaluate(() => go('deliver'));
@@ -968,18 +968,17 @@ try {
       await seed(u, () => { team().track = 'maint'; }); // the team's task, chosen at onboarding
       await u.click('#runBase'); await u.click('#saveBase'); await wait(400);
       const t1 = await tx();
-      ok('the log toast is shown first, not replaced by the badge', /dzienniku/.test(t1) && !/Odznaka/.test(t1), t1);
+      ok('the log toast stays and carries the badge line', /dzienniku/.test(t1) && t1.startsWith('Zapisano') && /Odznaka: Metoda odniesienia zapisana/.test(t1), t1);
       await u.click('#toast .toast-x'); await wait(500);
       const t2 = await tx();
-      ok('after it is dismissed the first-baseline badge toast follows', t2.includes('Metoda odniesienia zapisana'), t2);
-      await u.click('#toast .toast-x');
-      for (const [thr, note] of [[3], [3.5], [4.5, 'Wyższy próg łapie mniej fałszywych alarmów.']]) { await u.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); if (note) await u.fill('#expNote', note); await u.click('#sv'); await wait(100); if (await tx()) await u.click('#toast .toast-x'); await wait(450); }
+      ok('after it is dismissed no badge toast follows', t2 === '', t2);
+      let t3 = '';
+      for (const [thr, note] of [[3], [3.5], [4.5, 'Wyższy próg łapie mniej fałszywych alarmów.']]) { await u.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); if (note) await u.fill('#expNote', note); await u.click('#sv'); await wait(100); t3 = await tx(); if (t3) await u.click('#toast .toast-x'); await wait(450); }
       const seen3 = await u.evaluate(() => team().badges.includes('threeExp'));
-      const t3 = await tx();
-      ok('three saved experiments: the three-experiments badge toast is shown', seen3 && /Trzy eksperymenty/.test(t3), t3);
+      ok('three saved experiments: the three-experiments badge line is shown with the save', seen3 && /Zapisano/.test(t3) && /Trzy eksperymenty/.test(t3), t3);
       const two = await u.evaluate(() => new Promise(r => { toast('x', { action: ['Cofnij', () => {}] }); team().site.newsRead = true; renderProg(); team().seen.report = true; renderProg();
-        setTimeout(() => { const held = toastEl.textContent.startsWith('x'), live = liveEl.textContent; hideToast(); setTimeout(() => r({ held, live, t: toastEl.textContent }), 500); }, 700); }));
-      ok('two badges in a row while a toast is up: both shown after it, none lost', two.held && two.t.includes('Aktualność przeczytana') && two.t.includes('Raport wyeksportowany'), JSON.stringify(two));
+        setTimeout(() => { const held = toastEl.textContent.startsWith('x'), t = toastEl.textContent; hideToast(); setTimeout(() => r({ held, t, after: toastEl.hidden }), 500); }, 700); }));
+      ok('two badges in a row while a toast is up: both lines in it, none lost, nothing after', two.held && two.t.includes('Aktualność przeczytana') && two.t.includes('Raport wyeksportowany') && two.after, JSON.stringify(two));
       ok('consecutive announcements in one task join', await u.evaluate(() => new Promise(r => { announce('A1'); announce('B2'); setTimeout(() => r(liveEl.textContent === 'A1 B2'), 650); })));
       ok('a later announcement still replaces an earlier one', await u.evaluate(() => new Promise(r => { announce('C3'); setTimeout(() => { announce('D4'); setTimeout(() => r(liveEl.textContent === 'D4'), 650); }, 0); })));
       ok('no page errors (badge toasts)', !u.errs.length, u.errs.join(' | '));
@@ -1053,6 +1052,148 @@ try {
       await m.click('#showExample');
       ok('example banner fits at 375 px', await m.evaluate(() => { const b = $('#exampleBar').getBoundingClientRect(), x = $('#exampleExit').getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && x.right <= innerWidth && b.height < 200; }));
       await m.close(); } }
+  if (run('exit2')) {
+    // A complaints team past the demos: baseline, justification and three experiments; the test not yet seen.
+    const prepC = (opt = {}) => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'complaints', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
+      t.log = opt.base === false ? [] : [{ id: 'cb', ts: '', track: 'complaints', cfg: { base: true, set: 'dev' }, res: { dev: .25, base: .25, safety: 0, primary: { m: 'trafność (dev)', v: .25, base: .25, hi: true, test: false } }, note: '', testViews: 0, base: true }];
+      for (let i = 1; i <= (opt.n ?? 3); i++) t.log.push({ id: 'ce' + i, ts: '', track: 'complaints', cfg: { kw: { x: 'w' + i }, safety: 'puch' }, res: { dev: .3 + i / 100, macro: .3, safety: 1, safetyFalse: 0, base: .25, test: null, primary: { m: 'trafność (dev)', v: .3 + i / 100, base: .25, hi: true, test: false } }, note: 'n' + i, testViews: 0 });
+      t.decision.complaints = opt.why === false ? { m: 0, why: '' } : { m: 0, why: 'Reguły są tanie i wyjaśnialne, a danych jest mało.' }; };
+    // 1: step 7 asks for the test reveal once three experiments are saved.
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(${prepC})(); save(); render();`);
+      const r = await p.evaluate(() => ({ next: $('#pathBar').dataset.next, txt: $('#pathNext').textContent.trim(), hint: $('.pb-hint').textContent, mode: $('#pathNext').dataset.mode }));
+      ok('exit2 iterate after three experiments names the reveal', r.next === 'iterate' && r.mode === 'here' && r.txt === 'Odsłońcie zbiór testowy' && r.hint.includes('odsłońcie zbiór testowy jeden raz i zapiszcie wynik'), JSON.stringify(r));
+      await p.click('#pathNext'); await p.waitForTimeout(50);
+      ok('exit2 the reveal action focuses the reveal button', await p.evaluate(() => document.activeElement.matches('[data-reveal=complaints]')));
+      ok('exit2 English reveal action', await p.evaluate(() => { S.lang = 'en'; render(); const s = [$('#pathNext').textContent.trim(), $('.pb-hint').textContent]; S.lang = 'pl'; render(); return s[0] === 'Reveal the test set' && /reveal the test set once and save the result/.test(s[1]); }));
+      await p.click('[data-reveal=complaints]');
+      ok('exit2 one reveal completes the step', await p.evaluate(() => lab().compl.testViews === 1 && pathState(team()).steps.find(s => s.id === 'iterate').done && $('#pathBar').dataset.next !== 'iterate'));
+      await p.evaluate(`(()=>{ (${prepC})({ why: false }); lab().compl.revealed = false; lab().compl.testViews = 0; save(); render(); })()`);
+      ok('exit2 gate closed: the action text stays the reveal', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Odsłońcie zbiór testowy');
+      await p.click('#pathNext'); await p.waitForTimeout(50);
+      ok('exit2 gate on the justification: the action focuses it', await p.evaluate(() => document.activeElement.id) === 'methWhy');
+      ok('exit2 fewer than three experiments: as before', await p.evaluate(() => { const t = team(); t.log.pop(); save(); render(); return $('#pathNext').textContent.trim() === 'Zapiszcie eksperyment' && /co najmniej 3 eksperymenty/.test($('.pb-hint').textContent); }));
+      ok('exit2 no page errors (1)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(()=>{ (${prepC})({ base: false }); lab().compl.revealed = false; lab().compl.testViews = 0; save(); render(); })()`);
+      ok('exit2 no baseline: step 6 first', await p.$eval('#pathBar', e => e.dataset.next) === 'base');
+      // 2: the baseline has run but is not saved.
+      await p.click('#runBase');
+      ok('exit2 step 6 after the run says save', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Zapiszcie metodę odniesienia');
+      await p.click('#pathNext'); await p.waitForTimeout(50);
+      ok('exit2 the save action focuses #saveBase', await p.evaluate(() => document.activeElement.id) === 'saveBase');
+      await p.close(); }
+    // 3: the gate message names only what is missing, also inline next to the button.
+    { const p = await fresh('#/lab/complaints');
+      const st = () => p.evaluate(() => ({ r: $('#toast').dataset.reason, t: $('#toast').textContent, g: ($('#gateMsg') || {}).textContent || '', live: ($('#gateMsg') || { getAttribute: () => '' }).getAttribute('aria-live'), d: ($('#rv').getAttribute('aria-describedby') || '').split(' ').includes('gateMsg') }));
+      await p.click('#rv'); const a = await st();
+      ok('exit2 gate: baseline and justification missing -> full sentence', a.r === 'baseline' && a.g === await p.evaluate(() => GATE_MSG()) && a.live === 'polite' && a.d, JSON.stringify(a));
+      await p.click('#runBase'); await p.click('#rv'); const b = await st();
+      ok('exit2 gate: unsaved baseline, no justification -> full sentence', b.r === 'save' && b.g === await p.evaluate(() => GATE_MSG()), JSON.stringify(b));
+      await p.click('#saveBase'); await p.click('#rv'); const c = await st();
+      ok('exit2 gate: only the justification missing -> only that', c.r === 'why' && c.g === 'Dopiszcie uzasadnienie wyboru metody – trafia do raportu.' && c.t.includes('Dopiszcie uzasadnienie wyboru metody – trafia do raportu.') && !c.t.includes('metodę odniesienia'), JSON.stringify(c));
+      await p.evaluate(() => { const t = team(); t.log = t.log.filter(l => !l.base); t.decision.complaints = { m: 0, why: 'Reguły są tanie i wyjaśnialne, a danych jest mało.' }; save(); render(); });
+      await p.click('#rv'); const d = await st();
+      ok('exit2 gate: only the baseline missing -> no justification wording', ['baseline', 'save'].includes(d.r) && /metodę odniesienia/.test(d.g) && !/uzasadnienie/.test(d.g), JSON.stringify(d));
+      ok('exit2 no page errors (3)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 4: the revealed result is not lost; views and passed challenges in the report.
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(${prepC})(); save(); render();`);
+      ok('exit2 no save hint before the reveal', await p.evaluate(() => { const h = $('#testSaveHint'); return !h || h.hidden; }));
+      ok('exit2 no challenge line when none passed', await p.evaluate(() => !/Zaliczone wyzwania/.test(reportMD() + reportHTML())));
+      await p.click('#rv');
+      ok('exit2 revealed: the save hint sits by the save bar', await p.evaluate(() => { const h = $('#testSaveHint'); return !!h && !h.hidden && h.textContent.includes('Zapiszcie ten wynik w dzienniku – wtedy trafi do raportu jako ocena końcowa.'); }));
+      ok('exit2 revealed: the note is not required for this save', await p.$eval('#expNote', e => e.dataset.noteRequired === 'false'));
+      const md = await p.evaluate(() => reportMD());
+      ok('exit2 revealed, unsaved: the report says so plainly', md.includes('Zespół odsłonił zbiór testowy, ale nie zapisał wyniku końcowego.') && !md.includes('nie był jeszcze oceniony'), (md.match(/Najlepszy wynik.*\n.*\n/) || [''])[0]);
+      ok('exit2 report states the number of test views', md.includes('- **Zbiór testowy:** odsłonięty 1×') && (await p.evaluate(() => reportHTML())).includes('<dt>Zbiór testowy</dt><dd>odsłonięty 1×'), (md.match(/Zbiór testowy[^\n]*/) || [''])[0]);
+      await p.click('#sv'); await p.waitForTimeout(50);
+      const af = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { n: team().log.length, saved: cmpTestSaved(l), md: reportMD() }; });
+      ok('exit2 saved while revealed, without a note: stored and marked', af.n === 5 && af.saved, JSON.stringify({ n: af.n, saved: af.saved }));
+      ok('exit2 after the save the unsaved sentence is gone', !af.md.includes('nie zapisał wyniku końcowego'));
+      await p.evaluate(() => { team().challenges.compl_mixed = 'done'; save(); });
+      ok('exit2 a passed challenge is in both reports', await p.evaluate(() => reportMD().includes('Zaliczone wyzwania: Zgłoszenia mieszane') && reportHTML().includes('Zaliczone wyzwania: Zgłoszenia mieszane')));
+      await p.evaluate(() => { const t = team(); t.log.pop(); save(); go('deliver'); });
+      ok('exit2 report view summary: views and the unsaved sentence', await p.evaluate(() => { const s = $('#delivSummary').textContent; return s.includes('Zbiór testowy') && s.includes('odsłonięty 1×') && s.includes('Zespół odsłonił zbiór testowy, ale nie zapisał wyniku końcowego.'); }));
+      ok('exit2 no page errors (4)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 5: back to the workshop returns where the participant came from.
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(()=>{ (${prepC})(); lab().compl.testViews = 1; save(); render(); })()`);
+      ok('exit2 the next step is not the lab', await p.evaluate(() => pathState(team()).next.id) === 'risk');
+      await p.click('#inboxForm'); await p.waitForSelector('#backToWs');
+      await p.click('#backToWs'); ok('exit2 lab -> contact -> back: the lab', await p.evaluate(() => location.hash) === '#/lab/complaints');
+      await p.evaluate(() => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; save(); go('home'); });
+      await p.click('#pathNext'); ok('exit2 the path leads to the news', await p.evaluate(() => location.hash) === '#/rybex/news');
+      await p.click('#backToWs'); const want = await p.evaluate(() => '#/' + pathState(team()).next.go.join('/'));
+      ok('exit2 entered from the path bar: back goes to the next step', await p.evaluate(() => location.hash) === want && want === '#/demos/life', want);
+      await p.goto(p.url().replace(/#.*/, '#/rybex/about')); await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await p.click('#backToWs'); ok('exit2 deep link: back goes to the next step', await p.evaluate(() => location.hash) === '#/demos/life');
+      ok('exit2 no page errors (5)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 6: go-live decision 2 says what the diagram has and follows the track.
+    { const p = await fresh('#/arch');
+      await seed(p, () => { const t = team(); t.track = 'complaints'; t.arch.sel = {}; });
+      const note = () => p.$eval('#goLive [data-d=stopAuthority] .gl-note', e => e.textContent);
+      const n0 = await note();
+      ok('exit2 note without the component says it is missing', !n0.includes('macie już') && /nie ma jeszcze/.test(n0) && !!(await p.$('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]')), n0);
+      await p.click('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]');
+      const n1 = await note();
+      ok('exit2 note with the component', n1.includes('W schemacie macie już komponent «Weryfikacja przez człowieka».'), n1);
+      const en = await p.evaluate(() => { S.lang = 'en'; render(); const a = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; team().arch.sel.hitl = false; render(); const b = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; S.lang = 'pl'; render(); return [a, b]; });
+      ok('exit2 English note matches the Polish one', /already has the «Human-in-the-loop» component/.test(en[0]) && !/already/.test(en[1]) && /does not have/.test(en[1]), JSON.stringify(en));
+      const q = await p.evaluate(() => { const g = k => { team().track = k; return GO_LIVE_DECISIONS().find(d => d.id === 'stopAuthority'); }; const c = g('complaints'), v = g('vision'), r = g('rag'), f = g('forecast'), m = g('maint'); team().track = 'complaints'; return { c: c.q, v: v.q, qs: new Set([c.q, v.q, r.q, f.q, m.q]).size, ids: [c, v, r, f, m].every(d => d.options.map(o => o.id).join() === 'system,operator,quality'), lab: c.options.map(o => o.t).join('|') !== v.options.map(o => o.t).join('|') }; });
+      ok('exit2 decision 2 is track-aware, ids unchanged', q.c !== q.v && /klient/.test(q.c) && q.qs === 5 && q.ids && q.lab, JSON.stringify(q));
+      await p.evaluate(() => render()); await p.click('#goLive [data-d=stopAuthority] [data-o=operator]');
+      ok('exit2 stored id unchanged', await p.evaluate(() => team().arch.decisions.stopAuthority === 'operator' && goLiveAns(team(), 'stopAuthority') === 'operator'));
+      ok('exit2 no page errors (6)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 7: path bar labels.
+    { const p = await fresh('#/home');
+      await seed(p, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; go('home'); });
+      ok('exit2 join on home: Dalej names the company site', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Dalej: strona firmy Rybex');
+      await seed(p, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split'); go('demos', 'split'); });
+      ok('exit2 demos: Dalej names the next demo', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Dalej: następna demonstracja');
+      await p.click('#pathNext'); await p.waitForTimeout(50);
+      ok('exit2 focus after Dalej between demos is not BODY', await p.evaluate(() => S.sub.demos === 'metr' && document.activeElement && document.activeElement !== document.body));
+      await seed(p, () => { const t = team(); qz(t, 'metr'); t.log = [{ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, 1, 2, 3].map(x => typeof x === 'object' ? x : { id: 'f' + x, ts: '', track: 'forecast', note: '', testViews: 0 }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; go('demos', 'risk'); });
+      ok('exit2 risk with four cards: Dalej names the go-live decisions', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Dalej: decyzje wdrożeniowe');
+      ok('exit2 data hint in the plural', await p.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint === 'otwórzcie dane wybranego zadania'));
+      // 8: path progress leads in the team bar.
+      const pr = await p.evaluate(() => { const e = $('#tbProg'), st = pathState(team()); return { t: e.textContent, g: $('#tbToggle').textContent, d: { ...e.dataset }, n: st.doneCount, bar: e.querySelector('[role=progressbar]').getAttribute('aria-valuemax') }; });
+      ok('exit2 team bar leads with path progress', pr.t.startsWith(`Ścieżka: ${pr.n}/9`) && pr.t.includes('lista kontrolna 0/27') && pr.d.pathDone === String(pr.n) && pr.d.pathTotal === '9' && pr.d.done === '0' && pr.d.total === '27' && pr.bar === '9', JSON.stringify(pr));
+      ok('exit2 collapsed toggle leads with path progress', pr.g.includes(`Ścieżka: ${pr.n}/9`) && pr.g.includes('lista kontrolna 0/27') && pr.g.indexOf('Ścieżka') < pr.g.indexOf('lista kontrolna'), pr.g);
+      ok('exit2 no page errors (7, 8)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // 9: the badge line joins the toast on screen at once.
+    { const u = await fresh('#/lab/maint');
+      await seed(u, () => { team().track = 'maint'; });
+      await u.click('#runBase'); await u.click('#saveBase'); await u.waitForTimeout(60);
+      const t1 = await u.evaluate(() => ({ t: toastEl.hidden ? '' : toastEl.textContent, q: badgeQ.length }));
+      ok('exit2 saved toast carries the badge line at once', /Zapisano/.test(t1.t) && t1.t.includes('Odznaka: Metoda odniesienia zapisana') && t1.q === 0, JSON.stringify(t1));
+      await u.click('#toast .toast-x'); await u.waitForTimeout(500);
+      ok('exit2 nothing is queued after it', await u.evaluate(() => toastEl.hidden && !badgeQ.length));
+      ok('exit2 a gate toast keeps priority, the badge line under it', await u.evaluate(() => new Promise(r => { toast(GATE_MSG(), { reason: 'baseline' }); team().seen.report = true; renderProg(); setTimeout(() => r(toastEl.dataset.reason === 'baseline' && toastEl.textContent.startsWith(GATE_MSG()) && toastEl.textContent.includes('Raport wyeksportowany')), 50); })));
+      await u.close(); }
+    // 10 + 11 + 12.
+    { const p = await fresh('#/lab/complaints');
+      ok('exit2 demos badge follows the track', await p.evaluate(() => { const t = defaultTeam(); t.track = 'complaints'; qz(t, 'life', 'split', 'metr'); const a = earnedBadges(t).includes('quizzes'); qz(t, 'tok'); const b = earnedBadges(t).includes('quizzes'); const u = defaultTeam(); qz(u, 'life', 'split', 'metr', 'tok'); return !a && b && !earnedBadges(u).includes('quizzes'); }));
+      ok('exit2 challenge heading for every track', await p.evaluate(() => Object.keys(CHALLENGES()).every(k => { S.teams[S.team].track = k; go('lab', k); const b = $('#challengeSlot .challenge'); return !!b && b.querySelector('.ch-k').textContent.trim() === 'Wyzwanie: sprawdźcie granice systemu' && b.querySelector('.ch-t').textContent === CHALLENGES()[k].title && !/zepsuj/i.test(b.textContent); })));
+      ok('exit2 English challenge heading', await p.evaluate(() => { S.lang = 'en'; render(); const s = $('#challengeSlot .ch-k').textContent.trim(); S.lang = 'pl'; render(); return s === "Challenge: find the system's limits"; }));
+      await p.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('rybex', 'intranet'); });
+      ok('exit2 intranet greeting without a name uses the number', await p.evaluate(() => { const s = $('.ri-top p').textContent; return s.includes('zespole nr 1') && !s.includes('Zespół 1'); }));
+      await p.evaluate(() => { team().name = 'Szprot'; save(); render(); });
+      ok('exit2 intranet greeting with a name', await p.evaluate(() => $('.ri-top p').textContent.includes('zespole Szprot')));
+      await p.evaluate(() => { S.teams[S.team] = defaultTeam(); team().track = 'complaints'; save(); go('lab', 'complaints'); });
+      await p.click('#runBase'); await p.click('#saveBase');
+      const lb = await p.evaluate(() => { const l = team().log.find(x => x.base), pl = logText(l); S.lang = 'en'; const en = logText(l); const old = logText({ ...l, res: { ...l.res, primary: { ...l.res.primary, m: 'trafność (dev)' } } }); S.lang = 'pl'; return { pl, en, old, m: l.res.primary.m }; });
+      ok('exit2 baseline label follows the UI language', lb.pl.includes('trafność (dev)') && lb.en.includes('accuracy (dev)') && !lb.en.includes('trafność') && !/trafność|accuracy/.test(lb.m), JSON.stringify(lb));
+      ok('exit2 an old baseline with a stored label renders as stored', lb.old.includes('trafność (dev)'), lb.old);
+      ok('exit2 the stored baseline still counts as saved', await p.$eval('#baseOut', e => e.dataset.saved) === 'true');
+      ok('exit2 no page errors (10-12)', !p.errs.length, p.errs.join('|'));
+      await p.close(); } }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
