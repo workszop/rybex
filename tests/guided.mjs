@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -106,6 +106,64 @@ try {
     const m = await fresh('#/brief', '', { width: 390, height: 844 });
     ok('brief requirements folded on mobile', await m.$eval('#briefReq', e => !e.open));
     await m.close(); }
+  if (run('path')) { const p = await fresh('#/brief');
+    ok('path bar on every view', await p.evaluate(async () => { for (const n of NAV) { go(n[0]); if (!document.querySelector('#pathBar #pathNext')) return false; } return true; }));
+    await p.evaluate(() => go('brief'));
+    await p.click('#main [data-t=forecast]');
+    ok('picking a task stays out of the lab', await p.evaluate(() => S.view !== 'lab' && team().track === 'forecast'));
+    ok('picked task is marked', await p.$eval('#main [data-t=forecast]', e => e.getAttribute('aria-pressed') === 'true') && await p.$eval('#main [data-t=vision]', e => e.getAttribute('aria-pressed') === 'false'));
+    ok('next step asks for the success criterion or data', ['task', 'join', 'cycle'].includes(await p.$eval('#pathBar', e => e.dataset.next)));
+    ok('goal field labelled', await p.$eval('label[for=goal]', e => e.textContent.includes('Kryterium sukcesu jednym zdaniem')));
+    await p.fill('#goal', 'Błąd prognozy niższy niż średnia historyczna');
+    ok('goal saved', await p.evaluate(() => team().goal.startsWith('Błąd prognozy')));
+    ok('reqDemos per track', await p.evaluate(() => JSON.stringify([reqDemos('forecast'), reqDemos('complaints'), reqDemos('rag')])) === '[["split","metr"],["split","metr","tok"],["split","metr","tok","rag"]]');
+    const st = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'maint'; t.goal = 'g'; t.seen.data = true; return pathState(t); });
+    ok('pathState picks the first open step', st.next.id === 'cycle' && st.steps.length === 9, JSON.stringify(st.next));
+    ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
+    const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; ['life', 'split', 'metr', 'tok'].forEach(k => t.seen['demo.' + k] = true);
+      const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
+    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","risk",true,false]', JSON.stringify(rules));
+    ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
+    await seed(p, () => { team().onboardedAt = 'x'; });
+    const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
+    ok('Next goes to the step target', await p.evaluate(b => { const s = PATH_STEPS().find(x => x.id === b); return S.view === s.go[0]; }, before));
+    ok('opening a demo tab is recorded', await p.evaluate(() => S.view !== 'demos' || team().seen['demo.' + S.sub.demos] === true));
+    await p.keyboard.press('5'); ok('keys 1-7 still work', await p.evaluate(() => S.view) === 'lab');
+    await p.evaluate(() => { AIS.run = { fake: true }; }); await p.click('#pathNext');
+    ok('Next is guarded during a model run', await p.evaluate(() => S.view) === 'lab'); await p.evaluate(() => { AIS.run = null; hideToast(); });
+    ok('path bar contract', await p.$eval('#pathBar', e => e.dataset.total === '9' && e.dataset.step !== undefined && e.dataset.done !== undefined));
+    ok('page usable after the guarded click', await p.evaluate(() => { go('data'); return S.view === 'data' && team().seen.data === true; }));
+    ok('Next button names the step', await p.$eval('#pathNext', e => /^Dalej: /.test(e.textContent.trim())));
+    await p.evaluate(() => go('deliver')); await Promise.all([p.waitForEvent('download'), p.click('#exp')]);
+    ok('report export recorded', await p.evaluate(() => team().seen.report === true));
+    await p.evaluate(() => go('lab', 'vision')); await p.evaluate(() => window.scrollTo(0, 1500)); await p.waitForTimeout(100);
+    ok('lab jump bar sits below the path bar (1440)', await p.evaluate(() => { const j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(); return b.top >= 0 && j.top >= b.bottom - 1; }));
+    ok('path no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close();
+    const m = await fresh('#/lab/vision', '', { width: 390, height: 844 });
+    await m.evaluate(() => window.scrollTo(0, 2500)); await m.waitForTimeout(100);
+    ok('lab jump bar sits below the path bar (390)', await m.evaluate(() => { const j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(); return b.top >= 0 && b.bottom < 140 && j.top >= b.bottom - 1; }));
+    ok('no horizontal scroll at 390', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await m.goto('about:blank'); await m.close();
+    const memoP = q => q.$eval('#memo .card-body > p', e => { const r = e.getBoundingClientRect(), hb = document.querySelector('#pathBar').getBoundingClientRect().bottom; return { top: r.top, bottom: r.bottom, hb, vh: innerHeight }; });
+    const w = await fresh('#/home', '', { width: 1280, height: 720 });
+    ok('first visit: onboarding shown', !!(await w.$('#onboard')));
+    let r = await memoP(w); ok('first visit: memo first paragraph visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
+    await w.click('#onboardGo'); await w.waitForTimeout(700);
+    ok('Zaczynamy completes the first step in the bar', await w.$eval('#pathBar', e => e.dataset.next !== 'join' && +e.dataset.done >= 1));
+    r = await memoP(w); ok('after Zaczynamy: memo first paragraph visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
+    await w.close();
+    const n = await fresh('#/home', '', { width: 390, height: 844 });
+    ok('390: memo starts within 1.5 screens', await n.$eval('#memo', e => e.getBoundingClientRect().top < innerHeight * 1.5));
+    await n.close();
+    const o = await fresh('#/home');
+    await seed(o, () => { const t = team(); t.onboardedAt = ''; t.log.push({ id: 'x1', ts: '', track: 'maint', note: '', testViews: 0 }); });
+    ok('team with work skips onboarding', !!(await o.$('#memo')) && !(await o.$('#onboard')));
+    await seed(o, () => { const t = team(); t.log = []; t.checks = { 'c0': true }; });
+    ok('team with a ticked item skips onboarding', !(await o.$('#onboard')));
+    await seed(o, () => { const t = team(); t.checks = {}; t.name = ''; });
+    ok('empty team sees onboarding', !!(await o.$('#onboard')));
+    await o.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();

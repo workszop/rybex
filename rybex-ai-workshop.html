@@ -175,7 +175,7 @@ body.edu { background: var(--paper); color: var(--ink); font-family: var(--font-
 /* ─── Layout tokens ─── */
 :root{--gutter:clamp(16px,4vw,72px)}
 *{box-sizing:border-box}
-html{scroll-padding-top:96px}
+html{scroll-padding-top:calc(var(--hdr-h,84px) + 12px)}
 body{margin:0;font-size:var(--body);line-height:1.55}
 button,input,select,textarea{font:inherit}
 :focus-visible{outline:3px solid transparent;outline-offset:2px;box-shadow:var(--focus-ring)}
@@ -211,6 +211,11 @@ p{margin:6px 0}
 .bar{height:10px;border-radius:var(--r-pill);background:var(--paper-3);overflow:hidden}
 .bar span{display:block;height:100%;background:var(--ink);border-radius:var(--r-pill)}
 .hint{font-size:var(--caption);color:var(--ink-3);margin:4px 0 0}
+.pathbar{position:sticky;top:var(--hdr-top,0px);z-index:45;background:var(--paper);border-bottom:1px solid var(--line-2)}
+.pb-in{padding:6px var(--gutter);display:flex;align-items:center;gap:8px 16px;min-height:44px}
+.pb-dots{display:flex;gap:4px;margin:0;padding:0;list-style:none;flex:none}.pb-dots li{width:10px;height:10px;border-radius:50%;background:var(--paper-3);border:1px solid var(--line-2)}.pb-dots li.done{background:var(--green);border-color:var(--green)}.pb-dots li.cur{outline:2px solid var(--ink);outline-offset:1px}
+.pb-txt{margin:0;flex:1;min-width:0;font-size:var(--body-sm)}.pb-min{color:var(--ink-3)}
+#pathNext{flex:none;margin-left:auto}
 .savewarn{background:var(--red-soft);color:var(--red-ink);padding:10px var(--gutter);font-weight:600}
 .savewarn[hidden]{display:none}
 
@@ -247,6 +252,8 @@ p{margin:6px 0}
 .tile-h h2{margin:0;font-size:18px;line-height:1.3}
 .memo{max-width:860px}.memo-meta{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0 0 14px;font-size:var(--body-sm)}.memo-meta dt{color:var(--ink-3);font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em;align-self:center}.memo-meta dd{margin:0}.memo p{margin:0 0 10px}
 #onboard{max-width:860px;margin-bottom:18px}#onboard ol{margin:10px 0 0;padding-left:22px}#onboard p{margin:0 0 6px}.ob-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:10px 32px}
+.sec.ob-sec{padding-top:20px}
+@media (min-width:1100px){.ob-pair:has(#onboard){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}.ob-pair #onboard{margin:0}.ob-pair:has(#onboard) .ob-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:768px){.ob-grid{grid-template-columns:1fr}}
 #briefReq>summary{cursor:pointer;font-weight:600;font-size:18px;padding:4px 0}#briefReq>.grid3{margin-top:14px}
 
@@ -391,7 +398,7 @@ dialog::backdrop{background:color-mix(in srgb,var(--ink) 55%,transparent)}
 .ai-cost{font-family:var(--font-mono);font-size:12px;color:var(--ink-2)}
 .seg-mode{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0}
 .prompt-edit{font-family:var(--font-mono);font-size:13px;line-height:1.45;width:100%}
-#visDetail{position:sticky;top:96px;align-self:start}
+#visDetail{position:sticky;top:calc(var(--hdr-h,84px) + 12px);align-self:start}
 @media (max-width:768px){#visDetail{position:static}}
 
 /* ─── Chain and steps ─── */
@@ -425,6 +432,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 @media (max-width:1100px){.grid4.stats4{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3.wide{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){
  .edu-header{position:static}
+ .pb-dots,.pb-hint,.pb-min{display:none}.pb-in{gap:8px}.pb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pathNext{max-width:60%;min-width:0;justify-content:flex-start}#pathNext .pb-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
  .nav{flex:1 0 100%;flex-wrap:wrap;padding-bottom:8px}
  .nav button{padding:6px 10px;font-size:14px}
  .nav button .ic,.nav button svg{display:none}
@@ -454,6 +462,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
   <nav class="nav" id="nav" aria-label="Menu"></nav>
   <div class="edu-seg" id="langSeg" role="group"><button type="button" data-l="pl">PL</button><button type="button" data-l="en">EN</button></div>
 </div></header>
+<nav class="pathbar" id="pathBar"></nav>
 <div class="teambar" id="teamBar">
   <button type="button" class="btn-ghost btn-sm tb-toggle" id="tbToggle" aria-expanded="false" aria-controls="teamBar"></button>
   <div class="field f-team"><label for="teamSel" id="lblTeam"></label><select id="teamSel" class="input"></select></div>
@@ -1212,6 +1221,32 @@ function onHashChange(){const r=parseHash();if(!r){normHash();return}const cur=r
  if(AIS.run){const h=location.hash;normHash();guardRun(()=>{try{history.pushState(null,'',h)}catch(e){}applyRoute()});return}applyRoute()}
 function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;S.view=r.v;if(r.v==='demos'&&DEMO_KEYS.includes(r.sub))S.sub.demos=r.sub;if(r.v==='lab'&&LAB_KEYS.includes(r.sub))S.sub.lab=r.sub;normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}}
 function go(v,sub){if(AIS.run)return guardRun(()=>go(v,sub));clearInterval(X.ragTimer);aiAbort();if(sub)S.sub[v]=sub;const h=hashFor(v);if(location.hash!==h){try{history.pushState(null,'',h)}catch(e){location.hash=h;return}}applyRoute()}
+// ─── Path ───
+const TEST_TRACKS={vision:'vision',rag:'rag',complaints:'compl'};
+function hasWork(t){return!!(t.name.trim()||t.log.length||Object.values(t.checks).some(Boolean))}
+function demoDone(t,key){return Object.hasOwn(t.seen,'demo.'+key)&&!!t.seen['demo.'+key]}
+function reqDemos(track){return['split','metr',...(AI_TRACKS.includes(track)?['tok']:[]),...(track==='rag'?['rag']:[])]}
+function PATH_STEPS(){const t=team(),d=reqDemos(t.track).find(k=>!demoDone(t,k))||'split',lb=['lab',t.track||S.sub.lab];return[
+ {id:'join',label:T('Przydział i strona firmy','Team set-up and the company'),min:10,go:['home'],hint:T('przeczytajcie notatkę o incydencie i podajcie nazwę zespołu','read the incident memo and enter your team name')},
+ {id:'cycle',label:T('Cykl projektu','Project lifecycle'),min:10,go:['demos','life'],hint:T('przejdźcie etapy cyklu projektu AI','walk through the stages of an AI project')},
+ {id:'task',label:T('Wybór zadania','Choosing the task'),min:10,go:['brief'],hint:T('wybierzcie zadanie i wpiszcie kryterium sukcesu','pick a task and write the success criterion')},
+ {id:'data',label:T('Dane zadania','Task data'),min:15,go:['data'],hint:T('otwórzcie dane wybranego zadania','open the data for your task')},
+ {id:'demos',label:T('Mini-demonstracje','Mini demos'),min:20,go:['demos',d],hint:T('obejrzyjcie pokazy wymagane dla waszego zadania','watch the demos your task needs')},
+ {id:'base',label:T('Laboratorium, runda 1','Build lab, round 1'),min:25,go:lb,hint:T('uruchomcie metodę odniesienia i zapiszcie wynik','run the baseline and save the result')},
+ {id:'iterate',label:T('Rundy 2–3 i test','Rounds 2–3 and the test'),min:30,go:lb,hint:T(`zapiszcie co najmniej ${MIN_EXPERIMENTS} eksperymenty, zmieniając jedną rzecz naraz`,`save at least ${MIN_EXPERIMENTS} experiments, changing one thing at a time`)},
+ {id:'risk',label:T('Ryzyka i wdrożenie','Risks and go-live'),min:20,go:['arch'],hint:T('oceńcie ryzyka i decyzje wdrożeniowe','assess the risks and go-live decisions')},
+ {id:'report',label:T('Raport i wystąpienie','Report and presentation'),min:15,go:['deliver'],hint:T('uzupełnijcie listę i wyeksportujcie raport','complete the checklist and export the report')}]}
+function pathState(t){const k=t.track,n=k?t.log.filter(l=>l.track===k).length:0,tl=Object.hasOwn(TEST_TRACKS,k)?t.lab[TEST_TRACKS[k]]:null,
+ done={join:!!t.onboardedAt||hasWork(t),cycle:demoDone(t,'life'),task:!!(k&&t.goal.trim()),data:!!t.seen.data,demos:reqDemos(k).every(x=>demoDone(t,x)),
+  base:n>=1,iterate:n>=MIN_EXPERIMENTS&&(!tl||tl.testViews>=1),risk:Object.keys(t.risks).length>=4&&Object.keys(t.arch.decisions).length>=4,report:!!t.seen.report};
+ const all=PATH_STEPS(),steps=all.map(s=>({id:s.id,done:done[s.id]})),nx=all.find(s=>!done[s.id]),here=all.filter(s=>s.go[0]===S.view),last=[...all].reverse().find(s=>done[s.id]);
+ const cur=(here.find(s=>nx&&s.id===nx.id)||here.find(s=>!done[s.id])||here[here.length-1]||last||all[0]).id;
+ return{steps,cur,next:nx?{id:nx.id,label:nx.label,go:nx.go}:null,doneCount:steps.filter(s=>s.done).length}}
+function setHdrH(){const hd=$('.edu-header'),pb=$('#pathBar'),h=hd&&getComputedStyle(hd).position==='sticky'?hd.offsetHeight:0,r=document.documentElement.style;r.setProperty('--hdr-top',h+'px');r.setProperty('--hdr-h',h+(pb?pb.offsetHeight:0)+'px')}
+function renderPathBar(){const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id);
+ Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:''});el.setAttribute('aria-label',T('Ścieżka warsztatu','Workshop path'));
+ el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${ci}/${all.length} ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}"><span class="pb-lbl">${T('Dalej','Next')}: ${nx.label}</span>${ic('arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
+ $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const g=PATH_STEPS().find(x=>x.id===s.id).go;go(...g)};icons(el);setHdrH()}
 
 // ─── Render: shell ───
 const nm=id=>T(...NAV.find(n=>n[0]===id)[2]);
@@ -1229,7 +1264,7 @@ function renderShell(){
  renderProg();renderSaveWarn();
  const d=document.body.dataset;d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'?S.sub.demos:S.view==='lab'?S.sub.lab:'';
  document.documentElement.lang=S.lang;document.title='AI Project Lab – Rybex';publishVisionContract()}
-function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});icons()}
+function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});renderPathBar();icons()}
 
 // ─── View: home ───
 function memoHTML(){const s=STORY(),row=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;
@@ -1240,7 +1275,7 @@ function onboardHTML(){return`<div class="card" id="onboard"><div class="card-he
  <ol class="edu-small"><li>${T('Poranna sprawa zakładu: notatka poniżej i wybór zadania.','The plant’s morning case: the memo below and choosing a task.')}</li><li>${T('Dane, prototyp i pomiary w laboratorium.','Data, prototype and measurements in the lab.')}</li><li>${T('Architektura, plan wdrożenia i prezentacja wyników.','Architecture, deployment plan and presenting the results.')}</li></ol></div></div>
  <div class="card-foot"><button type="button" class="btn" id="onboardGo">${T('Zaczynamy','Let’s start')} ${ic('arrow-down')}</button></div></div>`}
 function bindOnboard(){const n=$('#onboardName');if(!n)return;n.oninput=e=>{team().name=e.target.value;$('#teamName').value=e.target.value;save();renderTeamOptions();renderProg()};
- $('#onboardGo').onclick=()=>{team().onboardedAt=new Date().toISOString();save();$('#onboard').remove();const m=$('#memo');if(m){m.scrollIntoView({block:'start',behavior:'smooth'});m.setAttribute('tabindex','-1');m.focus({preventScroll:true})}}}
+ $('#onboardGo').onclick=()=>{team().onboardedAt=new Date().toISOString();save();$('#onboard').remove();renderPathBar();const m=$('#memo');if(m){m.scrollIntoView({block:'start',behavior:'smooth'});m.setAttribute('tabindex','-1');m.focus({preventScroll:true})}}}
 function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dla firmy Rybex.','The task and requirements of the Rybex final project.'),
  data:T('Syntetyczne dane Rybex: zdjęcia puszek, sprzedaż, czujniki, reklamacje, opisy procesów.','Synthetic Rybex data: can images, sales, sensors, complaints, process documents.'),
  demos:T('Animowane wyjaśnienia: cykl projektu, tokeny, RAG, podział danych, miary jakości.','Animated explainers: project lifecycle, tokens, RAG, data split, quality metrics.'),
@@ -1249,20 +1284,21 @@ function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dl
  deliver:T('Lista kontrolna, notatki, dziennik wyników i eksport raportu.','Checklist, notes, results log and report export.')};
  const tones=SEC_TONES,keys=['brief','data','demos','lab','arch','deliver'];
  const ag=[[0,20,'brief',T('Opis projektu; wybór zadania przez zespoły','Brief; teams pick a task'),'clipboard-list'],[20,25,'data',T('Dane: charakterystyka zbioru, ograniczenia, dane zastępcze','Data: dataset profile, limits, substitute data'),'folder-open'],[45,30,'demos',T('Wizualizacje procesów (cykl projektu, podział danych, miary)','Process visualizations (lifecycle, data split, metrics)'),'clapperboard'],[75,45,'lab',T('Laboratorium: prototyp i eksperymenty (min. 3 zmiany parametrów)','Build lab: prototype and experiments (at least 3 parameter changes)'),'flask-conical'],[120,30,'arch',T('Architektura, szacunek kosztów, plan wdrożenia','Architecture, cost estimate, deployment plan'),'network'],[150,30,'deliver',T('Prezentacje zespołów, porównanie z metodą odniesienia, wnioski','Team presentations, baseline comparison, lessons learned'),'circle-check']];
- const tm=m=>Math.floor(m/60)+':'+String(m%60).padStart(2,'0');
- mainEl.innerHTML=pageHead(T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company'),T('Warsztat na przykładzie firmy Rybex – producenta konserw rybnych. Od wyboru zadania i danych, przez architekturę i prototyp, po ocenę działania i plan wdrożenia.','A hands-on workshop based on Rybex, a fish-can manufacturer. From choosing the task and data, through architecture and prototype, to evaluation and a deployment plan.'),`<p class="mt"><button type="button" class="btn" data-go="brief">${T('Zacznij od opisu projektu','Start with the brief')} ${ic('arrow-right')}</button></p>`)
- +`<section class="sec"><h2 class="sr-only">${T('Sprawa zakładu','The plant’s case')}</h2><div class="wrap">${team().onboardedAt?'':onboardHTML()}${memoHTML()}</div></section>`
+ const tm=m=>Math.floor(m/60)+':'+String(m%60).padStart(2,'0'),ob=!team().onboardedAt&&!hasWork(team());
+ mainEl.innerHTML=(ob?`<h1 class="sr-only">${T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company')}</h1>`:pageHead(T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company'),T('Warsztat na przykładzie firmy Rybex – producenta konserw rybnych. Od wyboru zadania i danych, przez architekturę i prototyp, po ocenę działania i plan wdrożenia.','A hands-on workshop based on Rybex, a fish-can manufacturer. From choosing the task and data, through architecture and prototype, to evaluation and a deployment plan.'),`<p class="mt"><button type="button" class="btn" data-go="brief">${T('Zacznij od opisu projektu','Start with the brief')} ${ic('arrow-right')}</button></p>`))
+ +`<section class="sec${ob?' ob-sec':''}"><h2 class="sr-only">${T('Sprawa zakładu','The plant’s case')}</h2><div class="wrap ob-pair">${ob?onboardHTML():''}${memoHTML()}</div></section>`
  +sectionBand('layout-grid',T('Co znajdziesz w warsztacie','What is in the workshop'),`<div class="grid3 wide">${keys.map((v,i)=>card(NAV.find(n=>n[0]===v)[1],nm(v),`<p>${desc[v]}</p>`,{tone:tones[i],foot:`<button type="button" class="btn-ghost btn-sm" data-go="${v}">${T('Otwórz','Open')}</button>`})).join('')}</div>`)
  +sectionBand('calendar-clock',T('Proponowany przebieg warsztatu (ok. 3 godz.)','Suggested workshop flow (approx. 3 h)'),`<div class="card"><div class="card-body flush" style="padding:6px 8px">${ag.map((a,i)=>`<button type="button" class="g-row" data-go="${a[2]}"><span class="g-label">${badge(a[4],tones[i])}<span><span class="g-name">${a[3]}</span><span class="g-time">${tm(a[0])}–${tm(a[0]+a[1])}</span></span></span><span class="g-track" aria-hidden="true"><span class="g-bar" style="left:${a[0]/180*100}%;width:${a[1]/180*100}%"></span></span></button>`).join('')}</div></div>`);
  $$('[data-go]',mainEl).forEach(b=>b.onclick=()=>go(b.dataset.go));bindOnboard()}
 
 // ─── View: brief ───
-function vBrief(){const M=trMeta(),tp=[...LAB_KEYS];
+function vBrief(){const M=trMeta(),tp=[...LAB_KEYS],t=team();
  mainEl.innerHTML=pageHead(T('Projekt końcowy – część technologiczna','Final project – technology part'),T('Zaprojektować i sprawdzić rozwiązanie AI w firmie <b>Rybex – producencie konserw rybnych</b>. Zespół wybiera jeden problem, opracowuje koncepcję techniczną i przygotowuje <b>Proof of Concept (PoC)</b>, który weryfikuje najważniejsze założenia. Trenowanie własnego modelu nie jest konieczne – wybór podejścia ma wynikać z zadania.','Design and test an AI solution at <b>Rybex, a fish-can manufacturer</b>. The team picks one problem, develops a technical concept and builds a <b>Proof of Concept (PoC)</b> that verifies the key assumptions. Training your own model is not required – the approach should follow from the task.'))
  +`<section class="sec"><h2 class="sr-only">${T('Sprawa zakładu','The plant’s case')}</h2><div class="wrap">${memoHTML()}</div></section>`
- +sectionBand('target',T('Wybór zadania','Task selection'),`<div class="grid3 wide">${tp.map(k=>`<button type="button" class="chip" data-t="${k}" style="margin:0;border-radius:var(--r-lg);padding:14px 16px;align-items:flex-start;gap:12px">${badge(M[k].ic,TONE[k])}<span><b>${M[k].title}</b><br>${M[k].out}</span></button>`).join('')}</div>`)
+ +sectionBand('target',T('Wybór zadania','Task selection'),`<div class="grid3 wide">${tp.map(k=>`<button type="button" class="chip${t.track===k?' on':''}" data-t="${k}" aria-pressed="${t.track===k}" style="margin:0;border-radius:var(--r-lg);padding:14px 16px;align-items:flex-start;gap:12px">${badge(M[k].ic,TONE[k])}<span><b>${M[k].title}</b><br>${M[k].out}</span></button>`).join('')}</div><div class="field mt" style="max-width:860px"><label for="goal">${T('Kryterium sukcesu jednym zdaniem','The success criterion in one sentence')}</label><input id="goal" class="input" type="text" maxlength="300" value="${esc(t.goal)}" placeholder="${T('Np. system wykrywa co najmniej 9 na 10 wadliwych puszek przy najwyżej kilku fałszywych alarmach na zmianę','E.g. the system catches at least 9 in 10 defective cans with at most a few false alarms per shift')}"></div>`)
  +`<section class="sec"><div class="wrap"><details id="briefReq"${innerWidth>768?' open':''}><summary>${T('Czego oczekujemy w części technologicznej','What we expect in the technology part')}</summary><div class="grid3 wide">${SEC().map((s,i)=>card(SEC_ICONS[i],s.t,`<ul style="margin:0;padding-left:20px">${s.items.map(x=>`<li>${x}</li>`).join('')}</ul>`,{tone:SEC_TONES[i]})).join('')}</div></details></div></section>`;
- $$('[data-t]',mainEl).forEach(b=>b.onclick=()=>go('lab',b.dataset.t))}
+ $$('[data-t]',mainEl).forEach(b=>b.onclick=()=>guardRun(()=>{const k=b.dataset.t;team().track=k;S.sub.lab=k;save();render();const n=$(`#main [data-t=${k}]`);if(n)n.focus()}));
+ $('#goal').oninput=e=>{team().goal=e.target.value;save();renderPathBar()}}
 
 // ─── View: data folder ───
 function dataCard(k){const c=CARDS()[k];return`<div class="card">${`<div class="card-head"><span class="tile-h">${badge('file-text','stone')}<h3>${T('Karta zbioru danych','Data card')}</h3></span></div>`}<div class="card-body flush"><div class="tscroll" style="border:0"><table><tbody>${[[T('Źródło','Source'),c.src],[T('Rozmiar','Size'),c.n],[T('Przygotowanie','Preparation'),c.prep],[T('Podział','Split'),c.split],[T('Ograniczenia','Limits'),glh(c.lim)],[T('Zgodność z Rybex','Match to Rybex'),glh(c.proxy)]].map(r=>`<tr><td style="width:170px">${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table></div></div></div>`}
@@ -1273,7 +1309,7 @@ const mdInline=s=>mdEsc(s).replace(/\s*\n\s*/g,' ');
 function logMD(){const t=team();return `# ${T('Dziennik zespołu','Team log')}: ${t.name||T('Zespół','Team')+' '+S.team}\n\n`+(t.log.length?t.log.map(logLineMD).join('\n'):T('(brak wpisów)','(no entries)'))}
 function logLineMD(l){return`- **${fmtTs(l.ts)}** [${mdInline(l.text?l.track:trackName(l.track))}] ${mdInline(logText(l))}${l.testViews?` (${T('test oglądany','test viewed')}: ${l.testViews})`:''}${l.note?`\n  - ${T('Notatka','Note')}: ${mdInline(l.note)}`:''}`}
 function imgLabelRows(){const seen=lab().vision.testViews>0,rows=[];['train','val','test'].forEach(s=>VIS[s].forEach(i=>rows.push({file:i.id+'.'+visExt(i.url),split:s,label:s==='test'&&!seen?'':i.type})));return rows}
-function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team();
+function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team();if(!t.seen.data){t.seen.data=true;save()}
  mainEl.innerHTML=pageHead(`${T('Folder zespołu','Team folder')} – ${esc(t.name||T('Zespół','Team')+' '+S.team)}`,T('Dane wizji łączą dostępne zdjęcia fotograficzne z jawnym syntetycznym fallbackiem. Pobierz pliki i użyj ich w swoim prototypie.','Vision data combines available photographic images with an explicit synthetic fallback. Download files and use them in your prototype.'))
  +`<section class="sec"><h2 class="sr-only">${T('Pliki zespołu','Team files')}</h2><div class="wrap"><div class="folder"><div class="card"><div class="card-body" style="padding:12px"><div class="tree">${F.map(g=>`<div class="dir">${ic('folder')}${g.d}/</div>${g.f.map(f=>`<button type="button" class="${FSEL===f[0]?'on':''}" data-f="${esc(f[0])}" data-k="${f[1]}" ${FSEL===f[0]?'aria-current="true"':''}>${ic(f[1]==='img'?'images':f[1]==='svg'?'network':'file-text')}${f[0]}</button>`).join('')}`).join('')}</div></div></div><div id="viewer" style="min-width:0;display:grid;gap:18px"></div></div></div></section>`;
  $$('.tree button').forEach(e=>e.onclick=()=>{FSEL=e.dataset.f;vData();icons(mainEl);const b=$(`.tree button[data-f="${CSS.escape(FSEL)}"]`);if(b)b.focus()});
@@ -1301,6 +1337,7 @@ function openInspector(set,idx,hideLabel){visInit();const it=VIS[set][idx],th=vi
 function vDemos(){const subs=[['life',T('Cykl projektu','Project lifecycle')],['tok',T('Tokeny i koszt','Tokens and cost')],['rag',T('Jak działa RAG','How RAG works')],['split',T('Podział danych','Data split')],['metr',T('Miary jakości','Quality metrics')]];
  mainEl.innerHTML=pageHead(nm('demos'),T('Pięć krótkich pokazów kluczowych procesów. Zmieniaj parametry i obserwuj skutki.','Five short demos of key processes. Change the parameters and watch the effects.'),`<div class="tabs mt" id="demoTabs" role="navigation" aria-label="${T('Pokazy','Demos')}">${subs.map(s=>`<button type="button" data-s="${s[0]}" class="${S.sub.demos===s[0]?'on':''}" ${S.sub.demos===s[0]?'aria-current="true"':''}>${s[1]}</button>`).join('')}</div>`)+`<section class="sec"><h2 class="sr-only">${subs.find(s=>s[0]===S.sub.demos)[1]}</h2><div class="wrap" id="demo"></div></section>`;
  $$('#demoTabs button').forEach(b=>b.onclick=()=>go('demos',b.dataset.s));
+ const t=team();if(!demoDone(t,S.sub.demos)){t.seen['demo.'+S.sub.demos]=true;save()}
  ({life:dLife,tok:dTok,rag:dRag,split:dSplit,metr:dMetr})[S.sub.demos]()}
 function dLife(){const st=[
  [T('Zadanie','Task'),T('Jaki problem biznesowy i kto użyje wyniku?','Which business problem, and who will use the result?'),T('Opis: wejście → przetwarzanie → wyjście; kryterium sukcesu','Description: input → processing → output; success criterion'),T('„Zmniejszyć liczbę wadliwych puszek wysyłanych do klienta”','“Reduce defective cans shipped to customers”')],
@@ -1354,7 +1391,7 @@ function dMetr(){
 // Sticky shortcuts to the parts of a long lab page; the offset keeps the target below the sticky bars.
 const JUMPS=()=>[['labData',T('Dane','Data')],['labMethod',T('Metoda','Method')],['labProto',T('Prototyp','Prototype')],['labExp',T('Eksperymenty','Experiments')]];
 const jumpBar=()=>`<nav class="jump" id="labJump" aria-label="${T('Skróty do części strony','Page shortcuts')}"><div class="wrap">${JUMPS().map(([id,l])=>`<button type="button" class="chip" data-j="${id}">${l}</button>`).join('')}</div></nav>`;
-function bindJump(){const hd=$('.edu-header');document.documentElement.style.setProperty('--hdr-h',(hd&&getComputedStyle(hd).position==='sticky'?hd.offsetHeight:0)+'px');
+function bindJump(){setHdrH();
  $$('#labJump button').forEach(b=>b.onclick=()=>{const sv=$('#sv'),el=b.dataset.j==='labExp'?(sv?sv.closest('.card-foot')||sv:$('#labProto')):$('#'+b.dataset.j);if(!el)return;
   const off=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h'))||0)+$('#labJump').offsetHeight+12,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({top:el.getBoundingClientRect().top+scrollY-off,behavior:reduce?'auto':'smooth'})})}
@@ -1816,7 +1853,7 @@ function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts();
   const tl=$('#toLab');if(tl)tl.onclick=()=>go('lab');$$('button[data-d]',b).forEach(x=>x.onclick=()=>withUndo(T('Usunięto wpis.','Entry deleted.'),()=>{team().log.splice(+x.dataset.d,1)}));$$('button[data-r]',b).forEach(x=>x.onclick=()=>restoreRun(team().log[+x.dataset.r]));icons(b)};
  stats();logBox();
  $$('input[data-c]').forEach(c=>c.onchange=e=>{team().checks[e.target.dataset.c]=e.target.checked;save();stats()});$$('textarea[data-n]').forEach(c=>c.oninput=e=>{team().notes[e.target.dataset.n]=e.target.value;save()});
- const fname=()=>'rybex_report_team_'+S.team;$('#exp').onclick=()=>dl(fname()+'.md',reportMD());$('#expH').onclick=()=>dl(fname()+'.html',reportHTML(),'text/html;charset=utf-8')}
+ const fname=()=>'rybex_report_team_'+S.team;const done=()=>{team().seen.report=true;save();renderPathBar()};$('#exp').onclick=()=>{dl(fname()+'.md',reportMD());done()};$('#expH').onclick=()=>{dl(fname()+'.html',reportHTML(),'text/html;charset=utf-8');done()}}
 
 // ─── Listeners ───
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(b)go(b.dataset.v)});
@@ -1833,6 +1870,7 @@ inspEl.addEventListener('click',e=>{if(e.target===inspEl)inspEl.close()});
 addEventListener('hashchange',onHashChange);
 addEventListener('load',()=>icons());
 addEventListener('storage',e=>{if(e.key!==STORE_KEY||!e.newValue)return;if(AIS.run){X.storagePending=X.renderPending=true;return}try{const x=JSON.parse(e.newValue);S.teams=normTeams(x.teams)}catch(err){return}if(!isTyping()&&!inspEl.open)softRender();else renderProg()});
+addEventListener('resize',setHdrH);
 addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||inspEl.open)return;const a=e.target,tag=a.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return;const i=+e.key;if(i>=1&&i<=NAV.length){e.preventDefault();go(NAV[i-1][0])}});
 
 // ─── Init ───
