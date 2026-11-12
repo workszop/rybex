@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -1001,6 +1001,58 @@ try {
       await m.close(); }
     ok('no page errors (badges)', !p.errs.length, p.errs.join(' | '));
     await p.close(); }
+  if (run('example')) { const p = await fresh('#/home');
+    await seed(p, () => { team().name = 'Moja praca'; team().track = 'vision'; });
+    const stored = await p.evaluate(() => localStorage.getItem(STORE_KEY)), own = await p.evaluate(() => JSON.stringify(team()));
+    const reqs = []; p.on('request', r => { if (r.url().includes('/mock')) reqs.push(r.url()); });
+    await p.click('#showExample');
+    ok('example mode on, forecast track', await p.evaluate(() => S.example === true && team().track === 'forecast' && document.body.dataset.example === 'true'));
+    ok('example is deliberately incomplete', await p.evaluate(() => Object.keys(team().arch.decisions).length < 4 && Object.keys(team().risks).length < 5 && !team().notes[6]));
+    ok('example opens on the report view', await p.evaluate(() => S.view === 'deliver' && location.hash === '#/deliver'));
+    ok('example has a baseline, three experiments with notes, a goal, a justification and notes 1-3', await p.evaluate(() => { const t = team(), e = t.log.filter(l => !l.base); return t.log.filter(l => l.base).length === 1 && e.length === 3 && e.every(l => l.note.length > 10) && !!t.goal && t.decision.forecast.why.startsWith('Wybraliśmy prognozowanie popytu') && [1, 2, 3].every(i => t.notes[i]) && !t.notes[4] && !t.notes[5]; }));
+    ok('example: two of four go-live decisions, three of five risks, about half the checklist', await p.evaluate(() => { const t = team(), { done, tot } = checkProgress(t); return Object.keys(t.arch.decisions).length === 2 && Object.keys(t.risks).length === 3 && done >= tot * .4 && done <= tot * .6; }));
+    ok('banner names the participant\'s team slot', await p.evaluate(() => { const b = $('#exampleBar'); return !!b && !!b.closest('#pathBar') && b.textContent.includes('To podgląd; wasza praca jest w slocie zespołu 1.') && !!$('#exampleExit') && !$('#pathNext'); }));
+    ok('example chip next to the team name', await p.evaluate(() => { const c = $('#exChip'); return !!c && !c.hidden && /przykład/i.test(c.textContent); }));
+    ok('team selector, import, export and report export are disabled with a reason', await p.evaluate(() => ['#teamSel', '#teamExport', '#teamImport', '#exp', '#expH'].every(s => $(s).disabled) && /przykład/i.test($('#exLock').textContent) && !$('#exLock').hidden && /przykład/i.test($('#exNoExport').textContent)));
+    ok('example log renders the baseline and three experiments, comparison works', await p.evaluate(() => { const es = team().log.filter(l => !l.base); return $$('#logBox tr[data-log]').length === 4 && /MAPE|błąd/i.test(renderCompare(es[0], es[2], 'forecast')); }));
+    ok('example earns its badges silently', await p.evaluate(() => { const e = earnedBadges(team()); return e.includes('firstBase') && e.includes('threeExp') && e.includes('beatBase') && $('#badges').dataset.earned.split(' ').includes('threeExp') && toastEl.hidden; }));
+    ok('the example built from EXAMPLE_TEAM earns the same badges', await p.evaluate(() => JSON.stringify(earnedBadges(normTeam(EXAMPLE_TEAM()))) === JSON.stringify(earnedBadges(team()))));
+    // Clicking around in the example: checklist, quiz, risk, an experiment, the baseline banner.
+    await p.click('input[data-c="6.0"]');
+    await p.evaluate(() => { const q = QUIZZES().life[0]; answerQuiz('life', q.id, q.answer); answerRisk('bias', 1); });
+    await p.evaluate(() => go('lab', 'forecast'));
+    ok('example forecast lab shows the baseline banner', await p.evaluate(() => { const b = $('#baseBanner'); return !!b && !b.hidden; }));
+    await p.evaluate(() => { lab().fc.h = 4; render(); }); await p.fill('#expNote', 'Horyzont 4 mies. dla porównania.'); await p.click('#sv');
+    ok('saving an experiment in the example changes only the example', await p.evaluate(() => team().log.length === 5 && S.teams[1].log.length === 0));
+    await p.evaluate(() => { go('lab', 'forecast'); lab().fc.h = 9; save(); go('deliver'); });
+    ok('nothing written while viewing', stored === await p.evaluate(() => localStorage.getItem(STORE_KEY)));
+    ok('a badge earned in the example shows in the strip without a toast', await p.evaluate(() => new Promise(r => { hideToast(); team().seen.report = true; renderProg(); setTimeout(() => r(team().badges.includes('report') && $('#badges').dataset.earned.includes('report') && (toastEl.hidden || !/Odznak/.test(toastEl.textContent)) && !/Odznak/.test(liveEl.textContent)), 700); })));
+    ok('example shows no vision, RAG or complaints test labels', await p.evaluate(() => { const l = EXAMPLE_TEAM().lab; return !l.vision.revealed && !l.rag.revealed && !l.compl.revealed && !l.vision.testViews && !l.rag.testViews && !l.compl.testViews; }));
+    ok('no model call can start in the example', await p.evaluate(async () => { const k = await callModel({ messages: [{ role: 'user', content: 'x' }] }).then(() => 'sent', e => e.kind); await aiCheck(); return k === 'example' && AIS.state !== 'ready'; }) && reqs.length === 0, reqs.join(' '));
+    ok('AI bar controls are disabled with a reason', await p.evaluate(() => { go('lab', 'complaints'); lab().compl.method = 'llm'; render(); return ['#aiCode', '#aiConnect', '#cRun'].every(s => $(s) && $(s).disabled) && /przykład/i.test($('#aiStatus').textContent); }));
+    // Another tab writes: the real teams update, the example stays.
+    await p.evaluate(() => { const x = JSON.parse(localStorage.getItem(STORE_KEY)); x.teams[2] = { ...defaultTeam(), name: 'Inna karta' }; dispatchEvent(new StorageEvent('storage', { key: STORE_KEY, newValue: JSON.stringify(x) })); });
+    ok('a storage event keeps the example mode and copy', await p.evaluate(() => S.example && team().track === 'forecast' && team().log.length === 5 && S.teams[2].name === 'Inna karta' && document.body.dataset.example === 'true'));
+    ok('keys 1-7 still navigate in the example', await p.evaluate(() => { dispatchEvent(new KeyboardEvent('keydown', { key: '5' })); return S.view === NAV[4][0] && S.example; }));
+    await p.click('#langSeg button[data-l=en]');
+    ok('language switch keeps the example and translates it', await p.evaluate(() => S.example && team().name === 'Example: Sprat forecast' && $('#exampleBar').textContent.includes('your work is in team slot 1.')));
+    await p.click('#langSeg button[data-l=pl]');
+    await p.click('#exampleExit');
+    ok('own work restored', await p.evaluate(() => !S.example && team().name === 'Moja praca' && team().track === 'vision'));
+    ok('own team identical after the visit', own === await p.evaluate(() => JSON.stringify(team())));
+    ok('banner gone after exit', await p.evaluate(() => !$('#exampleBar') && !!$('#pathNext') && document.body.dataset.example === 'false'));
+    ok('storage unchanged after exit', stored === await p.evaluate(() => localStorage.getItem(STORE_KEY)));
+    await p.evaluate(() => go('home'));
+    await p.click('#showExample');
+    ok('the example is rebuilt fresh on the next entry', await p.evaluate(() => S.example && team().log.length === 4 && !team().checks['6.0']));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('reload leaves example mode', await p.evaluate(() => !S.example && team().name === 'Moja praca'));
+    ok('no page errors (example)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+    { const m = await fresh('#/home', '', { width: 375, height: 740 });
+      await m.click('#showExample');
+      ok('example banner fits at 375 px', await m.evaluate(() => { const b = $('#exampleBar').getBoundingClientRect(), x = $('#exampleExit').getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && x.right <= innerWidth && b.height < 200; }));
+      await m.close(); } }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
