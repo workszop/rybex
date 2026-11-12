@@ -820,7 +820,32 @@ try {
     ok('rag passes after asking the out-of-scope question', await p.$eval('.challenge', e => e.dataset.state) === 'done');
     ok('challenges never block the path', await p.evaluate(() => !PATH_STEPS().some(s => /challenge/i.test(JSON.stringify(s)))));
     ok('challenge no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+    const p0ev = async fn => { const q = await fresh('#/lab/maint'); try { return await fn(q); } finally { await q.close(); } };
+    // Without the can photos the vision challenge cannot be passed: it says so and never records a pass.
+    const nc = await browser.newContext({ viewport: { width: 1280, height: 800 } }), np = await nc.newPage(); np.errs = [];
+    await np.route(/vision-realistic|vision-bundle|\.(png|jpe?g|webp)(\?|$)/, r => r.abort());
+    np.on('pageerror', e => np.errs.push(e.message));
+    await np.goto(APP() + '#/lab/vision'); await np.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    await np.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 30000 });
+    const na = await np.evaluate(() => { const c = document.querySelector('.challenge'), L = lab().vision, th = visTh(), R = VIS.rng; let any = false;
+      for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200; i++) { L.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; any = any || challengeCheck('vision_borderline'); }
+      L.th = { d: R.dent[1], s: R.shift[1], c: R.code[1], fk: VIS.featureSource }; any = any || challengeCheck('vision_borderline'); L.th = null; renderChallenge('vision');
+      return { src: VIS.featureSource, state: c.dataset.state, status: c.querySelector('.status').textContent, any, rec: Object.hasOwn(team().challenges, 'vision_borderline'), notice: !!document.querySelector('#visionAssetStatus') }; });
+    ok('vision challenge unavailable without the photos', na.src === 'synthetic' && na.state === 'na' && /zdję/i.test(na.status) && na.notice && !na.any && !na.rec, JSON.stringify(na));
+    await nc.close();
+    // The retort window used by the challenge is the anomaly run of the temperature event in the evaluation window.
+    ok('retort window matches the sensor data', await p0ev(async q => q.evaluate(() => { const [a, b] = retortWindow(), r = DATA.sensors;
+      return a >= 300 && !r[a - 1].anomaly && r.slice(a, b).every(x => x.anomaly) && !r[b].anomaly && r.slice(a, b).every(x => x.vibration_mm_s < 4); })));
+    // No test-set wording anywhere in the panel, even after a reveal.
+    const tw = await p0ev(async q => { const bad = [];
+      for (const [k, key] of [['vision', 'vision'], ['rag', 'rag'], ['complaints', 'compl']]) { await q.evaluate(([k, key]) => { const L = lab()[key]; L.revealed = true; L.testViews++; save(); go('lab', k); }, [k, key]);
+        if (k === 'vision') await q.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 30000 });
+        const t = await q.$eval('.challenge', e => e.textContent); if (/test/i.test(t)) bad.push(k + ': ' + t); }
+      for (const lang of ['en']) { await q.evaluate(l => { S.lang = l; go('lab', 'complaints'); }, lang); const t = await q.$eval('.challenge', e => e.textContent); if (/test/i.test(t)) bad.push('en: ' + t); }
+      return bad.length ? bad.join(' | ') : true; });
+    ok('no test wording in the whole panel after a reveal', tw === true, String(tw));
     const m = await fresh('#/lab/maint', '', { width: 375, height: 740 });
+    ok('maint task says the window on screen is the only evaluation window', await m.evaluate(() => /jedynym oknem oceny/.test(CHALLENGES().maint.task)));
     await m.click('.challenge summary');
     ok('challenge panel fits at 375 and uses a full contour', await m.evaluate(() => { const c = document.querySelector('.challenge'), s = getComputedStyle(c); return document.documentElement.scrollWidth <= innerWidth && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; }));
     await m.close(); }
