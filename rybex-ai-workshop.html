@@ -1404,10 +1404,13 @@ function PATH_STEPS(){const t=team(),d=reqDemos(t.track).find(k=>!demoDone(t,k))
  {id:'iterate',label:T('Rundy 2–3 i test','Rounds 2–3 and the test'),min:30,go:lb,hint:T(`zapiszcie co najmniej ${MIN_EXPERIMENTS} eksperymenty, zmieniając jedną rzecz naraz`,`save at least ${MIN_EXPERIMENTS} experiments, changing one thing at a time`)},
  {id:'risk',label:T('Ryzyka i wdrożenie','Risks and go-live'),min:20,go:['arch'],hint:T('oceńcie ryzyka i decyzje wdrożeniowe','assess the risks and go-live decisions')},
  {id:'report',label:T('Raport i wystąpienie','Report and presentation'),min:15,go:['deliver'],hint:T('uzupełnijcie listę i wyeksportujcie raport','complete the checklist and export the report')}]}
-// Step 1 needs the company news after onboarding; teams that already have work skip it.
-const newsDue=t=>!!t.onboardedAt&&!hasWork(t)&&!t.site.newsRead;
+// Step 1 needs the company news once the team is past onboarding. Only real prior work (a log entry or a ticked
+// checklist item) exempts a team from it: a typed name alone does not.
+const realWork=t=>t.log.length>0||Object.values(t.checks).some(Boolean);
+const pastOnboarding=t=>!!t.onboardedAt||hasWork(t);
+const newsDue=t=>pastOnboarding(t)&&!t.site.newsRead&&!realWork(t);
 function pathState(t){const k=t.track,ne=k?expOf(t,k):0,tl=Object.hasOwn(TEST_TRACKS,k)?t.lab[TEST_TRACKS[k]]:null,
- done={join:hasWork(t)||(!!t.onboardedAt&&t.site.newsRead),cycle:demoDone(t,'life'),task:!!(k&&t.goal.trim()),data:!!t.seen.data,demos:reqDemos(k).every(x=>demoDone(t,x)),
+ done={join:pastOnboarding(t)&&(t.site.newsRead||realWork(t)),cycle:demoDone(t,'life'),task:!!(k&&t.goal.trim()),data:!!t.seen.data,demos:reqDemos(k).every(x=>demoDone(t,x)),
   base:!!k&&(hasBaseline(t,k)||!!(tl&&(tl.revealed||tl.testViews>0))),iterate:ne>=MIN_EXPERIMENTS&&(!tl||tl.testViews>=1),risk:Object.keys(t.risks).length>=4&&Object.keys(t.arch.decisions).length>=4,report:!!t.seen.report};
  const all=PATH_STEPS(),na=id=>!stepAvail(id),steps=all.map(s=>na(s.id)?{id:s.id,done:false,na:true}:{id:s.id,done:!!done[s.id]}),isDone=s=>steps.find(x=>x.id===s.id).done,
   nx=all.find(s=>!na(s.id)&&!done[s.id]),here=all.filter(onStep),last=[...all].reverse().find(isDone);
@@ -1581,7 +1584,7 @@ function bindContact(R){const c=R.contact,st=rcState(),f=$('#rcForm');
  $('#rcProduct').onchange=e=>{st.product=+e.target.value};$('#rcCat').onchange=e=>{st.cat=e.target.value};
  $('#rcText').oninput=e=>{const v=e.target.value;if(v.length>INBOX_TEXT)e.target.value=v.slice(0,INBOX_TEXT);st.text=e.target.value};
  f.onsubmit=e=>{e.preventDefault();const txt=st.text.trim(),ok=Object.hasOwn(CAT,st.cat);if(!ok||!txt){$('#rcErr').textContent=ok?c.errText:c.errCat;$(ok?'#rcText':'#rcCat').focus();return}
-  const t=team();t.inbox.push({id:'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),ts:new Date().toISOString(),product:st.product,cat:st.cat,text:txt.slice(0,INBOX_TEXT)});
+  const t=team(),pi=Number.isInteger(st.product)&&st.product>=0&&st.product<PRODUCTS.length?st.product:0;t.inbox.push({id:'w'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),ts:new Date().toISOString(),product:pi,cat:st.cat,text:txt.slice(0,INBOX_TEXT)});
   if(t.inbox.length>INBOX_MAX)t.inbox.splice(0,t.inbox.length-INBOX_MAX);t.site.contactSent=true;save();Object.assign(st,{cat:'',text:'',sent:true});render();const d=$('#rcDone');if(d){d.setAttribute('tabindex','-1');d.focus()}}}
 const initials=n=>n.split(' ').map(w=>w[0]).join('');
 function rybexIntranet(R){const I=R.intranet,P=PERSONAS(),M=trMeta(),t=team(),li=langIx(),n=t.inbox.length;

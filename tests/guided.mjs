@@ -195,7 +195,7 @@ try {
     await seed(f, () => { const t = team(); t.track = 'vision'; qz(t, 'tok'); t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'vb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); t.decision.vision = { m: 0, why: 'Reguły są tanie i wyjaśnialne.' }; t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
     await f.evaluate(() => go('lab', 'vision')); await f.waitForSelector('#visRv'); await f.click('#visRv');
     ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === (n ? n.id : '') && (!n || n.id !== 'iterate'); }));
-    await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
+    await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; t.site.newsRead = true; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
     const done = await f.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true });
       const a = pathState(t); t.seen.report = true; const b = pathState(t); return { a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
@@ -598,7 +598,7 @@ try {
     ok('empty complaint is not stored', await p.evaluate(() => team().inbox[19].text === 'Najnowsze zgłoszenie') && await p.$eval('#rcErr', e => e.textContent.trim().length > 0));
     await seed(p, () => { team().track = 'vision'; });
     for (const v of ['data', 'lab', 'arch', 'deliver']) { await p.evaluate(v => go(v), v); ok(`case bar on ${v}`, await p.$eval('#caseBar', e => e.dataset.lot === 'RYB-261031-L2' && e.dataset.track === 'vision' && e.textContent.includes('RYB-261031-L2'))); }
-    await p.evaluate(() => go('home')); ok('no case bar on home', await p.$eval('#caseBar', e => e.textContent.trim() === '' && e.offsetHeight === 0));
+    for (const r of [['home'], ['brief'], ['demos', 'life'], ['rybex', 'news']]) { await p.evaluate(r => go(...r), r); ok(`no case bar on ${r[0]}`, await p.$eval('#caseBar', e => e.textContent.trim() === '' && e.offsetHeight === 0)); }
     await seed(p, () => { team().track = null; }); await p.evaluate(() => go('lab', 'vision')); ok('no case bar without a track', await p.$eval('#caseBar', e => e.textContent.trim() === '' && e.offsetHeight === 0));
     await seed(p, () => { team().track = 'vision'; team().goal = 'Wykrywamy 9 na 10 wadliwych puszek'; });
     ok('report names the lot', await p.evaluate(() => reportMD().includes('Dotyczy partii RYB-261031-L2') && reportHTML().includes('Dotyczy partii RYB-261031-L2')));
@@ -628,7 +628,20 @@ try {
     ok('Next on the news page reads the notice', await p.$eval('#pathNext', e => e.dataset.mode === 'here' && /Przeczytajcie komunikat o zwrocie partii/.test(e.textContent)));
     await p.click('#pathNext'); ok('Next on the news page marks it read', await p.evaluate(() => team().site.newsRead === true) && await p.$eval('#pathBar', e => e.dataset.next !== 'join'));
     await p.selectOption('#teamSel', '1');
-    ok('team with work skips the news requirement', await p.evaluate(() => { const t = defaultTeam(); t.name = 'A'; return pathState(t).steps[0].done; }));
+    ok('team with work skips the news requirement', await p.evaluate(() => { const t = defaultTeam(); t.log.push({ id: 'w1', ts: '', track: 'maint', note: '', testViews: 0 }); return t.site.newsRead === false && pathState(t).steps[0].done; }));
+    ok('a ticked checklist item also skips the news', await p.evaluate(() => { const t = defaultTeam(); t.checks['1.0'] = true; return pathState(t).steps[0].done; }));
+    await seed(p, () => { S.teams[S.team] = defaultTeam(); team().name = 'Zespół Szprot'; });
+    ok('a name alone does not skip the news', await p.evaluate(() => { const s = pathState(team()); return !s.steps[0].done && s.next.id === 'join' && s.next.go.join('/') === 'rybex/news'; }));
+    // Normal onboarding: type the name, press Zaczynamy, then the news is still required.
+    await seed(p, () => { S.teams[S.team] = defaultTeam(); }); await p.evaluate(() => go('home')); await p.fill('#onboardName', 'Zespół Makrela'); await p.click('#onboardGo');
+    ok('named and onboarded team still needs the news', await p.evaluate(() => { const s = pathState(team()).next; return team().name === 'Zespół Makrela' && team().site.newsRead === false && s.id === 'join' && s.go.join('/') === 'rybex/news'; }));
+    await p.evaluate(() => go('rybex', 'news')); ok('reading the news completes join after onboarding', await p.evaluate(() => pathState(team()).steps[0].done));
+    // A tampered product value falls back to product 0 and never breaks the inbox.
+    await p.evaluate(() => go('rybex', 'contact')); await p.click('#rcAgain').catch(() => {});
+    await p.evaluate(() => { const s = document.querySelector('#rcProduct'); s.options[0].value = '99'; s.value = '99'; s.dispatchEvent(new Event('change')); });
+    await p.selectOption('#rcCat', 'damage'); await p.fill('#rcText', 'Zmieniony produkt'); await p.click('#rcSend');
+    ok('tampered product falls back to product 0', await p.evaluate(() => { const x = team().inbox.at(-1); return x.text === 'Zmieniony produkt' && x.product === 0; }));
+    await p.evaluate(() => go('lab', 'complaints')); ok('tampered product does not break the inbox', await p.evaluate(() => document.querySelectorAll('#inbox .ib-item').length === team().inbox.length));
     ok('world no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     // Sticky chrome: the case bar adds height; the lab jump bar and scroll targets stay below it.
     for (const vp of [{ width: 1280, height: 800 }, { width: 375, height: 740 }]) { const m = await fresh('#/lab/vision', '', vp);
