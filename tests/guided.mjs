@@ -241,7 +241,7 @@ try {
     ok(`${k}: method table folded but present`, await p.$eval('#labMethod details', e => !e.open && e.querySelectorAll('input[name=meth]').length >= 2));
     ok(`${k}: AI bar not in the first screen`, !(await p.$('#aiBar')) || await p.$eval('#aiBar', e => e.getBoundingClientRect().top > 900 || e.closest('details') !== null));
     await p.click('#runBase'); ok(`${k}: baseline result with recap`, await p.$eval('#baseOut', e => e.dataset.track && e.dataset.v !== undefined && !!e.querySelector('.recap')));
-    ok(`${k}: baseline shows two headline numbers on the tuning set`, await p.$$eval('#baseOut .headline .stat', e => e.length) === 2 && (['forecast', 'maint'].includes(k) || await p.$eval('#baseOut .recap', e => e.dataset.set) !== 'test'));
+    ok(`${k}: baseline shows two headline numbers on the tuning set`, await p.$$eval('#baseOut .headline .stat', e => e.length) === 2 && await p.$eval('#baseOut .recap', e => e.dataset.set) === ({ vision: 'val', rag: 'dev', complaints: 'dev', forecast: 'test', maint: 'test' })[k]);
     await p.click('#saveBase'); ok(`${k}: baseline saved with flag`, await p.evaluate(k => team().log.some(l => l.track === k && l.base === true), k));
     await p.click('#saveBase'); ok(`${k}: second save is refused as duplicate`, await p.evaluate(k => team().log.filter(l => l.track === k && l.base).length, k) === 1);
     ok(`${k}: baseline entry readable in the log`, await p.evaluate(k => { const l = team().log.find(x => x.track === k && x.base); const s = logText(l); return s.includes(BASE_NAME(k)) && !/unreadable|nieczytelny/.test(s); }, k));
@@ -252,6 +252,30 @@ try {
     ok('baseline stays on the validation set while the test is revealed', await p.$eval('#baseOut .recap', e => e.dataset.set) === 'val');
     await p.click('#visMethod button[data-m=llm]'); ok('AI bar mounted after switching vision to the model', !!(await p.$('#aiBar #aiCode')));
     await p.click('#visMethod button[data-m=rules]'); ok('AI bar removed after switching back to rules', !(await p.$('#aiBar')));
+    await p.close(); }
+  // Review fixes: baseline entries are not restorable, the saved baseline equals the shown one, forecast baseline recap.
+  { const p = await fresh('#/lab/maint');
+    await seed(p, () => { const m = lab().mt; m.thr = 3.3; m.win = 4; m.f = { temp_c: 1, vibration_mm_s: 0, pressure_bar: 1 }; });
+    await p.click('#sv'); await p.click('#runBase'); await p.click('#saveBase');
+    await p.evaluate(() => go('deliver'));
+    const rows = await p.evaluate(() => team().log.map((l, i) => ({ i, base: !!l.base, btn: !!document.querySelector(`#logBox button[data-r="${i}"]`) })));
+    ok('baseline row has no restore button, tuned row has one', rows.length === 2 && rows.every(r => r.btn === !r.base), JSON.stringify(rows));
+    const kept = await p.evaluate(() => { restoreRun(team().log.find(l => l.base)); const m = lab().mt; return { thr: m.thr, win: m.win, f: m.f }; });
+    ok('restoreRun on a baseline entry keeps the tuned settings', kept.thr === 3.3 && kept.win === 4 && kept.f.vibration_mm_s === 0, JSON.stringify(kept));
+    await seed(p, () => { lab().mt.thr = 5; lab().mt.win = 1; }); await p.evaluate(() => go('deliver'));
+    const ti = await p.evaluate(() => team().log.findIndex(l => !l.base)); await p.click(`#logBox button[data-r="${ti}"]`);
+    ok('tuned run still restores', await p.evaluate(() => lab().mt.thr === 3.3 && lab().mt.win === 4 && S.view === 'lab'));
+    await p.close(); }
+  { const p = await fresh('#/lab/forecast');
+    await p.click('#runBase'); const v0 = await p.$eval('#baseOut', e => e.dataset.v);
+    ok('forecast baseline recap speaks about the baseline only', /^Na horyzoncie \d+ mies\. metoda odniesienia \(średnia historyczna\) ma błąd [\d,]+%\. To wynik, który wasza metoda ma pobić\.$/.test(await p.$eval('#baseOut .recap', e => e.textContent.trim())), await p.$eval('#baseOut .recap', e => e.textContent));
+    await p.focus('#fh'); for (let i = 0; i < 3; i++) await p.keyboard.press('ArrowRight');
+    const shown = await p.$eval('#baseOut', e => e.dataset.v); await p.click('#saveBase');
+    const saved = await p.evaluate(() => team().log.find(l => l.base).res.primary.v);
+    ok('saved forecast baseline equals the shown one after a horizon change', String(saved) === shown && shown !== v0, JSON.stringify([v0, shown, saved]));
+    await p.click('#langSeg button[data-l=en]'); await p.click('#runBase');
+    ok('forecast baseline recap in English', /^Over a horizon of \d+ months the baseline \(historical mean\) has an error of/.test(await p.$eval('#baseOut .recap', e => e.textContent.trim())));
+    ok('normal forecast result keeps the 4.5 template', /wybrana metoda|chosen method/.test(await p.$eval('#proto .recap', e => e.textContent)));
     await p.close(); }
   const p = await fresh('#/lab/forecast'); ok('forecast limits callout', /promocj/i.test(await p.$eval('#fcLimits', e => e.textContent)) && !(await p.$('#fcLimits button')));
   await p.evaluate(() => go('lab', 'maint')); ok('maint limits callout', !!(await p.$('#mtLimits')));
