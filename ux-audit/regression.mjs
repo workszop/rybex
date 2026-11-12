@@ -210,6 +210,17 @@ console.log('\nOriginal behaviour and offline');
   await p.evaluate(() => localStorage.setItem('rybexws', '{broken')); await p.reload(); await ready(p); ok('base corrupt storage', !!(await p.$('.app-title')));
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); await ctx.route(/jsdelivr|googleapis|gstatic/, r => r.abort()); const o = await ctx.newPage(); o.errs = []; o.on('pageerror', e => o.errs.push(e.message)); await o.goto(ROOT + '#/lab/vision'); await ready(o); ok('base cdn blocked usable', !o.errs.length && !!(await o.$('#vd')), o.errs.join('|')); }
 
+console.log('\nContact form, personas, case bar (spec 4.21, 4.2)');
+{ const p = await fresh(undefined, '#/rybex/contact'); await p.selectOption('#rcCat', 'damage'); await p.fill('#rcText', 'Puszka wgnieciona przy kodzie partii.'); await p.click('#rcSend');
+  await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#inbox .ib-item');
+  ok('contact form does not touch the complaint test counting', await p.evaluate(() => lab().compl.testViews === 0 && DATA.compl.length === 60 && document.querySelector('#cStats').dataset.testVisible === 'false'));
+  ok('contact no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+  const m = await fresh({ width: 375, height: 740 }, '#/lab/complaints'); await m.evaluate(() => { team().track = 'maint'; save(); });
+  const fits = () => m.evaluate(() => { const f = [...document.querySelectorAll('#main figure.persona')]; return f.length > 0 && f.every(x => x.getBoundingClientRect().right <= innerWidth && x.scrollWidth <= x.clientWidth + 1) && document.documentElement.scrollWidth <= innerWidth; });
+  for (const [v, s] of [['lab', 'complaints'], ['lab', 'maint'], ['brief'], ['arch'], ['deliver']]) { await m.evaluate(([v, s]) => go(v, s), [v, s]); ok(`persona quote does not overflow at 375 px (${s || v})`, await fits()); }
+  ok('case bar shown at 375 px without horizontal scroll', await m.evaluate(() => document.querySelector('#caseBar').offsetHeight > 0 && document.documentElement.scrollWidth <= innerWidth));
+  await m.close(); }
+
 await browser.close();
 console.log(`\n${engineName}: ${pass} passed, ${fail} failed`);
 if (fail) { console.log('Failures:\n - ' + failures.join('\n - ')); process.exit(1); }
