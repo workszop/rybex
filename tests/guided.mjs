@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -281,6 +281,48 @@ try {
   await p.evaluate(() => go('lab', 'maint')); ok('maint limits callout', !!(await p.$('#mtLimits')));
   ok('maint limits: nothing trained, a language model could explain the alert', /mało zdarzeń/.test(await p.$eval('#mtLimits', e => e.textContent)) && /wyjaśni/.test(await p.$eval('#mtLimits', e => e.textContent)));
   await p.close(); }
+  if (run('visprompt')) { const p = await fresh('#/lab/vision');
+    // Seeding the default prompt must not change a single byte of the request (replay.json keys).
+    const seedSame = await p.evaluate(() => { const L = lab().vision, empty = !L.prompts.length && L.draft == null, it = VIS.val[0];
+      const before = [0, 4].map(s => JSON.stringify(visMessages(s, it))); visEnsure(); const after = [0, 4].map(s => JSON.stringify(visMessages(s, it)));
+      return { empty, same: before.every((b, i) => b === after[i]), v1: L.prompts.length === 1 && L.prompts[0].id === 'v1' && L.prompts[0].text === VIS_SYS() && L.draft === VIS_SYS() }; });
+    ok('seeding the default prompt keeps the messages byte-identical', seedSame.empty && seedSame.same && seedSame.v1, JSON.stringify(seedSame));
+    await p.evaluate(() => { lab().vision.method = 'llm'; save(); render(); });
+    ok('prompt editable without a class code', await p.$eval('#vPrompt', e => !e.readOnly && !e.disabled && e.value.includes('RYB-261031-L2')));
+    ok('prompt label and hint from the spec', await p.$eval('label[for=vPrompt]', e => e.textContent.trim()) === 'Prompt systemowy (wysyłany z każdym zdjęciem)' && /mała ciemna kropka brudu nie jest wadą – to zdanie już jest w prompcie domyślnym\. Sprawdźcie, co się stanie, gdy je usuniecie\./.test(await p.$eval('#proto', e => e.textContent)));
+    ok('default prompt messages unchanged', await p.evaluate(() => { const a = visMessages(0, VIS.val[0]); return a[0].content === VIS_SYS() && JSON.stringify(a).includes(JSON.stringify(VIS_SYS())); }));
+    ok('version chip shows v1', await p.$eval('#vVerChip', e => e.dataset.ver) === 'v1');
+    await p.fill('#vPrompt', 'Oceń puszkę. Odpowiedz JSON.');
+    ok('unsaved edit marks the version with a star', await p.$eval('#vVerChip', e => e.dataset.ver) === 'v1*' && await p.evaluate(() => visVer(lab().vision)) === 'v1*');
+    await p.click('#vPromptSave');
+    ok('new version v2 active', await p.evaluate(() => lab().vision.prompts.length === 2 && lab().vision.active === 'v2') && await p.$eval('#vPromptVer', e => e.value) === 'v2');
+    ok('edited prompt is what gets sent', await p.evaluate(() => JSON.stringify(visMessages(0, VIS.val[0])).includes('Oceń puszkę.')));
+    await p.click('#vPromptReset'); ok('reset restores the default text in the editor', await p.$eval('#vPrompt', e => e.value) === await p.evaluate(() => VIS_SYS()));
+    await p.selectOption('#vPromptVer', 'v1'); ok('switching back to v1 loads its text', await p.evaluate(() => lab().vision.active === 'v1' && lab().vision.draft === VIS_SYS()));
+    await p.selectOption('#vPromptVer', 'v2');
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('versions persist', await p.evaluate(() => lab().vision.prompts.length === 2 && lab().vision.active === 'v2'));
+    ok('hint that a run needs a connection', /połączeni|kod zajęć/i.test(await p.$eval('#vPromptNet', e => e.textContent)));
+    ok('pixel-rule view untouched', await p.evaluate(() => { lab().vision.method = 'rules'; render(); return !!document.querySelector('#vd') && !document.querySelector('#vPrompt'); }));
+    // Model run with the edited version: request, run signature, history, log entry.
+    await p.evaluate(() => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; save(); render(); });
+    await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+    await p.click('#visRun'); await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 30000 });
+    const last = await p.evaluate(async m => (await (await fetch(m + '/calls')).json()).last, MOCK);
+    ok('the run sends the edited prompt', last && last.messages[0].content === 'Oceń puszkę. Odpowiedz JSON.');
+    ok('run carries the prompt version', await p.evaluate(() => visSel(lab().vision).ver) === 'v2' && await p.$eval('#visModelRes', e => e.dataset.ver) === 'v2');
+    ok('history shows the prompt version', await p.$eval('#visHist tbody tr:last-child td:nth-child(2)', e => e.textContent.trim()) === 'v2');
+    await p.click('#sv');
+    const lg = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { ver: l.cfg.ver, txt: logText(l) }; });
+    ok('log entry carries cfg.ver and shows it', lg.ver === 'v2' && /prompt v2/.test(lg.txt), JSON.stringify(lg));
+    ok('older vision log entries without ver render as before', await p.evaluate(() => logText({ track: 'vision', cfg: { mode: 'llm', model: 'x', shots: 0, set: 'val' }, res: { val: { f1: .5, p: .5, r: .5 }, ruleF1: .4 } }) === `[model] ${cnt(0, 'example')}, ${T('walidacja', 'validation')}: F1=${pct(.5)}, P=${pct(.5)}, R=${pct(.5)}; ${T('reguły pikselowe', 'pixel rules')} F1=${pct(.4)}`));
+    await p.selectOption('#vPromptVer', 'v1');
+    ok('a switched version marks the shown result as from another prompt', await p.$eval('#visModelRes', e => e.dataset.stale) === '1' && /v2/.test(await p.$eval('#visStale', e => e.textContent)));
+    await p.evaluate(() => restoreRun(team().log[team().log.length - 1]));
+    ok('restoring the log entry brings back its prompt version', await p.evaluate(() => lab().vision.active === 'v2' && lab().vision.draft === 'Oceń puszkę. Odpowiedz JSON.'));
+    ok('v1 follows the language', await p.evaluate(() => { const L = lab().vision; L.active = 'v1'; L.draft = L.prompts[0].text; S.lang = 'en'; visEnsure(); const r = L.prompts[0].text === VIS_SYS() && L.draft === VIS_SYS() && visMessages(0, VIS.val[0])[0].content === VIS_SYS() && L.prompts[1].text === 'Oceń puszkę. Odpowiedz JSON.'; S.lang = 'pl'; visEnsure(); return r && L.prompts[0].text === VIS_SYS(); }));
+    ok('visprompt no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
