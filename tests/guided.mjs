@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -322,6 +322,32 @@ try {
     ok('restoring the log entry brings back its prompt version', await p.evaluate(() => lab().vision.active === 'v2' && lab().vision.draft === 'Oceń puszkę. Odpowiedz JSON.'));
     ok('v1 follows the language', await p.evaluate(() => { const L = lab().vision; L.active = 'v1'; L.draft = L.prompts[0].text; S.lang = 'en'; visEnsure(); const r = L.prompts[0].text === VIS_SYS() && L.draft === VIS_SYS() && visMessages(0, VIS.val[0])[0].content === VIS_SYS() && L.prompts[1].text === 'Oceń puszkę. Odpowiedz JSON.'; S.lang = 'pl'; visEnsure(); return r && L.prompts[0].text === VIS_SYS(); }));
     ok('visprompt no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close(); }
+  if (run('note')) { const p = await fresh('#/lab/maint');
+    const saveWith = async (thr, note) => { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); if (note) await p.fill('#expNote', note); await p.click('#sv'); };
+    await saveWith(3); await saveWith(3.5);
+    ok('first two saves need no note', await p.evaluate(() => expCount('maint')) === 2);
+    await saveWith(3.5);
+    ok('a duplicate third save shows the duplicate message, not the note request', await p.evaluate(() => expCount('maint') === 2 && /już w dzienniku|already in the log/.test(toastEl.textContent)));
+    await saveWith(4.5);
+    ok('third save without a note is held', await p.evaluate(() => expCount('maint')) === 2 && await p.evaluate(() => document.activeElement.id) === 'expNote');
+    ok('held save asks for one sentence', await p.evaluate(() => /zdanie wniosku|sentence of conclusion/.test(toastEl.textContent)));
+    await saveWith(4.5, 'Wyższy próg: mniej fałszywych alarmów, retort nadal przeoczony');
+    ok('third save with a note goes through', await p.evaluate(() => expCount('maint') === 3 && team().log.at(-1).note.startsWith('Wyższy próg')));
+    ok('note appears in the Markdown report', await p.evaluate(() => { team().track = 'maint'; return reportMD().includes('Wyższy próg'); }));
+    ok('note appears in the HTML report', await p.evaluate(() => reportHTML().includes('Wyższy próg')));
+    ok('baseline saves never need a note', await p.evaluate(() => { const t = team(), n = t.log.length; logAdd('maint', { base: 1 }, { f1: .1 }, { m: 'F1', v: .1 }, { base: true }); return t.log.length === n + 1 && noteRequired('maint'); }));
+    ok('generic placeholder on the maint track', await p.$eval('#expNote', e => e.placeholder.startsWith('Jednym zdaniem')));
+    // Route changes focus #main; a fresh load starts the tab order at the top of the document.
+    await p.evaluate(() => go('home')); await p.reload(); await p.waitForSelector('#main .page-head'); await p.keyboard.press('Tab');
+    ok('skip link is the first focus stop', await p.evaluate(() => document.activeElement.classList.contains('skip') && document.activeElement.getAttribute('href') === '#main'));
+    await p.keyboard.press('Enter'); ok('skip link moves focus to main', await p.evaluate(() => document.activeElement.id) === 'main');
+    ok('skip link leaves the route alone', await p.evaluate(() => location.hash === '#/home' && S.view === 'home'), await p.evaluate(() => location.hash + ' ' + S.view));
+    await p.evaluate(() => go('lab', 'maint')); await p.reload(); await p.waitForSelector('#sv');
+    ok('skip link is off-screen until focused', await p.$eval('a.skip', e => e.getBoundingClientRect().bottom <= 0));
+    const before = await p.evaluate(() => document.activeElement.id + '/' + document.activeElement.tagName); await p.keyboard.press('Tab'); ok('skip link shows on focus on a lab view', await p.$eval('a.skip', e => document.activeElement === e && e.getBoundingClientRect().top >= 0), before + ' -> ' + await p.evaluate(() => document.activeElement.id + '/' + document.activeElement.className));
+    await p.keyboard.press('Enter'); ok('skip link on a lab view keeps the route', await p.evaluate(() => document.activeElement.id === 'main' && location.hash === '#/lab/maint'));
+    ok('note no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
