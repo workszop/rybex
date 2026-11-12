@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -24,6 +24,8 @@ const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS'
 async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 }) {
   const ctx = await browser.newContext({ viewport: vp });
   const p = await ctx.newPage(); p.errs = [];
+  // qz(t, ...demoKeys): marks those demo quizzes as answered correctly (a demo counts as done only after its quiz).
+  await p.addInitScript(() => { window.qz = (t, ...ks) => ks.forEach(k => { t.quizzes[k] = { answers: Object.fromEntries(QUIZZES()[k].map(q => [q.id, q.answer])), first: {}, doneAt: 'x' }; }); });
   p.on('pageerror', e => p.errs.push(e.message));
   p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) p.errs.push(m.text()); });
   await p.goto(APP(q) + hash);
@@ -120,14 +122,14 @@ try {
     const st = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'maint'; t.goal = 'g'; t.seen.data = true; return pathState(t); });
     ok('pathState picks the first open step', st.next.id === 'cycle' && st.steps.length === 9, JSON.stringify(st.next));
     ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
-    const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; ['life', 'split', 'metr', 'tok'].forEach(k => t.seen['demo.' + k] = true);
+    const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
       const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
     ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","report",true,false]', JSON.stringify(rules));
     ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
     await seed(p, () => { team().onboardedAt = 'x'; });
     const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
     ok('Next goes to the step target', await p.evaluate(b => { const s = PATH_STEPS().find(x => x.id === b); return S.view === s.go[0]; }, before));
-    ok('opening a demo tab is recorded', await p.evaluate(() => S.view !== 'demos' || team().seen['demo.' + S.sub.demos] === true));
+    ok('opening a demo tab shows its quiz and does not mark it done', await p.evaluate(() => S.view !== 'demos' || (!!document.querySelector('#quiz .quiz') && !demoDone(team(), S.sub.demos))));
     await p.keyboard.press('5'); ok('keys 1-7 still work', await p.evaluate(() => S.view) === 'lab');
     await p.evaluate(() => { AIS.run = { fake: true }; }); await p.click('#pathNext');
     ok('Next is guarded during a model run', await p.evaluate(() => S.view) === 'lab'); await p.evaluate(() => { AIS.run = null; hideToast(); });
@@ -166,8 +168,8 @@ try {
     await o.close();
     // Review round 1: Next on its own page, fresh bar after lab actions, unavailable steps, sub-view aware current step.
     const f = await fresh('#/home');
-    const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { t.seen['demo.life'] = true; }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-      base: t => { t.seen['demo.split'] = t.seen['demo.metr'] = true; }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+    const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
+      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
     let acc = [];
     for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
       await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
@@ -175,32 +177,60 @@ try {
       await f.click('#pathNext'); await f.waitForTimeout(50);
       const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
       // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
-      const own = { join: '#onboardName', task: '#main [data-t]', base: '#expNote', iterate: '#expNote', report: '#expH' };
+      const own = { join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#expNote', iterate: '#expNote', report: '#expH' };
       const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
       ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
-    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true }); delete t.seen['demo.metr']; });
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; t.seen.data = true; qz(t, 'life', 'split'); delete t.quizzes.metr; });
     await f.evaluate(() => go('demos', 'split')); await f.click('#pathNext'); await f.waitForTimeout(50);
     ok('Next moves from one required demo to the next', await f.evaluate(() => location.hash) === '#/demos/metr');
     ok('Next focuses the working element', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#pathNext').click(); return document.activeElement.id === 'onboardName'; }));
-    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true }); t.log = []; });
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = []; });
     await f.evaluate(() => go('lab', 'maint')); await f.click('#sv');
     ok('bar fresh after saving an experiment', await f.evaluate(() => document.querySelector('#pathBar').dataset.next === pathState(team()).next.id && pathState(team()).next.id === 'iterate'));
-    await seed(f, () => { const t = team(); t.track = 'vision'; t.seen['demo.tok'] = true; t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })); t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
+    await seed(f, () => { const t = team(); t.track = 'vision'; qz(t, 'tok'); t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })); t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
     await f.evaluate(() => go('lab', 'vision')); await f.waitForSelector('#visRv'); await f.click('#visRv');
     ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === (n ? n.id : '') && (!n || n.id !== 'iterate'); }));
     await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
-    const done = await f.evaluate(() => { const t = defaultTeam(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true }); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' }));
+    const done = await f.evaluate(() => { const t = defaultTeam(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' }));
       const a = pathState(t); t.seen.report = true; const b = pathState(t); return { a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
     ok('report recommended while risk is unavailable', done.a === 'report', JSON.stringify(done));
     ok('path completes without unavailable steps', done.b === null && done.na.na === true && done.na.done === false, JSON.stringify(done));
-    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true, report: true }); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })); });
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })); });
     ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '1' && e.dataset.total === '9'));
     ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórz dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; }); await f.evaluate(() => go('demos', 'split'));
     ok('current step follows the sub view', await f.$eval('#pathBar', e => e.dataset.step) === 'demos');
     ok('review round no page errors', !f.errs.length, f.errs.join('|'));
     await f.close(); }
+  if (run('quiz')) { const p = await fresh('#/demos/split');
+    ok('every demo has 2-3 questions with one valid answer', await p.evaluate(() => DEMO_KEYS.filter(k => k !== 'risk').every(k => { const q = QUIZZES()[k]; return q && q.length >= 2 && q.length <= 3 && q.every(x => x.options.length >= 3 && x.answer >= 0 && x.answer < x.options.length && x.explain); })));
+    ok('question ids short and unique', await p.evaluate(() => { const ids = Object.values(QUIZZES()).flat().map(x => x.id); return ids.every(i => typeof i === 'string' && i.length <= 12) && new Set(ids).size === ids.length; }));
+    const tp0 = await p.$eval('#tp', e => e.value); await p.focus('#tp'); await p.keyboard.press('ArrowRight'); const tp1 = await p.$eval('#tp', e => e.value);
+    const q = await p.evaluate(() => QUIZZES().split[0]);
+    const wrong = q.answer === 0 ? 1 : 0;
+    ok('options are buttons, feedback is polite live region', await p.$$eval(`.quiz [data-q="${q.id}"] [data-o]`, b => b.length >= 3 && b.every(x => x.tagName === 'BUTTON')) && await p.$eval(`.quiz [data-q="${q.id}"] [aria-live]`, e => e.getAttribute('aria-live') === 'polite'));
+    await p.click(`.quiz [data-q="${q.id}"] [data-o="${wrong}"]`);
+    ok('wrong answer gets feedback, can retry', await p.$eval(`.quiz [data-q="${q.id}"]`, e => e.dataset.state) === 'wrong' && !(await p.$eval('.quiz', e => e.dataset.done === 'true')));
+    ok('split wrong-A feedback verbatim', wrong !== 0 || await p.$eval(`.quiz [data-q="${q.id}"] [aria-live]`, e => e.textContent.includes('Wyciek danych to inna usterka')));
+    ok('quiz does not reset the demo', await p.$eval('#tp', e => e.value) === tp1 && tp1 !== tp0);
+    for (const x of await p.evaluate(() => QUIZZES().split)) await p.click(`.quiz [data-q="${x.id}"] [data-o="${x.answer}"]`);
+    ok('all correct -> done', await p.$eval('.quiz', e => e.dataset.done === 'true' && e.dataset.score === e.dataset.total));
+    ok('first-attempt result recorded', await p.evaluate(id => team().quizzes.split.first[id] === false, q.id));
+    ok('opening the tab alone does not mark a demo done', await p.evaluate(() => !demoDone(team(), 'metr') && !Object.keys(team().seen).some(k => k.startsWith('demo.'))));
+    await p.click('#langSeg button[data-l=en]'); ok('language switch keeps answers', await p.$eval('.quiz', e => e.dataset.done === 'true'));
+    await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('quiz survives reload and feeds the path', await p.evaluate(() => quizDone(team(), 'split') && demoDone(team(), 'split')));
+    const f = await p.evaluate(() => JSON.parse(JSON.stringify({ data: team() })).data.quizzes.split.doneAt); ok('quiz in the team file', !!f);
+    ok('no quiz for a key without questions', await p.evaluate(() => { renderQuiz('risk'); const e = document.querySelector('#quiz'); return e.innerHTML === ''; }));
+    await seed(p, () => { S.teams[S.team] = defaultTeam(); const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split'); });
+    await p.evaluate(() => go('demos', 'metr'));
+    const n0 = await p.$eval('#pathBar', e => e.dataset.next), h0 = await p.evaluate(() => location.hash);
+    for (const x of await p.evaluate(() => QUIZZES().metr)) await p.click(`.quiz [data-q="${x.id}"] [data-o="${x.answer}"]`);
+    const n1 = await p.$eval('#pathBar', e => e.dataset.next), h1 = await p.evaluate(() => location.hash);
+    ok('last required quiz moves the path bar without navigation', n0 === 'demos' && n1 === 'base' && h0 === h1, JSON.stringify([n0, n1, h0, h1]));
+    ok('quiz no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
