@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node ai.mjs && node vision-realistic.mjs && node worker.mjs"
+    "test": "node ai.mjs && node vision-realistic.mjs && node worker.mjs && node guided.mjs"
   },
   "devDependencies": {
     "playwright": "^1.64.1"
