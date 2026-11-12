@@ -461,6 +461,98 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
  .card-body{padding:14px}
  .msg{max-width:100%}
 }
+/* ─── Company site frame (#/rybex): a small browser window inside the workshop page ─── */
+.rf-stage{padding:0 var(--gutter) 48px}
+.rybex-frame{--rf-sea:#0F5E86;--rf-sea-2:#0B4A6B;--rf-foam:#EAF4F9;border:1px solid var(--line-2);border-radius:var(--r-md);box-shadow:var(--shadow-lg);overflow:hidden;background:var(--surface);max-width:1120px;margin:0 auto;color:var(--ink);font-family:var(--font-sans)}
+.rybex-frame .ic{width:18px;height:18px;flex:none}
+.rf-chrome{background:var(--paper-3);border-bottom:1px solid var(--line-2)}
+.rf-tabs{display:flex;align-items:flex-end;gap:10px;padding:8px 12px 0}
+.rf-dots{display:flex;gap:6px;align-self:center;padding-bottom:8px}.rf-dots i{width:11px;height:11px;border-radius:50%;background:var(--line-2)}
+.rf-tab{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line-2);border-bottom:0;border-radius:10px 10px 0 0;padding:7px 14px;font-size:13px;color:var(--ink-2);max-width:280px;min-width:0;margin-bottom:-1px}
+.rf-tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-tab .rf-fish{width:16px;height:16px;flex:none}
+.rf-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-top:1px solid var(--line-2)}
+.rf-nav{display:flex;gap:10px;color:var(--ink-3);padding:0 4px}
+.rf-url{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:6px 14px;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)}
+.rf-url b{font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rf-url .ic{width:14px;height:14px}
+.rf-back{flex:none}
+.rybex-frame .fiction-banner{display:flex;gap:10px;align-items:flex-start;background:var(--yellow);color:var(--yellow-ink);padding:9px 28px;margin:0;font-size:14px;font-weight:500}
+.fiction-banner .ic{margin-top:2px}
+.rf-head{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 28px;border-bottom:1px solid var(--line)}
+.rf-logo{display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;cursor:pointer;color:inherit;text-align:left;font:inherit;border-radius:var(--r-sm)}
+.rf-logo .rf-fish{width:46px;height:46px;flex:none}
+.rf-logo strong{display:block;font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-.02em;line-height:1;color:var(--rf-sea-2)}
+.rf-logo small{display:block;font-size:13px;color:var(--ink-2);margin-top:3px}
+.rf-navwrap{margin-left:auto;min-width:0}
+.rf-menu{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px}
+.rf-menu button{display:block;width:100%;text-align:left;padding:7px 11px;border:0;border-radius:8px;background:none;color:var(--ink-2);font:inherit;font-size:14.5px;font-weight:500;cursor:pointer}
+.rf-menu button:hover{background:var(--rf-foam);color:var(--rf-sea-2)}
+.rf-menu button.on{color:var(--rf-sea-2);background:var(--rf-foam);box-shadow:inset 0 -2px 0 var(--rf-sea)}
+.rf-menu button[data-rp=intranet]{border:1px solid var(--line-2);margin-left:6px}
+.rf-toggle{display:none}
+.rf-page h2{font-family:var(--font-display);font-weight:700;font-size:1.65rem;letter-spacing:-.015em;margin:0 0 16px;color:var(--ink)}
+.rf-page h3{font-family:var(--font-display);font-size:1.15rem;margin:22px 0 8px}
+.rf-link{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--rf-sea);text-decoration:underline;text-underline-offset:2px;cursor:pointer;text-align:left}
+.rf-link .ic{width:16px;height:16px}
+.rf-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px;align-items:center;padding:40px 28px 56px;background:var(--rf-foam)}
+.rf-page .rf-hero h2{font-weight:800;font-size:clamp(2.1rem,4vw,3.1rem);line-height:1.05;letter-spacing:-.025em;color:var(--rf-sea-2);margin:0 0 6px}
+.rf-lead{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--rf-sea);margin:0 0 14px}
+.rf-hero p:not(.rf-lead){color:var(--ink-2);font-size:16.5px;margin:6px 0}
+.rf-hero-pic{display:flex;gap:12px;justify-content:center}
+.rf-hero-pic img{width:44%;height:auto;border-radius:12px;box-shadow:var(--shadow-sm);aspect-ratio:4/5;object-fit:cover;background:var(--paper-2)}
+.rf-hero-pic img:nth-child(2){margin-top:28px}
+.rf-teaser{display:flex;gap:14px;align-items:center;margin:-28px 28px 28px;position:relative;background:var(--surface);border:1px solid var(--line-2);border-left:6px solid var(--red-600);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow-sm)}
+.rf-teaser p{margin:0;font-size:16px}
+.rf-blk{padding:28px 28px 34px}
+.rf-hero+.rf-teaser+.rf-blk{padding-top:6px}
+.rf-text p{max-width:66ch;color:var(--ink-2);font-size:16.5px;line-height:1.65}
+.rf-intro{color:var(--ink-2);margin:-6px 0 18px}
+.rf-prods{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.rf-prod{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.rf-prod img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;background:var(--paper-2)}
+.rf-page .rf-pname{margin:0;padding:10px 14px 12px;font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--rf-sea-2)}
+.rf-pnote{margin:0;padding:0 14px;font-size:13.5px;color:var(--ink-2)}
+.rf-pact{margin:0;padding:8px 14px 14px;font-size:14.5px}
+.rf-docs{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
+.rf-art{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:32px;padding:30px 28px 38px}
+.rf-crumbs{font-size:14px;margin:0 0 14px;color:var(--ink-3)}
+.rf-date{font-family:var(--font-mono);font-size:13px;color:var(--ink-2);letter-spacing:.04em;margin:0 0 6px}
+.rf-page .rf-art h2{font-weight:800;font-size:clamp(1.9rem,3.6vw,2.7rem);letter-spacing:-.02em;line-height:1.08;color:var(--rf-sea-2);margin:0 0 18px}
+.rf-nb{white-space:nowrap}
+.rf-pact .rf-link{align-items:flex-start}.rf-pact .rf-link .ic{margin-top:3px}
+.rf-body p,.rf-season{font-size:17px;line-height:1.65;color:var(--ink-2);margin:0 0 14px;max-width:66ch}
+.rf-facts{align-self:start;background:var(--rf-foam);border-radius:12px;padding:16px 18px}
+.rf-page .rf-facts h3{margin:0 0 8px}
+.rf-facts dl{margin:0}.rf-facts dt{font-size:13px;color:var(--ink-2);margin-top:8px}.rf-facts dd{margin:0;font-weight:600;color:var(--rf-sea-2)}
+.rf-job{border:1px solid var(--line);border-left:6px solid var(--rf-sea);border-radius:12px;padding:16px 20px;max-width:70ch}
+.rf-page .rf-job h3{margin:0 0 8px}
+.rf-tag{margin:0;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--rf-sea)}
+.rf-foot{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;background:var(--rf-sea-2);color:var(--paper);padding:18px 28px;font-size:14px}
+.rf-foot p{margin:0;max-width:70ch;color:var(--paper);font-size:14px}
+.rf-foot .btn{background:var(--paper);border-color:var(--paper);color:var(--ink)}
+.rf-foot .btn:focus-visible{box-shadow:0 0 0 2px var(--rf-sea-2),0 0 0 5px var(--paper)}
+@media (max-width:900px){.rf-prods{grid-template-columns:repeat(2,minmax(0,1fr))}.rf-art{grid-template-columns:minmax(0,1fr)}.rf-facts{max-width:340px}}
+@media (max-width:768px){
+ .rf-stage{padding:0 10px 32px}
+ .rf-tab{display:none}.rf-tabs{padding:6px 10px 0}.rf-dots{padding-bottom:6px}
+ .rf-bar{padding:6px 8px;gap:6px}.rf-nav{display:none}.rf-url{padding:5px 10px;font-size:12px}
+ .rf-bar .rf-back .t{display:none}
+ .rybex-frame .fiction-banner{padding:9px 16px;font-size:13px}
+ .rf-head{padding:14px 16px;gap:12px}
+ .rf-logo .rf-fish{width:38px;height:38px}.rf-logo strong{font-size:22px}
+ .rf-toggle{display:inline-flex;margin-left:auto;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+ .rf-navwrap{flex:1 0 100%;margin:0}
+ .rf-menu{display:none;flex-direction:column}
+ .rf-menu.open{display:flex}
+ .rf-menu button[data-rp=intranet]{margin:4px 0 0}
+ .rf-hero{grid-template-columns:minmax(0,1fr);padding:26px 16px 48px;gap:18px}
+ .rf-hero-pic img{width:40%}
+ .rf-teaser{margin:-28px 16px 20px;flex-direction:column;align-items:flex-start}
+ .rf-blk{padding:22px 16px 26px}
+ .rf-art{padding:22px 16px 28px}
+ .rf-foot{padding:16px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -539,6 +631,8 @@ const STORY=()=>({lot:LOT,product:0,date:T('3 listopada 2026','3 November 2026')
  summary:T(`Sieć handlowa zwróciła paletę „Szprota w oleju” z partii ${LOT}. W typowaniu jakości zapisano wgniecenia i nieczytelny kod partii. W tym samym tygodniu do skrzynki reklamacji wpłynęło więcej zgłoszeń niż zwykle, w tym sygnały o zapachu.`,`A retail chain returned a pallet of “Sprat in oil” from batch ${LOT}. The quality check recorded dents and an unreadable batch code. In the same week the complaints inbox received more reports than usual, including reports about the smell.`),
  question:T('Potrzebuję od Was w ciągu warsztatu: jasno opisanego problemu, sprawdzenia, czy proste reguły w ogóle działają, i uczciwej oceny, czy wolno nam puścić taki system bliżej linii. To ćwiczenie na danych warsztatowych – firma Rybex jest fikcyjna – ale decyzje podejmujcie tak, jakby dotyczyły prawdziwego zakładu.','During the workshop I need three things from you: a clearly described problem, a check of whether simple rules work at all, and an honest assessment of whether we may put such a system closer to the line. This is an exercise on workshop data – Rybex is a fictional company – but make your decisions as if they concerned a real plant.')});
 const PRODUCTS=[['Szprot w oleju','Sprat in oil',120],['Makrela w pomidorach','Mackerel in tomato',90],['Śledź po kaszubsku','Herring Kashubian style',70],['Tuńczyk w sosie własnym','Tuna in own sauce',60]];
+// Company site pages (route #/rybex/<page>); keys stay English, the address bar shows the Polish slugs.
+const RYBEX_PAGES=['home','about','products','quality','news','contact','career','intranet'];
 const SEAS=[.9,.8,1.15,1.15,1,.95,1.1,1,1,1.05,1.05,1.4];
 const monthLbl=i=>{const y=2023+Math.floor((10+i)/12),m=(10+i)%12;return y+'-'+String(m+1).padStart(2,'0')};
 function buildSales(){const r=rng(11),rows=[];for(let p=0;p<4;p++)for(let i=0;i<36;i++){const m=(10+i)%12;rows.push({month:monthLbl(i),product:PRODUCTS[p][0],units_k:Math.round(PRODUCTS[p][2]*(1+.008*i)*SEAS[m]*(1+(r()-.5)*.12))})}return rows}
@@ -820,7 +914,7 @@ const VSHOTS=[0,4,8],MAX_VRUNS=10,KEEP_REASONS=2;
 // ─── State ───
 const defaultLab=()=>({vision:{th:null,testViews:0,revealed:false,method:'rules',vshots:0,mruns:[],vsel:'',prompts:[],active:'v1',draft:null},rag:{k:2,chunk:1,min:.12,msgs:[],testViews:0,revealed:false,gen:'extract',judge:false,mrun:null},compl:{kw:{...KW},safety:SAFETY_KW,testViews:0,revealed:false,sel:0,method:'rules',prompts:[],active:'v1',draft:null,shots:0,runs:[],rsel:'',curve:null,cmp:null},fc:{p:0,h:6,w:3,show:{mean:1,naive:0,snaive:1,ma:0,ts:1}},mt:{thr:4,win:1,f:{temp_c:1,vibration_mm_s:1,pressure_bar:0}}});
 const defaultTeam=()=>({name:'',track:null,decision:{},checks:{},notes:{},arch:{sel:{},infra:'hybrid',decisions:{}},log:[],lab:defaultLab(),goal:'',onboardedAt:'',seen:{},site:{newsRead:false,contactSent:false,intranetOpened:false},inbox:[],quizzes:{},challenges:{},risks:{},badges:[]});
-let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision'},teams:{},ai:{code:'',model:'deepseek'},trainer:false};
+let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision',rybex:'home'},teams:{},ai:{code:'',model:'deepseek'},trainer:false};
 const AIS={state:'nocode',err:'',checked:false,calls:0,inTok:0,outTok:0,cost:0,teamSpend:null,limits:null,rec:new Map(),replay:undefined,run:null,timeoutMs:AI_TIMEOUT_MS};
 const T=(pl,en)=>S.lang==='pl'?pl:en,langIx=()=>S.lang==='pl'?0:1;
 // Published 320×400 JPEG copies (≈5 MB); the full-size PNG renders are not shipped.
@@ -874,7 +968,7 @@ function normTeam(t){const d=defaultTeam();if(!isObj(t))return d;
  return d}
 function readStore(){const raw=localStorage.getItem(STORE_KEY);return raw?JSON.parse(raw):null}
 function normTeams(o){const r={};if(isObj(o))for(const k in o)r[k]=normTeam(o[k]);return r}
-try{const x=readStore();if(isObj(x)){if(x.lang==='en'||x.lang==='pl')S.lang=x.lang;if(+x.team>=1&&+x.team<=TEAM_COUNT)S.team=+x.team;if(NAV.some(n=>n[0]===x.view))S.view=x.view;if(isObj(x.sub)){if(DEMO_KEYS.includes(x.sub.demos))S.sub.demos=x.sub.demos;if(LAB_KEYS.includes(x.sub.lab))S.sub.lab=x.sub.lab}S.teams=normTeams(x.teams);if(isObj(x.ai)){if(typeof x.ai.code==='string')S.ai.code=x.ai.code.slice(0,80);if(AI_MODELS[x.ai.model])S.ai.model=x.ai.model}}}catch(e){}
+try{const x=readStore();if(isObj(x)){if(x.lang==='en'||x.lang==='pl')S.lang=x.lang;if(+x.team>=1&&+x.team<=TEAM_COUNT)S.team=+x.team;if(NAV.some(n=>n[0]===x.view)||x.view==='rybex')S.view=x.view;if(isObj(x.sub)){if(DEMO_KEYS.includes(x.sub.demos))S.sub.demos=x.sub.demos;if(LAB_KEYS.includes(x.sub.lab))S.sub.lab=x.sub.lab;if(RYBEX_PAGES.includes(x.sub.rybex))S.sub.rybex=x.sub.rybex}S.teams=normTeams(x.teams);if(isObj(x.ai)){if(typeof x.ai.code==='string')S.ai.code=x.ai.code.slice(0,80);if(AI_MODELS[x.ai.model])S.ai.model=x.ai.model}}}catch(e){}
 if(S.ai.code)AIS.state='idle';
 const team=()=>S.teams[S.team]||(S.teams[S.team]=defaultTeam());
 const lab=()=>team().lab;
@@ -1040,7 +1134,7 @@ function publishVisionContract(){
  document.documentElement.dataset.visionFeatures=VIS.featureSource;
  const el=$('#visionAssetStatus');if(el)el.innerHTML=visionStatusInner();
 }
-function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true)}}
+function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='rybex'){rybexPhotos()}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true)}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
 // Draw an image at the 320×400 working size and return it as a data URL of the given type.
 function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;c.getContext('2d').drawImage(im,0,0,320,400);resolve(c.toDataURL(type,q))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
@@ -1238,12 +1332,15 @@ function importTeam(file){const rd=new FileReader();rd.onerror=()=>toast(T('Nie 
   toast(T(`Plik zespołu ${from}${n?` („${n}”)`:''}. Wczytać go do zespołu ${to} i zastąpić obecne dane tego zespołu?`,`Team file from team ${from}${n?` (“${n}”)`:''}. Load it into team ${to} and replace that team’s current data?`),{action:[T(`Wczytaj do zespołu ${to}`,`Load into team ${to}`),()=>guardRun(()=>{S.team=to;withUndo(T(`Wczytano dane do zespołu ${to}.`,`Data loaded into team ${to}.`),()=>{S.teams[to]=normTeam(o.data);if(!S.teams[to].onboardedAt)S.teams[to].onboardedAt=new Date().toISOString()})})]})};rd.readAsText(file)}
 
 // ─── Routing ───
-const hashFor=v=>'#/'+v+(v==='demos'?'/'+S.sub.demos:v==='lab'?'/'+S.sub.lab:'');
-function parseHash(){const[,v,sub]=location.hash.split('/');if(!NAV.some(n=>n[0]===v))return null;return{v,sub}}
+const hashFor=v=>'#/'+v+(v==='demos'?'/'+S.sub.demos:v==='lab'?'/'+S.sub.lab:v==='rybex'?'/'+S.sub.rybex:'');
+// The company site (#/rybex/<page>) is a view outside NAV: keys 1–7 and the workshop menu stay as they are.
+function parseHash(){const[,v,sub]=location.hash.split('/');if(!NAV.some(n=>n[0]===v)&&v!=='rybex')return null;return{v,sub}}
+// Applies a parsed route's sub view; an unknown company page falls back to the site's home.
+function routeSub(r){if(r.v==='demos'&&DEMO_KEYS.includes(r.sub))S.sub.demos=r.sub;if(r.v==='lab'&&LAB_KEYS.includes(r.sub))S.sub.lab=r.sub;if(r.v==='rybex')S.sub.rybex=RYBEX_PAGES.includes(r.sub)?r.sub:RYBEX_PAGES.includes(S.sub.rybex)&&!r.sub?S.sub.rybex:'home'}
 function normHash(){const h=hashFor(S.view);if(location.hash!==h)try{history.replaceState(null,'',h)}catch(e){}}
-function onHashChange(){const r=parseHash();if(!r){normHash();return}const cur=r.v==='demos'?S.sub.demos:r.v==='lab'?S.sub.lab:undefined;if(r.v===S.view&&(r.sub===cur||!r.sub))return;
+function onHashChange(){const r=parseHash();if(!r){normHash();return}const cur=r.v==='demos'||r.v==='lab'||r.v==='rybex'?S.sub[r.v]:undefined;if(r.v===S.view&&(r.sub===cur||!r.sub))return;
  if(AIS.run){const h=location.hash;normHash();guardRun(()=>{try{history.pushState(null,'',h)}catch(e){}applyRoute()});return}applyRoute()}
-function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;S.view=r.v;if(r.v==='demos'&&DEMO_KEYS.includes(r.sub))S.sub.demos=r.sub;if(r.v==='lab'&&LAB_KEYS.includes(r.sub))S.sub.lab=r.sub;normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}}
+function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;S.view=r.v;routeSub(r);normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}}
 function go(v,sub){if(AIS.run)return guardRun(()=>go(v,sub));clearInterval(X.ragTimer);aiAbort();if(sub)S.sub[v]=sub;const h=hashFor(v);if(location.hash!==h){try{history.pushState(null,'',h)}catch(e){location.hash=h;return}}applyRoute()}
 // ─── Path ───
 const TEST_TRACKS={vision:'vision',rag:'rag',complaints:'compl'};
@@ -1307,13 +1404,13 @@ function renderShell(){
  $('#langSeg').setAttribute('aria-label',T('Język','Language'));$$('#langSeg button').forEach(b=>{const on=b.dataset.l===S.lang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
  $('#foot').innerHTML=T('Skróty: klawisze <kbd>1</kbd>–<kbd>7</kbd> przełączają widoki. Dane zdjęciowe są wczytywane lokalnie, a stan zespołu zapisuje się tylko w tej przeglądarce.','Shortcuts: keys <kbd>1</kbd>–<kbd>7</kbd> switch views. Photo data is loaded locally and team state is stored only in this browser.');
  renderProg();renderSaveWarn();
- const d=document.body.dataset;d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'?S.sub.demos:S.view==='lab'?S.sub.lab:'';
+ const d=document.body.dataset;d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'||S.view==='lab'||S.view==='rybex'?S.sub[S.view]:'';
  document.documentElement.lang=S.lang;document.title='AI Project Lab – Rybex';publishVisionContract()}
-function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});renderPathBar();icons()}
+function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver,rybex:vRybex})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});renderPathBar();icons()}
 
 // ─── View: home ───
 function memoHTML(){const s=STORY(),row=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;
- return`<article class="card memo" id="memo" data-lot="${s.lot}" data-product="${s.product}"><div class="card-head"><span class="tile-h">${badge('mail','red')}<h2>${T('Notatka służbowa','Internal memo')}</h2></span></div><div class="card-body"><dl class="memo-meta">${row(T('Od','From'),s.sender)}${row(T('Do','To'),s.to)}${row(T('Data','Date'),s.date)}${row(T('Temat','Subject'),s.subject)}</dl><p>${glh(s.summary)}</p><p>${glh(s.question)}</p></div><div class="card-foot"><button type="button" class="btn-ghost btn-sm" id="memoSite" disabled data-href="#/rybex/news">${ic('globe')}${T('Strona firmy – wkrótce','Company site – coming soon')}</button></div></article>`}
+ return`<article class="card memo" id="memo" data-lot="${s.lot}" data-product="${s.product}"><div class="card-head"><span class="tile-h">${badge('mail','red')}<h2>${T('Notatka służbowa','Internal memo')}</h2></span></div><div class="card-body"><dl class="memo-meta">${row(T('Od','From'),s.sender)}${row(T('Do','To'),s.to)}${row(T('Data','Date'),s.date)}${row(T('Temat','Subject'),s.subject)}</dl><p>${glh(s.summary)}</p><p>${glh(s.question)}</p></div><div class="card-foot"><a class="btn-ghost btn-sm" id="memoSite" href="#/rybex/news" data-href="#/rybex/news">${ic('globe')}${T('Otwórz stronę firmy Rybex','Open the Rybex company site')}</a></div></article>`}
 function onboardHTML(){return`<div class="card" id="onboard"><div class="card-head"><span class="tile-h">${badge('hand','yellow')}<h2>${T('Zanim zaczniecie','Before you start')}</h2></span></div><div class="card-body ob-grid"><div><p>${glh(T('Pracujecie jako zespół AI w fikcyjnej firmie Rybex (producent konserw rybnych). Stan zapisuje się tylko w tej przeglądarce – pobierzcie plik zespołu, zanim zmienicie komputer. Klucze 1–7 przełączają działy warsztatu. Na początek przeczytacie poranną sprawę zakładu.','You work as an AI team at Rybex, a fictional fish-can manufacturer. Your work is saved only in this browser – download the team file before you switch computers. Keys 1–7 switch between the workshop sections. You start by reading the plant’s morning case.'))}</p>
  <p class="hint">${T('Język zmienicie przełącznikiem PL / EN w górnym pasku.','Switch the language with the PL / EN toggle in the top bar.')}</p></div>
  <div><div class="field"><label for="onboardName">${T('Nazwa zespołu','Team name')}</label><input id="onboardName" class="input" type="text" maxlength="120" value="${esc(team().name)}" placeholder="${T('Np. Zespół Szprot','E.g. Team Sprat')}"></div>
@@ -1354,6 +1451,69 @@ const mdInline=s=>mdEsc(s).replace(/\s*\n\s*/g,' ');
 function logMD(){const t=team();return `# ${T('Dziennik zespołu','Team log')}: ${t.name||T('Zespół','Team')+' '+S.team}\n\n`+(t.log.length?t.log.map(logLineMD).join('\n'):T('(brak wpisów)','(no entries)'))}
 function logLineMD(l){return`- **${fmtTs(l.ts)}** [${mdInline(l.text?l.track:trackName(l.track))}] ${mdInline(logText(l))}${l.testViews?` (${T('test oglądany','test viewed')}: ${l.testViews})`:''}${l.note?`\n  - ${T('Notatka','Note')}: ${mdInline(l.note)}`:''}`}
 function imgLabelRows(){const seen=lab().vision.testViews>0,rows=[];['train','val','test'].forEach(s=>VIS[s].forEach(i=>rows.push({file:i.id+'.'+visExt(i.url),split:s,label:s==='test'&&!seen?'':i.type})));return rows}
+// ─── View: company site (#/rybex/<page>) ───
+// Texts of the fictional company site. Home and news follow the spec drafts verbatim; the incident facts come from STORY.
+function RYBEX_SITE(){const s=STORY(),lot=s.lot;return{town:'Mirszyce',
+ tagline:T('Rybex – konserwy z polskiego wybrzeża.','Rybex – canned fish from the Polish coast.'),
+ fiction:T('Rybex jest firmą fikcyjną, utworzoną na potrzeby szkolenia. Wszystkie osoby, miejsca i zdarzenia są wymyślone.','Rybex is a fictional company created for this training. All people, places and events are made up.'),
+ menu:{home:T('Strona główna','Home'),about:T('O firmie','About us'),products:T('Produkty','Products'),quality:T('Jakość','Quality'),news:T('Aktualności','News'),contact:T('Kontakt','Contact'),career:T('Kariera','Careers'),intranet:'Intranet'},
+ addr:{home:'',about:'o-firmie',products:'produkty',quality:'jakosc',news:'aktualnosci/zwrot-partii-'+lot.toLowerCase(),contact:'kontakt',career:'kariera',intranet:'intranet'},
+ home:{lead:T('Konserwy rybne z Mirszyc.','Canned fish from Mirszyce.'),p:[T('Od pokoleń – w wersji warsztatowej od dziś rana – pakujemy szprota, makrelę, śledzia i tuńczyka tak, żeby dało się odczytać kod partii i zaufać szwowi puszki.','For generations – in the workshop version since this morning – we have packed sprat, mackerel, herring and tuna so that the lot code can be read and the can seam can be trusted.'),
+  T('Zakład w Mirszycach, na fikcyjnym odcinku polskiego wybrzeża, łączy linię zamykania i sterylizacji z laboratorium jakości. Nie jesteśmy prawdziwą marką ze sklepowej półki. Jesteśmy poligonem, na którym zespół AI uczy się prowadzić projekt od incydentu do uczciwej oceny.','The plant in Mirszyce, on a fictional stretch of the Polish coast, combines a seaming and sterilisation line with a quality laboratory. We are not a real brand from the shop shelf. We are a training ground where an AI team learns to run a project from incident to honest evaluation.')],
+  news:[T('Aktualność:','News:'),T(`Sieć handlowa zwraca partię ${lot}.`,`A retail chain returns lot ${lot}.`),T('Czytaj komunikat.','Read the notice.')],prods:T('Nasze produkty','Our products')},
+ about:{h:T('O firmie','About us'),p:[T('Rybex zaczynał jako mała wędzarnia przy porcie w Mirszycach. Dziś to średniej wielkości zakład, który zamyka w puszkach szprota, makrelę, śledzia i tuńczyka dla sieci handlowych w całym kraju.','Rybex started as a small smokehouse by the harbour in Mirszyce. Today it is a mid-sized plant that cans sprat, mackerel, herring and tuna for retail chains across the country.'),
+  T('Zakład w Mirszycach ma linię zamykania puszek, retortę do sterylizacji i własne laboratorium jakości. Pracuje na zmiany, a każda puszka dostaje nadrukowany kod partii.','The plant in Mirszyce has a can seaming line, a sterilisation retort and its own quality laboratory. It works in shifts, and every can gets a printed lot code.'),
+  T('Nasze wartości to jakość, bezpieczeństwo żywności i identyfikowalność partii. Po kodzie partii da się ustalić, kiedy i na której linii powstała puszka – dlatego nieczytelny kod traktujemy jak poważną wadę, a nie drobiazg na etykiecie.','Our values are quality, food safety and lot traceability. The lot code tells us when and on which line a can was made – which is why we treat an unreadable code as a serious defect, not a detail on the label.')]},
+ products:{h:T('Produkty','Products'),lead:T('Cztery konserwy, jedna linia zamykania. Każda puszka ma nadrukowany kod partii.','Four canned products, one seaming line. Every can has a printed lot code.'),vision:T('Kontrola puszki na zdjęciu','Checking the can in a photo'),visionNote:T(`Ten sam produkt i ta sama partia ${lot} co w laboratorium wizyjnym.`,`The same product and lot ${lot} as in the vision lab.`)},
+ quality:{h:T('Jakość i bezpieczeństwo żywności','Quality and food safety'),p:[T('Konserwa jest bezpieczna, kiedy puszka jest szczelna, a jej zawartość przeszła pełną sterylizację. Dlatego co 30 minut mierzymy szew puszki na każdej zamykarce, a przebieg każdego cyklu w retorcie trafia do dziennika partii.','A canned product is safe when the can is sealed tight and its contents have gone through full sterilisation. That is why we measure the can seam on every seamer every 30 minutes, and every retort cycle is recorded in the batch log.'),
+  T('Kod partii na puszce pozwala odnaleźć każdą puszkę, jeśli coś pójdzie nie tak. Zgłoszenia o zapachu albo wybrzuszonej puszce traktujemy jako możliwe zagrożenie i przekazujemy do działu jakości w ciągu doby.','The lot code on the can lets us trace every can if something goes wrong. Reports of a bad smell or a bulging can are treated as a possible hazard and passed to the quality department within a day.')],
+  docs:T('Nasze procedury (w folderze danych warsztatu)','Our procedures (in the workshop data folder)'),rag:T('Zapytaj asystenta wiedzy o procedury','Ask the knowledge assistant about the procedures')},
+ news:{h:T(`Zwrot partii <span class="rf-nb">${lot}</span>`,`Lot <span class="rf-nb">${lot}</span> returned`),p:[T(`Jedna z sieci handlowych zwróciła paletę „Szprota w oleju” z partii ${lot}. W oględzinach wskazano wgniecenia korpusu i nieczytelny kod partii. Dział jakości wstrzymał dalsze wydania tej partii do wyjaśnienia. Równolegle skrzynka reklamacji odnotowuje więcej zgłoszeń niż w typowym tygodniu, w tym sygnały dotyczące zapachu i świeżości.`,`A retail chain has returned a pallet of “Sprat in oil” from lot ${lot}. The inspection found dented can bodies and an unreadable lot code. The quality department has stopped further releases of this lot until the matter is cleared up. Meanwhile the complaints inbox is logging more reports than in a typical week, including signals about smell and freshness.`),
+  T('W zakładzie powstaje doraźny zespół ds. rozwiązań AI. Ma sprawdzić, czy proste narzędzia (reguły na zdjęciach, asystent po procedurach, porządkowanie reklamacji, prognoza popytu, sygnały z maszyn) w ogóle pomagają – i gdzie się mylą.','The plant is setting up an ad-hoc AI solutions team. Its job is to check whether simple tools (rules on photos, an assistant over the procedures, sorting complaints, demand forecasting, signals from machines) help at all – and where they get it wrong.'),
+  T('Kontakt dla mediów i klientów: formularz w zakładce Kontakt. To komunikat szkoleniowy w fikcyjnej firmie, nie informacja rynkowa.','Media and customer contact: the form under Contact. This is a training notice from a fictional company, not market information.')],
+  facts:T('W skrócie','In brief'),season:[T('Zamówienia sieci przed sezonem','Retail orders before the season'),T('Sieci handlowe składają już zamówienia na grudzień, kiedy konserw sprzedaje się najwięcej w roku. Dział planowania sprawdza, czy prognoza popytu dla każdego produktu pomoże ułożyć plan produkcji bez nadwyżek i braków.','Retail chains are already placing their orders for December, the month when the most canned fish is sold. The planning department is checking whether a demand forecast for each product can help set a production plan with neither surplus nor shortage.'),T('Laboratorium prognozy popytu','Demand forecast lab')]},
+ career:{h:T('Kariera','Careers'),tag:T('Nowa komórka','New unit'),title:T('Zespół AI','AI team'),p:[T('W zakładzie właśnie powstał zespół ds. rozwiązań AI:','The plant has just formed an AI solutions team:'),T('Zespół sprawdzi, czy proste narzędzia AI pomagają przy kontroli puszek, procedurach, reklamacjach, prognozie popytu i sygnałach z maszyn – i gdzie się mylą. Wyniki przedstawi dyrekcji zakładu.','The team will check whether simple AI tools help with can inspection, procedures, complaints, demand forecasting and machine signals – and where they get it wrong. It will present the results to the plant management.')]},
+ soon:T('Ta część strony pojawi się wkrótce.','This part of the site is coming soon.'),
+ title:T('Strona firmy Rybex','Rybex company site'),intro:T('Tak wygląda witryna zakładu, w którym pracuje Wasz zespół. Klikajcie jak zwykły gość strony.','This is the website of the plant where your team works. Click around as any visitor would.'),
+ back:T('Wróć do warsztatu','Back to the workshop'),menuBtn:'Menu',menuLabel:T('Menu strony Rybex','Rybex site menu'),logo:T('Rybex – strona główna','Rybex – home')}}
+const RYBEX_FISH='<svg class="rf-fish" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#FFD500"/><path d="M13 7.5c2-2.5 5.5-3 8-2-1.5 1.2-2.4 2.8-2.6 4.6z" fill="#1C1917"/><path d="M2.5 16.5C4.5 7.5 15.5 5 22 12.5l6.5-5.5c-.9 3-1.4 6-1.4 9.5s.5 6.5 1.4 9.5L22 20.5C15.5 28 4.5 25.5 2.5 16.5z" fill="#1C1917"/><circle cx="9.5" cy="14.5" r="2.8" fill="#FFD500"/></svg>';
+// Photo slots on the site: p0–p3 one per product, h0–h1 the home hero. Each takes a different OK (no defect) can from the training set;
+// before the photos load, or when they cannot, VIS.train holds the same synthetic cans the data view shows.
+function rybexPick(slot){const ok=VIS.train.map((x,i)=>x.bad?-1:i).filter(i=>i>=0),n={p0:0,p1:7,p2:14,p3:21,h0:28,h1:35}[slot]||0;return ok.length?ok[n%ok.length]:0}
+function rybexImg(slot,pi){const vi=rybexPick(slot),it=VIS.train[vi],nm2=PRODUCTS[pi];return`<img data-slot="${slot}" data-vi="${vi}" src="${it?it.url:''}" alt="${esc(T(`Zdjęcie puszki ${nm2[0]}, widok z boku`,`Photo of a can of ${nm2[1]}, side view`))}" width="320" height="400">`}
+function rybexPhotos(){$$('.rybex-frame img[data-slot]').forEach(i=>{const vi=rybexPick(i.dataset.slot),it=VIS.train[vi];if(it&&i.getAttribute('src')!==it.url){i.src=it.url;i.dataset.vi=vi}})}
+function rybexChrome(page,inner){const R=RYBEX_SITE(),back=(id,cls)=>`<button type="button" class="btn btn-sm rf-back${cls}"${id?` id="${id}"`:''} aria-label="${R.back}">${ic('arrow-left')}<span class="t">${R.back}</span></button>`;
+ return`<div class="rybex-frame" data-page="${page}"><div class="rf-chrome"><div class="rf-tabs"><span class="rf-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="rf-tab" aria-hidden="true">${RYBEX_FISH}<span>${R.tagline.replace(/\.$/,'')}</span></span></div>
+ <div class="rf-bar"><span class="rf-nav" aria-hidden="true">${ic('arrow-left')}${ic('arrow-right')}</span><span class="rf-url">${ic('lock')}<b data-addr>rybex.example/${R.addr[page]}</b></span>${back('backToWs','')}</div></div>
+ <p class="fiction-banner">${ic('info')}<span>${R.fiction}</span></p>
+ <div class="rf-head"><button type="button" class="rf-logo" data-rp="home" aria-label="${R.logo}">${RYBEX_FISH}<span><strong>Rybex</strong><small>${R.tagline}</small></span></button>
+ <button type="button" class="rf-toggle" aria-expanded="false" aria-controls="rfMenu">${ic('menu')}${R.menuBtn}</button>
+ <nav aria-label="${R.menuLabel}" class="rf-navwrap"><ul class="rf-menu" id="rfMenu">${RYBEX_PAGES.map(k=>`<li><button type="button" data-rp="${k}"${k===page?' class="on" aria-current="page"':''}>${R.menu[k]}</button></li>`).join('')}</ul></nav></div>
+ <div class="rf-page">${inner}</div>
+ <footer class="rf-foot"><p>${R.fiction}</p>${back('',' rf-back-foot')}</footer></div>`}
+function rybexHome(R){const h=R.home;return`<div class="rf-hero"><div><h2>Rybex</h2><p class="rf-lead">${h.lead}</p>${h.p.map(x=>`<p>${x}</p>`).join('')}</div><div class="rf-hero-pic">${rybexImg('h0',0)}${rybexImg('h1',1)}</div></div>
+ <div class="rf-teaser"><p><b>${h.news[0]}</b> ${h.news[1]} <button type="button" class="rf-link" data-rp="news">${h.news[2]}</button></p></div>
+ <div class="rf-blk"><h2>${h.prods}</h2>${rybexProdGrid(false)}</div>`}
+function rybexProdGrid(full){const R=RYBEX_SITE();return`<ul class="rf-prods">${PRODUCTS.map((p,i)=>`<li class="rf-prod">${rybexImg('p'+i,i)}<h3 class="rf-pname">${T(p[0],p[1])}</h3>${full&&i===STORY().product?`<p class="rf-pnote">${R.products.visionNote}</p><p class="rf-pact"><button type="button" class="rf-link" data-lab="vision">${ic('scan-search')}${R.products.vision}</button></p>`:''}</li>`).join('')}</ul>`}
+function rybexAbout(R){return`<div class="rf-blk rf-text"><h2>${R.about.h}</h2>${R.about.p.map(x=>`<p>${x}</p>`).join('')}</div>`}
+function rybexProducts(R){return`<div class="rf-blk"><h2>${R.products.h}</h2><p class="rf-intro">${R.products.lead}</p>${rybexProdGrid(true)}</div>`}
+function rybexQuality(R){const q=R.quality,li=langIx();return`<div class="rf-blk rf-text"><h2>${q.h}</h2>${q.p.map(x=>`<p>${x}</p>`).join('')}<h3>${q.docs}</h3><ul class="rf-docs">${DOCS.map(d=>`<li><button type="button" class="rf-link" data-doc="${d.id}">${ic('file-text')}${d.id} – ${d.t[li]}</button></li>`).join('')}</ul><p><button type="button" class="btn-ghost btn-sm" data-lab="rag">${ic('message-square')}${q.rag}</button></p></div>`}
+function rybexNews(R){const n=R.news,s=STORY(),row=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;return`<div class="rf-art"><div><p class="rf-crumbs"><button type="button" class="rf-link" data-rp="home">${R.menu.home}</button> / ${R.menu.news}</p><p class="rf-date">${s.date}</p><h2>${n.h}</h2><div class="rf-body">${n.p.map(x=>`<p>${x}</p>`).join('')}</div>
+ <h3>${n.season[0]}</h3><p class="rf-season">${n.season[1]}</p><p><button type="button" class="btn-ghost btn-sm" data-lab="forecast">${ic('trending-up')}${n.season[2]}</button></p></div>
+ <aside class="rf-facts"><h3>${n.facts}</h3><dl>${row(T('Produkt','Product'),T(...PRODUCTS[s.product].slice(0,2)))}${row(T('Partia','Lot'),s.lot)}${row(T('Data','Date'),s.date)}</dl></aside></div>`}
+function rybexCareer(R){const c=R.career,nm2=team().name.trim()||teamLabel(S.team);return`<div class="rf-blk rf-text"><h2>${c.h}</h2><article class="rf-job"><p class="rf-tag">${c.tag}</p><h3>${c.title}</h3><p>${c.p[0]} <b data-team>${esc(nm2)}</b>.</p><p>${c.p[1]}</p></article></div>`}
+const rybexSoon=pg=>R=>`<div class="rf-blk rf-text rf-stub"><h2>${R.menu[pg]}</h2><p>${R.soon}</p></div>`;
+function rybexBack(){const s=pathState(team()).next;if(s&&s.id==='data'&&team().track&&!AIS.run)FSEL=TRACK_FILE[team().track];go(...(s?s.go:['home']))}
+function vRybex(){const pg=RYBEX_PAGES.includes(S.sub.rybex)?S.sub.rybex:'home',R=RYBEX_SITE();if(pg==='home'||pg==='products')visInit();
+ mainEl.innerHTML=pageHead(R.title,R.intro)+`<div class="rf-stage">${rybexChrome(pg,({home:rybexHome,about:rybexAbout,products:rybexProducts,quality:rybexQuality,news:rybexNews,contact:rybexSoon('contact'),career:rybexCareer,intranet:rybexSoon('intranet')})[pg](R))}</div>`;
+ if(pg==='news'&&!team().site.newsRead){team().site.newsRead=true;save();renderProg()}
+ const fr=$('.rybex-frame',mainEl);
+ $$('[data-rp]',fr).forEach(b=>b.onclick=()=>{const k=b.dataset.rp;go('rybex',k);const f=$('.rybex-frame');if(!f||f.dataset.page!==k)return;const h=$('.rf-page h2',f);if(f.getBoundingClientRect().top<0)f.scrollIntoView({block:'start'});h.setAttribute('tabindex','-1');h.focus({preventScroll:true})});
+ $$('[data-lab]',fr).forEach(b=>b.onclick=()=>go('lab',b.dataset.lab));
+ $$('[data-doc]',fr).forEach(b=>b.onclick=()=>guardRun(()=>{FSEL=b.dataset.doc+'.md';go('data')}));
+ $$('.rf-back',fr).forEach(b=>b.onclick=rybexBack);
+ const tg=$('.rf-toggle',fr);tg.onclick=()=>{const o=$('#rfMenu').classList.toggle('open');tg.setAttribute('aria-expanded',String(o))}}
+
 function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team(),el=F.flatMap(g=>g.f).find(f=>f[0]===FSEL)||F[0].f[0];
  mainEl.innerHTML=pageHead(`${T('Folder zespołu','Team folder')} – ${esc(t.name||T('Zespół','Team')+' '+S.team)}`,el[1]==='img'?T('Dane wizji łączą dostępne zdjęcia fotograficzne z jawnym syntetycznym fallbackiem. Pobierz pliki i użyj ich w swoim prototypie.','Vision data combines available photographic images with an explicit synthetic fallback. Download files and use them in your prototype.'):T('Opis projektu, dane pięciu zadań, dokumenty procesów i wyniki zespołu. Otwórz plik swojego zadania, przeczytaj kartę danych i pobierz go do prototypu.','The project description, the data of the five tasks, the process documents and the team’s outputs. Open your task’s file, read its data card and download it for your prototype.'))
  +`<section class="sec"><h2 class="sr-only">${T('Pliki zespołu','Team files')}</h2><div class="wrap"><div class="folder"><div class="card"><div class="card-body" style="padding:12px"><div class="tree">${F.map(g=>`<div class="dir">${ic('folder')}${g.d}/</div>${g.f.map(f=>`<button type="button" class="${FSEL===f[0]?'on':''}" data-f="${esc(f[0])}" data-k="${f[1]}" ${FSEL===f[0]?'aria-current="true"':''}>${ic(f[1]==='img'?'images':f[1]==='svg'?'network':'file-text')}${f[0]}</button>`).join('')}`).join('')}</div></div></div><div id="viewer" style="min-width:0;display:grid;gap:18px"></div></div></div></section>`;
@@ -2043,7 +2203,7 @@ addEventListener('resize',setHdrH);
 addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||inspEl.open)return;const a=e.target,tag=a.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return;const i=+e.key;if(i>=1&&i<=NAV.length){e.preventDefault();go(NAV[i-1][0])}});
 
 // ─── Init ───
-(function init(){S.trainer=new URLSearchParams(location.search).get('trainer')==='1';document.body.dataset.trainer=String(S.trainer);const r=parseHash();if(r){S.view=r.v;if(r.v==='demos'&&DEMO_KEYS.includes(r.sub))S.sub.demos=r.sub;if(r.v==='lab'&&LAB_KEYS.includes(r.sub))S.sub.lab=r.sub}else{try{history.replaceState(null,'',hashFor(S.view))}catch(e){location.hash=hashFor(S.view)}}
+(function init(){S.trainer=new URLSearchParams(location.search).get('trainer')==='1';document.body.dataset.trainer=String(S.trainer);const r=parseHash();if(r){S.view=r.v;routeSub(r)}else{try{history.replaceState(null,'',hashFor(S.view))}catch(e){location.hash=hashFor(S.view)}}
  normHash();render();
  const BRAND_FONTS=['400 1em Outfit','700 1em Outfit','400 1em "IBM Plex Sans"','600 1em "IBM Plex Sans"','400 1em "Roboto Mono"'];
  Promise.race([Promise.all(BRAND_FONTS.map(f=>document.fonts.load(f).catch(()=>null))),new Promise(res=>setTimeout(res,FONT_WAIT_MS))]).then(()=>document.documentElement.classList.add('app-ready'))})();

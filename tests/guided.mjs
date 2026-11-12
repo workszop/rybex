@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -528,6 +528,48 @@ try {
       ok('gate no page errors (review)', !p.errs.length, p.errs.join('|'));
       await p.close(); }
     ok('gate double click on reveal counts one view', await (async () => { const d = await fresh('#/lab/rag', '&trainer=1'); await d.dblclick('#ragRv'); const n = await d.evaluate(() => lab().rag.testViews); await d.close(); return n >= 1 && n <= 2; })()); }
+  if (run('site')) { const p = await fresh('#/rybex/news');
+    ok('site route opens the frame', await p.$eval('.rybex-frame', e => e.dataset.page) === 'news' && await p.evaluate(() => S.view === 'rybex'));
+    ok('site news tells the same incident', await p.evaluate(() => { const t = document.querySelector('.rybex-frame').textContent; return t.includes(STORY().lot) && t.includes(PRODUCTS[STORY().product][langIx()]); }));
+    ok('site news read recorded', await p.evaluate(() => team().site.newsRead === true));
+    ok('site address bar names the page', /^rybex\.example\/aktualnosci/.test(await p.$eval('.rybex-frame [data-addr]', e => e.textContent.trim())));
+    ok('site one h1 per view, company headings start at h2', await p.evaluate(() => document.querySelectorAll('#main h1').length === 1 && !document.querySelector('.rybex-frame h1') && !!document.querySelector('.rybex-frame h2')));
+    ok('site no workshop menu item is current', await p.evaluate(() => !document.querySelector('#nav [aria-current], #nav .on')));
+    ok('site path bar renders on the site', await p.evaluate(() => !!document.querySelector('#pathBar #pathNext')));
+    for (const pg of await p.evaluate(() => RYBEX_PAGES)) { await p.evaluate(pg => go('rybex', pg), pg); ok(`site fiction banner on ${pg}`, await p.$eval('.rybex-frame .fiction-banner', e => /fikcyjn/.test(e.textContent) && e.getBoundingClientRect().height > 0) && await p.$eval('.rybex-frame', (e, pg) => e.dataset.page === pg && !!e.querySelector('#backToWs') && !!e.querySelector(`nav[aria-label] [data-rp="${pg}"][aria-current="page"]`), pg)); }
+    await p.evaluate(() => go('rybex', 'products'));
+    ok('site products come from PRODUCTS', await p.evaluate(() => PRODUCTS.every(x => document.querySelector('.rybex-frame').textContent.includes(x[0]))));
+    await p.waitForFunction(() => document.querySelectorAll('.rybex-frame img').length >= 1, null, { timeout: 8000 });
+    ok('site product photos have alt text', await p.$$eval('.rybex-frame img', e => e.every(i => i.alt.trim().length > 10)));
+    ok('site product photos differ per product', await p.$$eval('.rybex-frame img[data-vi]', e => e.length === 4 && new Set(e.map(i => i.dataset.vi)).size === 4));
+    ok('site product photos are OK cans from the training set', await p.evaluate(() => [...document.querySelectorAll('.rybex-frame img[data-vi]')].every(i => VIS.train[+i.dataset.vi] && !VIS.train[+i.dataset.vi].bad)));
+    await p.click('.rybex-frame [data-lab=vision]'); ok('site product links to the vision lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'vision'));
+    await p.evaluate(() => go('rybex', 'quality')); await p.click('.rybex-frame [data-doc]');
+    ok('site quality links to a PROCES document in the data folder', await p.evaluate(() => S.view === 'data' && /^PROCES-0[1-5]/.test(FSEL)));
+    await p.evaluate(() => go('rybex', 'quality')); await p.click('.rybex-frame [data-lab=rag]'); ok('site quality links to the knowledge assistant lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'rag'));
+    await p.evaluate(() => go('rybex', 'news')); await p.click('.rybex-frame [data-lab=forecast]'); ok('site news links to the forecast lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'forecast'));
+    await p.evaluate(() => { team().name = 'Zespół Szprot'; save(); go('rybex', 'career'); }); ok('site career names the new team', await p.$eval('.rybex-frame', e => e.textContent.includes('Zespół Szprot')));
+    await p.evaluate(() => go('rybex', 'about')); await p.click('.rybex-frame nav[aria-label] [data-rp=news]'); ok('site menu button switches the page', await p.evaluate(() => S.sub.rybex === 'news' && location.hash === '#/rybex/news'));
+    await p.evaluate(() => go('rybex', 'home')); await p.keyboard.press('7'); ok('site workshop keys still work inside the frame', await p.evaluate(() => S.view) === 'deliver');
+    await p.evaluate(() => go('rybex', 'home')); const want = await p.evaluate(() => { const s = pathState(team()).next; return s ? s.go[0] : 'home'; });
+    await p.click('#backToWs'); ok('site back button goes to the next path step', await p.evaluate(() => S.view) === want, want);
+    await p.evaluate(() => go('rybex', 'home')); await p.click('#pathNext'); ok('site path bar Next works from the site', await p.evaluate(() => S.view !== 'rybex'));
+    await p.goto(p.url().replace(/#.*/, '#/rybex/nope')); await p.waitForTimeout(50); ok('site unknown page falls back to site home', await p.evaluate(() => S.sub.rybex) === 'home');
+    ok('site no real brands on any page', await p.evaluate(() => RYBEX_PAGES.every(pg => { go('rybex', pg); return !/Biedronka|Lidl|Graal|Auchan|Kaufland|NIP|KRS|\+48/.test(document.querySelector('.rybex-frame').textContent); })));
+    ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+    const q = await fresh('#/home'); ok('site photos not loaded before the products page', await q.evaluate(() => !VIS.initialized));
+    ok('site memo links to the company news', await q.$eval('#memoSite', e => !e.disabled && e.getAttribute('href') === '#/rybex/news' && /Otwórz stronę firmy Rybex/.test(e.textContent)));
+    await q.click('#memoSite'); await q.waitForFunction(() => S.view === 'rybex', null, { timeout: 3000 }).catch(() => {}); ok('site memo link opens the news page', await q.evaluate(() => S.view === 'rybex' && S.sub.rybex === 'news'));
+    await q.goto(q.url().replace(/#.*/, '#/home')); await q.waitForFunction(() => S.view === 'home');
+    await q.evaluate(() => { const x = JSON.parse(localStorage.getItem(STORE_KEY)); x.view = 'home'; x.sub = { demos: 'life', lab: 'vision' }; localStorage.setItem(STORE_KEY, JSON.stringify(x)); });
+    await q.reload(); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    ok('site old saved state without sub.rybex still opens the site', await q.evaluate(() => { go('rybex'); return S.sub.rybex === 'home' && document.querySelector('.rybex-frame').dataset.page === 'home'; }));
+    await q.close();
+    for (const pg of ['home', 'news', 'products', 'quality', 'career']) { const m = await fresh('#/rybex/' + pg, '', { width: 375, height: 740 });
+      await m.waitForTimeout(150); ok(`site 375 no horizontal scroll on ${pg}`, await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), String(await m.evaluate(() => document.documentElement.scrollWidth)));
+      if (pg === 'home') { ok('site 375 menu folds into a toggle', await m.evaluate(() => { const t = document.querySelector('.rybex-frame .rf-toggle'), l = document.querySelector('.rybex-frame .rf-menu'); return !!t && t.offsetHeight > 0 && l.offsetHeight === 0 && t.getAttribute('aria-expanded') === 'false'; }));
+        await m.click('.rybex-frame .rf-toggle'); ok('site 375 toggle opens the menu', await m.evaluate(() => document.querySelector('.rybex-frame .rf-menu').offsetHeight > 0 && document.querySelector('.rybex-frame .rf-toggle').getAttribute('aria-expanded') === 'true')); }
+      await m.close(); } }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();

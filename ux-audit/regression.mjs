@@ -180,6 +180,28 @@ console.log('\nUX-018 and UX-019 polish');
   const fit = await p.evaluate(() => { const r = []; document.querySelectorAll('#archOut svg rect[rx]').forEach(rc => { const t = rc.nextElementSibling; r.push(t.getBBox().width <= +rc.getAttribute('width') - 4); }); return r.every(Boolean); }); ok('019 labels fit boxes', fit); await p.evaluate(() => { const t = team(); LANES().forEach(l => l[2].forEach(c => t.arch.sel[c[0]] = true)); save(); render(); }); ok('019 all labels fit', await p.evaluate(() => [...document.querySelectorAll('#archOut svg rect[rx]')].every(rc => rc.nextElementSibling.getBBox().width <= +rc.getAttribute('width') - 4)));
   await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#qi'); await p.fill('#qi', 'Jaki format ma kod partii?'); await p.keyboard.press('Enter'); await p.click('#langSeg button[data-l=en]'); ok('019 old chat marked PL', (await p.textContent('#chat')).includes('PL')); await p.click('#sv'); ok('019 no alert dialog', p.dlgs.length === 0); ok('019 document lang', await p.evaluate(() => document.documentElement.lang) === 'en'); await nav(p, 'lab'); ok('019 no errors', !p.errs.length, p.errs.join('|')); }
 
+console.log('\nCompany site frame (spec 4.21)');
+{ const p = await fresh(undefined, '#/rybex/home');
+  // WCAG contrast of every text node's element inside the frame against its first opaque background up the tree.
+  const lowContrast = () => p.evaluate(() => { const rgb = s => (s.match(/[\d.]+/g) || []).map(Number), lum = c => { const [r, g, b] = c.slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+    const bg = e => { for (; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length === 3 || c[3] > .9) return c; } return [255, 255, 255]; };
+    const bad = []; const w = document.createTreeWalker(document.querySelector('.rybex-frame'), NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) { const e = n.parentElement; if (!n.textContent.trim() || !e.offsetHeight || e.closest('[aria-hidden=true]')) continue; const a = lum(rgb(getComputedStyle(e).color)), b = lum(bg(e)), r = (Math.max(a, b) + .05) / (Math.min(a, b) + .05); if (r < 4.5) bad.push(n.textContent.trim().slice(0, 30) + ' ' + r.toFixed(2)); }
+    return bad; });
+  for (const pg of ['home', 'about', 'products', 'quality', 'news', 'contact', 'career', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg);
+    ok(`site ${pg}: fiction banner present`, await p.$eval('.rybex-frame .fiction-banner', e => /fikcyjn/.test(e.textContent) && e.offsetHeight > 0));
+    ok(`site ${pg}: one h1, frame headings from h2`, await p.evaluate(() => document.querySelectorAll('h1').length === 1 && !document.querySelector('.rybex-frame h1')));
+    const bad = await lowContrast(); ok(`site ${pg}: text contrast at least 4.5:1`, !bad.length, bad.join(' | ')); }
+  await p.evaluate(() => go('rybex', 'home')); await p.focus('#backToWs'); let hit = false;
+  for (let i = 0; i < 6 && !hit; i++) { await p.keyboard.press('Tab'); hit = await p.evaluate(() => document.activeElement.matches('.rybex-frame nav [data-rp=about]')); }
+  ok('site frame menu keyboard reachable', hit); await p.keyboard.press('Enter'); await p.waitForFunction(() => S.sub.rybex === 'about');
+  ok('site menu keeps focus on the new page heading', await p.evaluate(() => document.activeElement.matches('.rybex-frame .rf-page h2')));
+  ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+  const m = await fresh({ width: 375, height: 740 }, '#/rybex/home'); await m.focus('#backToWs'); let tg = false;
+  for (let i = 0; i < 4 && !tg; i++) { await m.keyboard.press('Tab'); tg = await m.evaluate(() => document.activeElement.matches('.rf-toggle')); }
+  ok('site 375 menu toggle reachable by keyboard', tg); await m.keyboard.press('Enter');
+  ok('site 375 menu opens from the keyboard', await m.$eval('.rf-menu', e => e.offsetHeight > 0)); ok('site 375 no horizontal scroll', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth)); await m.close(); }
+
 console.log('\nOriginal behaviour and offline');
 { const p = await fresh(); for (const v of ['brief', 'data', 'demos', 'lab', 'arch', 'deliver']) { await nav(p, v); await p.waitForFunction(v => S.view === v, v); } ok('base all views', !p.errs.length, p.errs.join('|')); await p.fill('#teamName', 'X'); await p.reload(); await ready(p); ok('base persistence', await p.evaluate(() => team().name) === 'X' && await p.evaluate(() => S.view) === 'deliver'); ok('base 8 teams', (await p.$$('#teamSel option')).length === 8);
   // legacy saved data from the previous version keeps working
