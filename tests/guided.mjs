@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -82,6 +82,9 @@ try {
     await p.evaluate(() => go('demos', 'metr')); ok('recap in the metrics demo', await p.$eval('#demo .recap', e => e.dataset.set) === 'demo');
     await p.evaluate(() => go('lab', 'vision')); await p.waitForSelector('#proto .recap');
     ok('headline shows two numbers, rest folded', await p.$$eval('#proto .headline .stat', e => e.length) === 2 && await p.$eval('#proto details.more-metrics', e => !e.open));
+    for (const k of ['rag', 'complaints', 'forecast', 'maint']) { await p.evaluate(k => go('lab', k), k); await p.waitForSelector('#proto .recap');
+      ok(`headline shows two numbers (${k})`, await p.$$eval('#proto .headline .stat', e => e.length) === 2, String(await p.$$eval('#proto .headline .stat', e => e.length))); }
+    await p.evaluate(() => go('lab', 'vision')); await p.waitForSelector('#proto .recap');
     ok('confusion matrix has plain labels', /fałszywy alarm/i.test(await p.$eval('#proto details.more-metrics', e => e.textContent)));
     await p.click('#langSeg button[data-l=en]'); ok('recap in English', /validation/i.test(await p.$eval('#proto .recap', e => e.textContent)));
     ok('recap no page errors', !p.errs.length, p.errs.join('|'));
@@ -177,7 +180,7 @@ try {
       await f.click('#pathNext'); await f.waitForTimeout(50);
       const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
       // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
-      const own = { join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#expNote', iterate: '#expNote', report: '#expH' };
+      const own = { join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
       const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
       ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
     await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; t.seen.data = true; qz(t, 'life', 'split'); delete t.quizzes.metr; });
@@ -231,6 +234,29 @@ try {
     ok('last required quiz moves the path bar without navigation', n0 === 'demos' && n1 === 'base' && h0 === h1, JSON.stringify([n0, n1, h0, h1]));
     ok('quiz no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
+  if (run('labstart')) { for (const k of ['vision', 'rag', 'complaints', 'forecast', 'maint']) { const p = await fresh('#/lab/' + k);
+    // The vision set switches to photo features once the photos load; wait so both saves score the same data.
+    if (k === 'vision') await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 15000 });
+    ok(`${k}: task and baseline button above the fold`, await p.$eval('#runBase', e => e.getBoundingClientRect().bottom < 900));
+    ok(`${k}: method table folded but present`, await p.$eval('#labMethod details', e => !e.open && e.querySelectorAll('input[name=meth]').length >= 2));
+    ok(`${k}: AI bar not in the first screen`, !(await p.$('#aiBar')) || await p.$eval('#aiBar', e => e.getBoundingClientRect().top > 900 || e.closest('details') !== null));
+    await p.click('#runBase'); ok(`${k}: baseline result with recap`, await p.$eval('#baseOut', e => e.dataset.track && e.dataset.v !== undefined && !!e.querySelector('.recap')));
+    ok(`${k}: baseline shows two headline numbers on the tuning set`, await p.$$eval('#baseOut .headline .stat', e => e.length) === 2 && (['forecast', 'maint'].includes(k) || await p.$eval('#baseOut .recap', e => e.dataset.set) !== 'test'));
+    await p.click('#saveBase'); ok(`${k}: baseline saved with flag`, await p.evaluate(k => team().log.some(l => l.track === k && l.base === true), k));
+    await p.click('#saveBase'); ok(`${k}: second save is refused as duplicate`, await p.evaluate(k => team().log.filter(l => l.track === k && l.base).length, k) === 1);
+    ok(`${k}: baseline entry readable in the log`, await p.evaluate(k => { const l = team().log.find(x => x.track === k && x.base); const s = logText(l); return s.includes(BASE_NAME(k)) && !/unreadable|nieczytelny/.test(s); }, k));
+    ok(`${k}: labstart no page errors`, !p.errs.length, p.errs.join('|'));
+    await p.close(); }
+  { const p = await fresh('#/lab/vision');
+    await seed(p, () => { lab().vision.revealed = true; lab().vision.testViews = 1; }); await p.click('#runBase');
+    ok('baseline stays on the validation set while the test is revealed', await p.$eval('#baseOut .recap', e => e.dataset.set) === 'val');
+    await p.click('#visMethod button[data-m=llm]'); ok('AI bar mounted after switching vision to the model', !!(await p.$('#aiBar #aiCode')));
+    await p.click('#visMethod button[data-m=rules]'); ok('AI bar removed after switching back to rules', !(await p.$('#aiBar')));
+    await p.close(); }
+  const p = await fresh('#/lab/forecast'); ok('forecast limits callout', /promocj/i.test(await p.$eval('#fcLimits', e => e.textContent)) && !(await p.$('#fcLimits button')));
+  await p.evaluate(() => go('lab', 'maint')); ok('maint limits callout', !!(await p.$('#mtLimits')));
+  ok('maint limits: nothing trained, a language model could explain the alert', /mało zdarzeń/.test(await p.$eval('#mtLimits', e => e.textContent)) && /wyjaśni/.test(await p.$eval('#mtLimits', e => e.textContent)));
+  await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();

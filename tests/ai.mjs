@@ -30,8 +30,11 @@ async function fresh(hash = '#/lab/rag', q = '', vp = { width: 1440, height: 900
   await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
   return p;
 }
-const aiState = p => p.$eval('#aiBar', e => e.dataset.aiState);
+// The AI bar is mounted only while the lab's method is the model (Task 7): switch to it through the lab's own control first.
+async function modelOn(p) { if (await p.$('#aiBar')) return; const b = p.locator('#ragGen button[data-g=llm], #visMethod button[data-m=llm], #cMethod button[data-m=llm]').first(); if (await b.count()) { await b.click(); await p.waitForSelector('#aiBar'); } }
+const aiState = async p => { await modelOn(p); return p.$eval('#aiBar', e => e.dataset.aiState); };
 async function connect(p, code = 'test-code') {
+  await modelOn(p);
   await p.fill('#aiCode', code); await p.click('#aiConnect');
   await p.waitForFunction(() => !['busy', 'nocode'].includes(document.querySelector('#aiBar').dataset.aiState), null, { timeout: 5000 });
 }
@@ -304,7 +307,8 @@ try {
     for (const [track, sel] of [['complaints', '#cMethod'], ['vision', '#visMethod']]) {
       await p.click(`#trackTabs button[data-k=${track}]`);
       await p.click(`${sel} button[data-m=llm]`); await p.click(`${sel} button[data-m=rules]`);
-      await p.fill('#aiCode', 'test-code'); await p.click('#aiConnect');
+      // Rules mode has no AI bar now: connect the way #aiConnect does, while the rules view is active.
+      await p.evaluate(() => { S.ai.code = 'test-code'; save(); aiCheck(); });
       await p.waitForTimeout(500);
       ok(`${track}: model -> rules, then connect -> ready, no errors`, await aiState(p) === 'ready' && !p.errs.length, (await aiState(p)) + ' ' + p.errs.join(' | '));
     }
