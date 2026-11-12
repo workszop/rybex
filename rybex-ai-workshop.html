@@ -213,7 +213,7 @@ p{margin:6px 0}
 .hint{font-size:var(--caption);color:var(--ink-3);margin:4px 0 0}
 .pathbar{position:sticky;top:var(--hdr-top,0px);z-index:45;background:var(--paper);border-bottom:1px solid var(--line-2)}
 .pb-in{padding:6px var(--gutter);display:flex;align-items:center;gap:8px 16px;min-height:44px}
-.pb-dots{display:flex;gap:4px;margin:0;padding:0;list-style:none;flex:none}.pb-dots li{width:10px;height:10px;border-radius:50%;background:var(--paper-3);border:1px solid var(--line-2)}.pb-dots li.done{background:var(--green);border-color:var(--green)}.pb-dots li.cur{outline:2px solid var(--ink);outline-offset:1px}
+.pb-dots{display:flex;gap:4px;margin:0;padding:0;list-style:none;flex:none}.pb-dots li{width:10px;height:10px;border-radius:50%;background:var(--paper-3);border:1px solid var(--line-2)}.pb-dots li.done{background:var(--green);border-color:var(--green)}.pb-dots li.na{border-style:dashed;background:transparent}.pb-dots li.cur{outline:2px solid var(--ink);outline-offset:1px}
 .pb-txt{margin:0;flex:1;min-width:0;font-size:var(--body-sm)}.pb-min{color:var(--ink-3)}
 #pathNext{flex:none;margin-left:auto}
 .savewarn{background:var(--red-soft);color:var(--red-ink);padding:10px var(--gutter);font-weight:600}
@@ -893,7 +893,7 @@ function prf(tp,fp,fn,tn){const p=tp/(tp+fp),r=tp/(tp+fn);return{tp,fp,fn,tn,p,r
 const f0=x=>isFinite(x)?x:0;
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 // Show or hide the held-out test set; every reveal is counted and ends up in the log.
-function toggleReveal(L){L.revealed=!L.revealed;if(L.revealed)L.testViews++}
+function toggleReveal(L){L.revealed=!L.revealed;if(L.revealed)L.testViews++;renderPathBar()}
 const isTyping=()=>{const a=document.activeElement;return !!a&&(a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&a.type==='text'))};
 function announce(t){clearTimeout(liveTimer);liveTimer=setTimeout(()=>{liveEl.textContent=t},500)}
 // Toasts with an action (undo, confirm) stay longer; every toast pauses while hovered or focused.
@@ -1230,8 +1230,8 @@ function PATH_STEPS(){const t=team(),d=reqDemos(t.track).find(k=>!demoDone(t,k))
  {id:'join',label:T('Przydział i strona firmy','Team set-up and the company'),min:10,go:['home'],hint:T('przeczytajcie notatkę o incydencie i podajcie nazwę zespołu','read the incident memo and enter your team name')},
  {id:'cycle',label:T('Cykl projektu','Project lifecycle'),min:10,go:['demos','life'],hint:T('przejdźcie etapy cyklu projektu AI','walk through the stages of an AI project')},
  {id:'task',label:T('Wybór zadania','Choosing the task'),min:10,go:['brief'],hint:T('wybierzcie zadanie i wpiszcie kryterium sukcesu','pick a task and write the success criterion')},
- {id:'data',label:T('Dane zadania','Task data'),min:15,go:['data'],hint:T('otwórzcie dane wybranego zadania','open the data for your task')},
- {id:'demos',label:T('Mini-demonstracje','Mini demos'),min:20,go:['demos',d],hint:T('obejrzyjcie pokazy wymagane dla waszego zadania','watch the demos your task needs')},
+ {id:'data',label:T('Dane zadania','Task data'),min:15,go:['data'],hint:T('otwórz dane wybranego zadania','open the data for your task')},
+ {id:'demos',label:T('Mini-demonstracje','Mini demos'),min:20,go:['demos',d],subs:reqDemos(t.track),hint:T('obejrzyjcie pokazy wymagane dla waszego zadania','watch the demos your task needs')},
  {id:'base',label:T('Laboratorium, runda 1','Build lab, round 1'),min:25,go:lb,hint:T('uruchomcie metodę odniesienia i zapiszcie wynik','run the baseline and save the result')},
  {id:'iterate',label:T('Rundy 2–3 i test','Rounds 2–3 and the test'),min:30,go:lb,hint:T(`zapiszcie co najmniej ${MIN_EXPERIMENTS} eksperymenty, zmieniając jedną rzecz naraz`,`save at least ${MIN_EXPERIMENTS} experiments, changing one thing at a time`)},
  {id:'risk',label:T('Ryzyka i wdrożenie','Risks and go-live'),min:20,go:['arch'],hint:T('oceńcie ryzyka i decyzje wdrożeniowe','assess the risks and go-live decisions')},
@@ -1239,21 +1239,29 @@ function PATH_STEPS(){const t=team(),d=reqDemos(t.track).find(k=>!demoDone(t,k))
 function pathState(t){const k=t.track,n=k?t.log.filter(l=>l.track===k).length:0,tl=Object.hasOwn(TEST_TRACKS,k)?t.lab[TEST_TRACKS[k]]:null,
  done={join:!!t.onboardedAt||hasWork(t),cycle:demoDone(t,'life'),task:!!(k&&t.goal.trim()),data:!!t.seen.data,demos:reqDemos(k).every(x=>demoDone(t,x)),
   base:n>=1,iterate:n>=MIN_EXPERIMENTS&&(!tl||tl.testViews>=1),risk:Object.keys(t.risks).length>=4&&Object.keys(t.arch.decisions).length>=4,report:!!t.seen.report};
- const all=PATH_STEPS(),steps=all.map(s=>({id:s.id,done:done[s.id]})),nx=all.find(s=>!done[s.id]),here=all.filter(s=>s.go[0]===S.view),last=[...all].reverse().find(s=>done[s.id]);
- const cur=(here.find(s=>nx&&s.id===nx.id)||here.find(s=>!done[s.id])||here[here.length-1]||last||all[0]).id;
+ const all=PATH_STEPS(),na=id=>!stepAvail(id),steps=all.map(s=>na(s.id)?{id:s.id,done:false,na:true}:{id:s.id,done:!!done[s.id]}),isDone=s=>steps.find(x=>x.id===s.id).done,
+  nx=all.find(s=>!na(s.id)&&!done[s.id]),here=all.filter(onStep),last=[...all].reverse().find(isDone);
+ const cur=(here.find(s=>!isDone(s))||here[here.length-1]||last||all[0]).id;
  return{steps,cur,next:nx?{id:nx.id,label:nx.label,go:nx.go}:null,doneCount:steps.filter(s=>s.done).length}}
+// A step is "not available yet" until the screen it needs exists (risk demo arrives in Stage 2).
+function stepAvail(id){return id!=='risk'||DEMO_KEYS.includes('risk')}
+// The step's target matches the current view and, where the step has one, the sub view.
+function onStep(s){if(s.go[0]!==S.view)return false;const sub=S.sub[S.view];return s.subs?s.subs.includes(sub):s.go.length<2||s.go[1]===sub}
+// Next on the step's own page: bring its working element into view instead of a no-op navigation.
+function pathFocus(id){const t=team(),el=({join:()=>$('#onboardName')||$('#memo'),task:()=>t.track?$('#goal'):$('#main [data-t]'),base:()=>$('#expNote'),iterate:()=>$('#expNote'),report:()=>$('#expH')})[id]?.()||mainEl;
+ if(!el.matches('input,button,textarea,select,[tabindex]'))el.setAttribute('tabindex','-1');el.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});el.focus({preventScroll:true})}
 function setHdrH(){const hd=$('.edu-header'),pb=$('#pathBar'),h=hd&&getComputedStyle(hd).position==='sticky'?hd.offsetHeight:0,r=document.documentElement.style;r.setProperty('--hdr-top',h+'px');r.setProperty('--hdr-h',h+(pb?pb.offsetHeight:0)+'px')}
 function renderPathBar(){const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id);
- Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:''});el.setAttribute('aria-label',T('Ścieżka warsztatu','Workshop path'));
- el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${ci}/${all.length} ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}"><span class="pb-lbl">${T('Dalej','Next')}: ${nx.label}</span>${ic('arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
- $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const g=PATH_STEPS().find(x=>x.id===s.id).go;go(...g)};icons(el);setHdrH()}
+ Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:'',na:st.steps.filter(s=>s.na).length});el.setAttribute('aria-label',T('Ścieżka warsztatu','Workshop path'));
+ el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''}${s.na?' na':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${ci}/${all.length} ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}"><span class="pb-lbl">${T('Dalej','Next')}: ${nx.label}</span>${ic('arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
+ $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const p=PATH_STEPS().find(x=>x.id===s.id);if(onStep(p)&&!AIS.run)pathFocus(p.id);else go(...p.go)};icons(el);setHdrH()}
 
 // ─── Render: shell ───
 const nm=id=>T(...NAV.find(n=>n[0]===id)[2]);
 function renderSaveWarn(){const w=$('#saveWarn');w.hidden=!saveFailed;if(saveFailed)w.textContent=T('Uwaga: przeglądarka nie zapisuje danych. Pobierz plik zespołu, zanim zamkniesz kartę.','Warning: the browser is not storing your data. Download the team file before closing this tab.')}
 function teamLabel(i){const n=S.teams[i]&&S.teams[i].name;return`${T('Zespół','Team')} ${i}${n?' – '+n:''}`}
 function renderTeamOptions(){$('#teamSel').innerHTML=Array.from({length:TEAM_COUNT},(_,k)=>k+1).map(i=>`<option value="${i}" ${i==S.team?'selected':''}>${esc(teamLabel(i))}</option>`).join('')}
-function renderProg(){const t=team(),{done,tot}=checkProgress(t);const el=$('#tbProg');el.dataset.done=done;el.dataset.total=tot;el.dataset.log=t.log.length;$('#tbToggle').innerHTML=`<span>${esc(teamLabel(S.team))} · ${done}/${tot}</span>${ic($('#teamBar').classList.contains('open')?'chevron-up':'chevron-down')}`;icons($('#tbToggle'));el.innerHTML=`<div class="field"><span class="label">${T('Postęp','Progress')}: ${done}/${tot} · ${t.track?`${T('eksperymenty','experiments')} (${trackName(t.track)}): ${expCount(t.track)}/${MIN_EXPERIMENTS}`:`${T('wpisy w dzienniku','log entries')}: ${t.log.length}`}</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}" aria-label="${T('Postęp listy kontrolnej','Checklist progress')}"><span style="width:${tot?done/tot*100:0}%"></span></div></div>`}
+function renderProg(){const t=team(),{done,tot}=checkProgress(t);const el=$('#tbProg');el.dataset.done=done;el.dataset.total=tot;el.dataset.log=t.log.length;$('#tbToggle').innerHTML=`<span>${esc(teamLabel(S.team))} · ${done}/${tot}</span>${ic($('#teamBar').classList.contains('open')?'chevron-up':'chevron-down')}`;icons($('#tbToggle'));el.innerHTML=`<div class="field"><span class="label">${T('Postęp','Progress')}: ${done}/${tot} · ${t.track?`${T('eksperymenty','experiments')} (${trackName(t.track)}): ${expCount(t.track)}/${MIN_EXPERIMENTS}`:`${T('wpisy w dzienniku','log entries')}: ${t.log.length}`}</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${done}" aria-label="${T('Postęp listy kontrolnej','Checklist progress')}"><span style="width:${tot?done/tot*100:0}%"></span></div></div>`;renderPathBar()}
 function renderShell(){
  $('#nav').innerHTML=NAV.map((n,i)=>`<button type="button" data-v="${n[0]}" class="${S.view===n[0]?'on':''}" ${S.view===n[0]?'aria-current="page"':''} aria-keyshortcuts="${i+1}">${ic(n[1])}${nm(n[0])}</button>`).join('');
  $('#lblTeam').textContent=T('Zespół','Team');$('#lblName').textContent=T('Nazwa zespołu / projektu','Team / project name');
@@ -1852,7 +1860,7 @@ function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts();
  const logBox=()=>{const t=team(),b=$('#logBox');b.innerHTML=t.log.length?`<div class="tscroll"><table><thead><tr><th>${T('Czas','Time')}</th><th>${T('Zadanie','Task')}</th><th>${T('Wynik','Result')}</th><th>${T('Notatka','Note')}</th><th>${T('Akcje','Actions')}</th></tr></thead><tbody>${t.log.map((l,i)=>`<tr data-log="${i}"><td>${esc(fmtTs(l.ts))}</td><td>${esc(l.text||!LAB_KEYS.includes(l.track)?l.track:trackName(l.track))}</td><td>${esc(logText(l))}${l.testViews?` <span class="edu-chip tone-yellow">${T('test oglądany','test viewed')}: ${l.testViews}×</span>`:''}</td><td>${esc(l.note)}</td><td><div class="row" style="flex-wrap:nowrap">${l.cfg&&LAB_KEYS.includes(l.track)?`<button type="button" class="btn-ghost btn-sm" data-r="${i}" title="${T('Wczytaj ustawienia tego eksperymentu z powrotem do Laboratorium','Load this experiment’s settings back into the Build lab')}">${ic('rotate-ccw')}${T('Przywróć ustawienia','Restore settings')}</button>`:''}<button type="button" class="btn-ghost btn-sm" data-d="${i}" title="${T('Usuń wpis z dziennika (można cofnąć)','Delete the entry from the log (can be undone)')}">${ic('trash-2')}${T('Usuń','Delete')}</button></div></td></tr>`).join('')}</tbody></table></div>`:`<div class="well"><p style="margin:0">${T('Brak wpisów – zapisuj wyniki eksperymentów w Laboratorium.','No entries – save experiment results in the Build lab.')}</p><p class="mt"><button type="button" class="btn-ghost btn-sm" id="toLab">${T('Przejdź do Laboratorium','Go to the Build lab')}</button></p></div>`;
   const tl=$('#toLab');if(tl)tl.onclick=()=>go('lab');$$('button[data-d]',b).forEach(x=>x.onclick=()=>withUndo(T('Usunięto wpis.','Entry deleted.'),()=>{team().log.splice(+x.dataset.d,1)}));$$('button[data-r]',b).forEach(x=>x.onclick=()=>restoreRun(team().log[+x.dataset.r]));icons(b)};
  stats();logBox();
- $$('input[data-c]').forEach(c=>c.onchange=e=>{team().checks[e.target.dataset.c]=e.target.checked;save();stats()});$$('textarea[data-n]').forEach(c=>c.oninput=e=>{team().notes[e.target.dataset.n]=e.target.value;save()});
+ $$('input[data-c]').forEach(c=>c.onchange=e=>{team().checks[e.target.dataset.c]=e.target.checked;save();stats();renderPathBar()});$$('textarea[data-n]').forEach(c=>c.oninput=e=>{team().notes[e.target.dataset.n]=e.target.value;save()});
  const fname=()=>'rybex_report_team_'+S.team;const done=()=>{team().seen.report=true;save();renderPathBar()};$('#exp').onclick=()=>{dl(fname()+'.md',reportMD());done()};$('#expH').onclick=()=>{dl(fname()+'.html',reportHTML(),'text/html;charset=utf-8');done()}}
 
 // ─── Listeners ───

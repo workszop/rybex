@@ -122,7 +122,7 @@ try {
     ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
     const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; ['life', 'split', 'metr', 'tok'].forEach(k => t.seen['demo.' + k] = true);
       const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
-    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","risk",true,false]', JSON.stringify(rules));
+    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","report",true,false]', JSON.stringify(rules));
     ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
     await seed(p, () => { team().onboardedAt = 'x'; });
     const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
@@ -163,7 +163,38 @@ try {
     ok('team with a ticked item skips onboarding', !(await o.$('#onboard')));
     await seed(o, () => { const t = team(); t.checks = {}; t.name = ''; });
     ok('empty team sees onboarding', !!(await o.$('#onboard')));
-    await o.close(); }
+    await o.close();
+    // Review round 1: Next on its own page, fresh bar after lab actions, unavailable steps, sub-view aware current step.
+    const f = await fresh('#/home');
+    const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; }, task: t => { t.seen['demo.life'] = true; }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
+      base: t => { t.seen['demo.split'] = t.seen['demo.metr'] = true; }, iterate: t => { t.log.push({ id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); } };
+    let acc = [];
+    for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
+      await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
+      const r1 = await f.evaluate(id => { const s = PATH_STEPS().find(x => x.id === id); go(...s.go); document.activeElement.blur(); return { next: document.querySelector('#pathBar').dataset.next, hash: location.hash }; }, id);
+      await f.click('#pathNext'); await f.waitForTimeout(50);
+      const r2 = await f.evaluate(() => ({ hash: location.hash, body: document.activeElement === document.body, act: document.activeElement.id || document.activeElement.tagName }));
+      ok(`Next acts on its own page (${id})`, r2.hash !== r1.hash || !r2.body, JSON.stringify([r1, r2])); }
+    ok('Next focuses the working element', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#pathNext').click(); return document.activeElement.id === 'onboardName'; }));
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'maint', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true }); t.log = []; });
+    await f.evaluate(() => go('lab', 'maint')); await f.click('#sv');
+    ok('bar fresh after saving an experiment', await f.evaluate(() => document.querySelector('#pathBar').dataset.next === pathState(team()).next.id && pathState(team()).next.id === 'iterate'));
+    await seed(f, () => { const t = team(); t.track = 'vision'; t.seen['demo.tok'] = true; t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })); t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
+    await f.evaluate(() => go('lab', 'vision')); await f.waitForSelector('#visRv'); await f.click('#visRv');
+    ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === (n ? n.id : '') && (!n || n.id !== 'iterate'); }));
+    await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
+    ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
+    const done = await f.evaluate(() => { const t = defaultTeam(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true }); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' }));
+      const a = pathState(t); t.seen.report = true; const b = pathState(t); return { a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
+    ok('report recommended while risk is unavailable', done.a === 'report', JSON.stringify(done));
+    ok('path completes without unavailable steps', done.b === null && done.na.na === true && done.na.done === false, JSON.stringify(done));
+    await seed(f, () => { const t = team(); Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, 'demo.life': true, 'demo.split': true, 'demo.metr': true, report: true }); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })); });
+    ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '1' && e.dataset.total === '9'));
+    ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórz dane wybranego zadania')));
+    await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; }); await f.evaluate(() => go('demos', 'split'));
+    ok('current step follows the sub view', await f.$eval('#pathBar', e => e.dataset.step) === 'demos');
+    ok('review round no page errors', !f.errs.length, f.errs.join('|'));
+    await f.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
