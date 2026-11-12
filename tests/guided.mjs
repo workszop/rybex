@@ -493,6 +493,40 @@ try {
       const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4 }, test: { f1: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
       ok('gate vision banner never reads a test-set value', r.best === '0.4' && !r.txt.includes('90'), JSON.stringify(r));
       await v.close(); }
+    // Review round 1: like-with-like banner, focus on an unsaved baseline, visible justification minimum.
+    { const f = await fresh('#/lab/forecast');
+      const fb = (v, base, p) => ({ id: 'e' + p + v, ts: '', track: 'forecast', cfg: { p, h: 6, w: 3 }, res: { primary: { m: 'MAPE', v, base, hi: false } }, note: '', testViews: 0 });
+      const B = { id: 'b', ts: '', track: 'forecast', cfg: { base: true, p: 0, h: 6 }, res: { primary: { m: 'MAPE', v: .3, base: .3, hi: false } }, note: '', testViews: 0, base: true };
+      const cross = await f.evaluate(([B, E]) => { team().log = [B, E]; renderBaseBanner('forecast'); return { ...$('#baseBanner').dataset }; }, [B, fb(.05, .04, 1)]);
+      ok('gate forecast: no cross-product "beaten"', cross.beaten !== 'true' && cross.base === '0.04' && cross.same === 'false', JSON.stringify(cross));
+      const same = await f.evaluate(([B, E]) => { team().log = [B, E]; renderBaseBanner('forecast'); return { ...$('#baseBanner').dataset }; }, [B, fb(.2, .3, 0)]);
+      ok('gate forecast: same product and horizon, lower MAPE beats', same.beaten === 'true' && same.base === '0.3' && same.same === 'true', JSON.stringify(same));
+      await f.close(); }
+    { const r = await fresh('#/lab/rag');
+      const d = await r.evaluate(() => { team().log = [{ id: 'b', ts: '', track: 'rag', cfg: { base: true, set: 'dev', lang: 'pl' }, res: { primary: { m: 'x', v: .5, base: .5, hi: true, test: false } }, note: '', testViews: 0, base: true },
+        { id: 'e', ts: '', track: 'rag', cfg: { k: 2, chunk: 'p', min: .1, lang: 'en' }, res: { primary: { m: 'x', v: .6, base: .7, hi: true, test: false } }, note: '', testViews: 0 }]; renderBaseBanner('rag'); return { ...$('#baseBanner').dataset }; });
+      ok('gate rag: no cross-language claim', d.beaten === 'false' && d.base === '0.7' && d.same === 'false', JSON.stringify(d));
+      await r.close(); }
+    { const c = await fresh('#/lab/complaints');
+      const d = await c.evaluate(() => { const ids = Array.from({ length: 16 }, (_, i) => 21 + i), dev = DATA.compl.slice(0, 36), cnt = {}; dev.forEach(x => cnt[x.category] = (cnt[x.category] || 0) + 1);
+        const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], want = ids.filter(i => DATA.compl[i - 1].category === top).length / ids.length;
+        lab().compl.runs = [{ id: 'r1', ts: '', ver: 'v1', model: 'm', shots: 5, set: 'dev16', n: 16, acc: .3, ids, preds: ids.map(() => ({ c: 'other', h: false, r: '' })) }];
+        team().log = [{ id: 'b', ts: '', track: 'complaints', cfg: { base: true, set: 'dev' }, res: { dev: .25, base: .25, primary: { m: 'x', v: .25, base: .25, hi: true, test: false } }, note: '', testViews: 0, base: true },
+          { id: 'e', ts: '', track: 'complaints', cfg: { mode: 'llm', model: 'm', ver: 'v1', shots: 5, set: 'dev16' }, res: { acc: want + .01, base: .1, test: null, run: 'r1', primary: { m: 'x', v: want + .01, base: .1, hi: true, test: false } }, note: '', testViews: 0 }];
+        renderBaseBanner('complaints'); return { ds: { ...$('#baseBanner').dataset }, want }; });
+      ok('gate complaints: few-shot run compared with the majority class on its own subset', d.ds.base === String(d.want) && d.ds.beaten === 'true' && d.ds.same === 'false', JSON.stringify(d));
+      await c.close(); }
+    { const p = await fresh('#/lab/vision');
+      await p.click('#runBase'); await p.click('#visRv');
+      ok('gate run but unsaved baseline: focus on the save button', await p.evaluate(() => document.activeElement.id) === 'saveBase');
+      await p.click('#saveBase'); await p.click('#labMethod details > summary'); await p.fill('#methWhy', 'tanie');
+      ok('gate short justification keeps the gate closed', await p.$eval('#visRv', e => e.dataset.blocked) === 'why');
+      await p.click('#visRv'); const short = await p.$eval('#toast', e => e.dataset.reason);
+      await p.fill('#methWhy', ''); await p.click('#visRv'); const empty = await p.$eval('#toast', e => e.dataset.reason);
+      ok('gate short justification gets its own message', short === 'short' && empty === 'why', JSON.stringify([short, empty]));
+      ok('gate justification hint names the minimum', await p.$eval('#methWhy', e => { const h = document.getElementById(e.getAttribute('aria-describedby') || 'none'); return !!h && /jedno zdanie/.test(h.textContent) && /raport/.test(h.textContent); }));
+      ok('gate no page errors (review)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
     ok('gate double click on reveal counts one view', await (async () => { const d = await fresh('#/lab/rag', '&trainer=1'); await d.dblclick('#ragRv'); const n = await d.evaluate(() => lab().rag.testViews); await d.close(); return n >= 1 && n <= 2; })()); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
