@@ -2925,9 +2925,19 @@ async function trImport(files){const bad=[];let n=0;X.trFiles=X.trFiles||[];
 // live region announces the new text.
 function trPaintFiles(){if(S.view!=='trainer'||!$('#trFilesBox'))return;$('#trFilesBox').innerHTML=trTable('trFiles',T('Zespół – plik','Team – file'),trFileRows(),T('Brak wczytanych plików.','No files loaded.'));
  $('#trClear').disabled=!(X.trFiles||[]).length;$('#trStatus').textContent=trMsg();$('#trImport').focus()}
+// Team slots saved in this browser (what "Clear all teams" would remove).
+function storedTeamCount(){try{const x=readStore();return x&&isObj(x.teams)?Object.keys(x.teams).length:0}catch(e){return 0}}
+// Trainer: removes all team slots from this browser after a confirmation; language, class code and model stay.
+// One undo restores the exact stored state. Transient per-slot state (baseline shown, open panels) is dropped.
+function trWipeAll(){toast(T('Usunąć pracę wszystkich zespołów (sloty 1–8) z tej przeglądarki? Zespoły, które nie pobrały pliku zespołu, stracą swoją pracę.','Remove the work of all teams (slots 1–8) from this browser? Teams that have not downloaded their team file will lose their work.'),{reason:'wipe',action:[T('Usuń wszystkie zespoły','Remove all teams'),()=>guardRun(()=>{
+  let raw=null,ok=true;try{raw=localStorage.getItem(STORE_KEY);const cur=raw?JSON.parse(raw):{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,team:1,teams:{}}))}catch(e){ok=false}
+  if(!ok){toast(T('Nie udało się wyczyścić danych w tej przeglądarce. Nic nie zmieniono.','Could not clear the data in this browser. Nothing changed.'));return}
+  S.teams={};S.team=1;badgeQ=[];['baseOn','moreOpen','cmpSel','methOpen','rc','ragLastMsgs','ragPending'].forEach(k=>delete X[k]);render();
+  toast(T('Usunięto pracę wszystkich zespołów z tej przeglądarki.','All teams’ work was removed from this browser.'),{reason:'wiped',action:[T('Cofnij','Undo'),()=>{try{if(raw)localStorage.setItem(STORE_KEY,raw);else localStorage.removeItem(STORE_KEY)}catch(e){return}
+   const x=raw?JSON.parse(raw):{};S.teams=normTeams(x.teams);S.team=clampInt(x.team,1,TEAM_COUNT,1);render();announce(T('Cofnięto','Undone'))}]})})]})}
 function vTrainer(){const fn=X.trFiles||[];
  mainEl.innerHTML=pageHead(T('Tryb prowadzącego','Trainer mode'),'',`<p class="edu-lead" id="trIntro">${T('Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, kto zrobił baseline, ile razy oglądano test i czy uzupełniono uzasadnienie. Nie porównujemy surowego F1 na teście na forum grupy.','Trainer mode: load the team files to see who ran the baseline, how many times the test set was viewed and whether the justification was filled in. We do not compare raw test-set F1 in front of the group.')}</p>`)
-  +`<section class="sec"><h2 class="sr-only">${T('Postęp zespołów','Team progress')}</h2><div class="wrap">`+card('users',T('Zespoły na tej przeglądarce (sloty 1–8)','Teams in this browser (slots 1–8)'),trTable('trSlots',T('Zespół','Team'),trSlotRows(),''),{tone:'blue'})
+  +`<section class="sec"><h2 class="sr-only">${T('Postęp zespołów','Team progress')}</h2><div class="wrap">`+card('users',T('Zespoły na tej przeglądarce (sloty 1–8)','Teams in this browser (slots 1–8)'),trTable('trSlots',T('Zespół','Team'),trSlotRows(),''),{tone:'blue',foot:`<p class="hint" style="margin:0">${T('Po zajęciach: najpierw niech zespoły pobiorą pliki zespołu, potem wyczyść sloty dla następnej grupy.','After the class: have the teams download their team files first, then clear the slots for the next group.')}</p><button type="button" class="btn-ghost btn-sm" id="trWipe"${storedTeamCount()?'':' disabled'}>${ic('trash-2')}${T('Wyczyść wszystkie zespoły','Clear all teams')}</button>`})
   +`<div class="mt">${card('upload',T('Wczytane pliki zespołów','Imported team files'),`<p class="edu-small">${T('Wybierz kilka plików JSON naraz. Pliki zostają tylko w pamięci tej karty: nie trafiają do żadnego slotu i znikają po zamknięciu strony. Ten sam plik wczytany ponownie zastępuje swój wiersz.','Select several JSON files at once. The files stay only in this tab’s memory: they are not written to any slot and are gone when the page closes. Loading the same file again replaces its row.')}</p>
  <div class="field mt"><label for="trImport">${T('Pliki zespołów (JSON)','Team files (JSON)')}</label><input type="file" id="trImport" class="input" accept="application/json,.json" multiple></div>
  <p class="hint" id="trStatus" aria-live="polite">${esc(trMsg())}</p><div class="mt" id="trFilesBox">${trTable('trFiles',T('Zespół – plik','Team – file'),trFileRows(),T('Brak wczytanych plików.','No files loaded.'))}</div>`,{tone:'yellow',foot:`<button type="button" class="btn-ghost btn-sm" id="trClear"${fn.length?'':' disabled'}>${ic('trash-2')}${T('Wyczyść listę','Clear the list')}</button>`})}</div>`
@@ -2935,6 +2945,7 @@ function vTrainer(){const fn=X.trFiles||[];
  $('#trImport').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)trImport(f)};
  $('#trClear').onclick=()=>{X.trFiles=[];X.trRes={cleared:true};trPaintFiles()};
  $('#trCsv').onclick=()=>dl('rybex_trainer.csv',trCSV(),'text/csv;charset=utf-8');
+ $('#trWipe').onclick=trWipeAll;
  icons(mainEl)}
 // ─── Listeners ───
 $('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(b)go(b.dataset.v)});
