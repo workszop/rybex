@@ -1,5 +1,5 @@
 // Probes for the model-backed features. Starts the mock server itself.
-// Usage: cd tests && node ai.mjs [section...]   (sections: core rag compl vision log data fixes photo file audit)
+// Usage: cd tests && node ai.mjs [section...]   (sections: core rag compl vision log data fixes photo file audit record)
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
@@ -496,6 +496,33 @@ try {
     const to = await p.evaluate(() => ({ runs: lab().compl.runs.length, failed: lab().compl.runs.at(-1).failed, state: AIS.state }));
     ok('one timed-out call is a per-item failure, not a lost connection', to.runs === 2 && to.failed === 1 && to.state !== 'offline', JSON.stringify(to));
     ok('no page errors (audit runs)', !p.errs.length, p.errs.join(' | '));
+    await p.close();
+  }
+
+  // ─── Task 21b: the page flow tools/record-replay.mjs depends on ───
+  if (run('record')) {
+    console.log('record');
+    await mock('reset');
+    // Each lab opens on its rules view, which has no AI bar; the lab's own control switches to the model view, which has one.
+    for (const [k, sw, runBtn] of [['rag', '#ragGen button[data-g=llm]', '#ragRun'], ['complaints', '#cMethod button[data-m=llm]', '#cRun'], ['vision', '#visMethod button[data-m=llm]', '#visRun']]) {
+      const p = await fresh('#/lab/' + k);
+      await p.evaluate(() => { S.team = 8; S.lang = 'pl'; save(); render(); });
+      ok(`record ${k}: no code field before the switch`, !(await p.$('#aiCode')));
+      await p.click(sw); await p.waitForSelector('#aiBar');
+      await p.fill('#aiCode', 'test-code');
+      ok(`record ${k}: after the switch the code field takes input and connect is enabled`, await p.$eval('#aiCode', e => e.value) === 'test-code' && await p.$eval('#aiConnect', e => !e.disabled), k);
+      await p.click('#aiConnect');
+      await p.waitForFunction(() => document.querySelector('#aiBar').dataset.aiState === 'ready', null, { timeout: 5000 }).catch(() => {});
+      ok(`record ${k}: connect -> ready, run control present`, await p.$eval('#aiBar', e => e.dataset.aiState) === 'ready' && !!(await p.$(runBtn)), await p.$eval('#aiBar', e => e.dataset.aiState));
+      ok(`record ${k}: no page errors`, !p.errs.length, p.errs.join(' | '));
+      await p.close();
+    }
+    // The tool sets later labs' model method in state and re-renders: the AI bar and the run button come with it.
+    const p = await fresh('#/lab/complaints');
+    await p.evaluate(() => { const L = lab().compl; L.method = 'llm'; save(); render(); });
+    ok('record: model method set in state renders the AI bar and #cRun', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#cRun')));
+    await p.evaluate(() => { go('lab', 'vision'); const L = lab().vision; L.method = 'llm'; save(); render(); });
+    ok('record: same for vision (#visRun)', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#visRun')));
     await p.close();
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }

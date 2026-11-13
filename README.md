@@ -22,6 +22,8 @@ Model calls go through the Cloudflare Worker in `worker/`, which holds the API k
 
 ```bash
 CC='class-code' node tools/record-replay.mjs
+# dry run against the mock Worker: no real calls, writes outside the repo
+CC=test-code AI=http://127.0.0.1:8800/mock OUT=/tmp/replay-mock.json node tools/record-replay.mjs
 ```
 
 ## Guided path
@@ -44,7 +46,7 @@ What participants meet along the way:
 - Glossary terms underlined in the text, with a tooltip on hover or keyboard focus.
 - A plain-language recap of each result with two headline numbers; the other metrics (F1, accuracy, the confusion matrix and so on) are folded under "Więcej miar" (More metrics).
 - Two-question quizzes after the demos (lifecycle, tokens, RAG, data split, metrics).
-- In every lab, a "Uruchom metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a short written justification of the method choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
+- In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a short written justification of the method choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównaj dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
