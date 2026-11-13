@@ -29,6 +29,8 @@ const lab = (p, key) => p.evaluate(k => { go('lab', k); }, key);
 const GOAL = {
   complaints: 'Poprawnie rozpoznać kategorię co najmniej 8 na 10 reklamacji, w tym wszystkie sprawy o bezpieczeństwie.',
   forecast: 'Błąd prognozy popytu niższy niż średnia historyczna.',
+  rag: 'Odpowiedzi asystenta zawsze ze wskazaniem dokumentu, a pytania spoza dokumentów odrzucane.',
+  maint: 'Ostrzec przed awarią zamykarki, zanim linia stanie, przy niewielu fałszywych alarmach.',
   vision: 'Wykryć wadliwe puszki bez fałszywych alarmów na linii.',
 };
 
@@ -61,15 +63,15 @@ const SHOTS = [
     seed: p => seedTeam(p, { track: 'complaints', site: { newsRead: true } }, ['life']),
     alt: 'Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy.' },
   { id: 'data', hash: '#/data', ai: false, el: null,
-    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']); await p.evaluate(() => { FSEL = TRACK_FILE.complaints; render(); }); },
-    alt: 'Strona danych zadania „Analiza reklamacji”: lista plików i podgląd pliku z reklamacjami klientów.' },
+    seed: async p => { await seedTeam(p, { track: 'maint', goal: GOAL.maint, site: { newsRead: true } }, ['life']); await p.evaluate(() => { FSEL = TRACK_FILE.maint; render(); }); },
+    alt: 'Strona danych zadania „Awarie maszyn”: lista plików i karta danych z odczytami czujników.' },
   { id: 'demos', hash: '#/demos/metr', ai: false, el: null,
     seed: p => seedTeam(p, { track: 'forecast', goal: GOAL.forecast, site: { newsRead: true } }, ['life', 'split']),
     alt: 'Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek.' },
-  { id: 'baseline', hash: '#/lab/forecast', ai: false, el: null,
-    seed: async p => { await seedTeam(p, { track: 'forecast', goal: GOAL.forecast, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr']);
+  { id: 'baseline', hash: '#/lab/rag', ai: false, el: null,
+    seed: async p => { await seedTeam(p, { track: 'rag', goal: GOAL.rag, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok', 'rag']);
       await p.click('#runBase'); await settle(p); await p.evaluate(() => document.querySelector('#baseOut').scrollIntoView({ block: 'start' })); },
-    alt: 'Laboratorium prognozy popytu: wynik metody odniesienia z dwiema głównymi liczbami i krótkim podsumowaniem.' },
+    alt: 'Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami.' },
   { id: 'test-reveal', hash: '#/lab/complaints', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok']);
       await baselineAndGate(p); await p.click('#rv'); await settle(p); await p.evaluate(() => { document.querySelector('#rv').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
@@ -80,9 +82,10 @@ const SHOTS = [
       await p.evaluate(() => document.querySelector('#riskDemo [data-r="privacy"]').scrollIntoView({ block: 'start' })); },
     alt: 'Karty ryzyk projektu AI (dane osobowe, halucynacje) z wybraną odpowiedzią i widocznym uzasadnieniem.' },
   { id: 'golive', hash: '#/arch', ai: false, el: '#goLive',
-    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']);
-      await p.click('#goLive [data-d=stopAuthority] [data-o=operator]'); await p.click('#goLive [data-d=monitor] [data-o=falseAlarms]'); },
-    alt: 'Cztery decyzje przed uruchomieniem na linii; przy wybranych odpowiedziach widać ich konsekwencje i koszt.' },
+    seed: async p => { await seedTeam(p, { track: 'maint', goal: GOAL.maint, site: { newsRead: true } }, ['life']);
+      await p.click('#goLive [data-d=stopAuthority] [data-o=operator]'); await p.click('#goLive [data-d=monitor] [data-o=falseAlarms]');
+      await p.click('#goLive [data-d=runWhere] [data-o=local]'); await p.click('#goLive [data-d=reviewEvery] [data-o=quarterly]'); },
+    alt: 'Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją.' },
   { id: 'arch', hash: '#/arch', ai: false, el: '#archOut',
     seed: p => seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, arch: { sel: Object.fromEntries(['mail', 'clean', 'split', 'anon', 'llm', 'hitl', 'dash', 'mon'].map(k => [k, true])), infra: 'hybrid' } }, ['life']),
     alt: 'Schemat blokowy architektury rozwiązania złożony z wybranych komponentów.' },

@@ -62,7 +62,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Strona danych zadania „Analiza reklamacji”: lista plików i podgląd pliku z reklamacjami klientów."
+   "alt": "Strona danych zadania „Awarie maszyn”: lista plików i karta danych z odczytami czujników."
   },
   {
    "id": "demos",
@@ -80,7 +80,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Laboratorium prognozy popytu: wynik metody odniesienia z dwiema głównymi liczbami i krótkim podsumowaniem."
+   "alt": "Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami."
   },
   {
    "id": "test-reveal",
@@ -104,10 +104,10 @@
    "id": "golive",
    "file": "golive.webp",
    "w": 2652,
-   "h": 2336,
+   "h": 2234,
    "ai": false,
    "full": false,
-   "alt": "Cztery decyzje przed uruchomieniem na linii; przy wybranych odpowiedziach widać ich konsekwencje i koszt."
+   "alt": "Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją."
   },
   {
    "id": "arch",
