@@ -1247,6 +1247,51 @@ try {
     { const p = await fresh('#/home');
       ok('exit2r path bar position reads krok n z 9', await p.evaluate(() => { const h = $('.pb-here').textContent, s = $('#pathBar').dataset.step; S.lang = 'en'; render(); const e = $('.pb-here').textContent; S.lang = 'pl'; render(); return /krok 1 z 9/.test(h) && !/\d\/9/.test(h) && /step 1 of 9/.test(e) && s === 'join'; }));
       await p.close(); }
+    // Review round 2.
+    { const p = await fresh('#/arch');
+      ok('exit2r2 no non-vision Polish hitl text talks about the line', await p.evaluate(() => { const t = team(), out = []; for (const k of ['complaints', 'rag', 'forecast', 'maint']) for (const a of ['system', 'operator']) { t.track = k; t.arch.decisions.stopAuthority = a; out.push(GO_LIVE_WARN_TXT(t, 'hitl')); } t.arch.decisions = {}; return out.every(x => !/lini/i.test(x)) && out.some(x => /zostaje przyjęty/.test(x)); }));
+      await p.close(); }
+    // The waiver needs a save that carries a test result: a tuning-set model run saved while revealed follows the normal rule.
+    { const p = await fresh('#/lab/complaints');
+      await p.evaluate(`(()=>{ (${prepC})(); const L = lab().compl, ids = Array.from({ length: 16 }, (_, i) => 21 + i), tids = Array.from({ length: 24 }, (_, i) => 37 + i);
+        L.method = 'llm'; L.revealed = true; L.testViews = 1;
+        L.runs = [{ id: 'r1', ts: '', ver: 'v1', model: 'm', shots: 5, set: 'dev16', n: 16, acc: .3, macro: .3, safety: 1, safetyFalse: 0, ruleAcc: .25, sum: aiSummary([]), ids, preds: ids.map(() => ({ c: 'other', h: false, r: '' })) },
+          { id: 'r2', ts: '', ver: 'v1', model: 'm', shots: 5, set: 'test', n: 24, acc: .4, macro: .4, safety: 1, safetyFalse: 0, ruleAcc: .3, sum: aiSummary([]), ids: tids, preds: tids.map(() => ({ c: 'other', h: false, r: '' })) }];
+        L.rsel = 'r1'; save(); render(); })()`);
+      await p.fill('#expNote', ''); await p.click('#sv');
+      ok('exit2r2 revealed, dev run selected, no note: held', await p.evaluate(() => expOf(team(), 'complaints')) === 3 && await p.$eval('#expNote', e => e.getAttribute('aria-invalid') === 'true'));
+      await p.evaluate(() => { lab().compl.rsel = 'r2'; save(); render(); }); await p.fill('#expNote', ''); await p.click('#sv');
+      ok('exit2r2 revealed, test run selected, no note: saved as the final result', await p.evaluate(() => expOf(team(), 'complaints') === 4 && cmpTestSaved(team().log[team().log.length - 1])));
+      ok('exit2r2 no page errors (model waiver)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    // Packshots: no photo set on the site, alt, size, lazy, fallback, file://, 375 px.
+    { const p = await fresh('#/rybex/home');
+      await p.evaluate(() => go('rybex', 'products'));
+      ok('exit2r2 the site loads no vision photo set', await p.evaluate(() => !VIS.initialized && typeof rybexPick === 'undefined' && typeof rybexPhotos === 'undefined' && !/rybex/.test(visionRefresh.toString())));
+      const im = await p.evaluate(() => { const r = q => [...document.querySelectorAll(q)].map(i => ({ alt: i.alt, w: i.getAttribute('width'), h: i.getAttribute('height'), lazy: i.getAttribute('loading') })); const prod = r('.rf-prod img'); go('rybex', 'home'); const hero = r('.rf-hero-pic img'); S.lang = 'en'; render(); const en = r('.rf-hero-pic img'); S.lang = 'pl'; render(); return { prod, hero, en }; });
+      ok('exit2r2 packshots: localised alt, explicit size', [...im.prod, ...im.hero].every(i => /^Puszka Rybex: /.test(i.alt) && i.w && i.h) && im.en.every(i => /^Rybex can: /.test(i.alt)), JSON.stringify(im));
+      ok('exit2r2 packshots: lazy below the fold only', im.prod.every(i => i.lazy === 'lazy') && im.hero.every(i => i.lazy !== 'lazy'), JSON.stringify(im));
+      ok('exit2r2 no page errors (packshots)', !p.errs.length, p.errs.join('|'));
+      await p.close(); }
+    { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); await ctx.route('**/assets/products/**', r => r.abort()); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+      await p.goto(APP() + '#/rybex/products'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await p.$$eval('.rf-prod', e => e.forEach(x => x.scrollIntoView())); await p.waitForFunction(() => document.querySelectorAll('.rf-prod .rf-ph').length === 4, null, { timeout: 5000 }).catch(() => {});
+      const fb = await p.evaluate(() => [...document.querySelectorAll('.rf-prod .rf-ph')].map(e => ({ t: e.textContent, l: e.getAttribute('aria-label'), r: e.getAttribute('role'), h: e.getBoundingClientRect().height })));
+      ok('exit2r2 blocked packshot: a visible tile with the product name', fb.length === 4 && fb.every((x, i) => x.r === 'img' && /^Puszka Rybex: /.test(x.l) && x.h > 50) && fb.map(x => x.t).join() === (await p.evaluate(() => PRODUCTS.map(x => x[0]).join())), JSON.stringify(fb));
+      await p.evaluate(() => go('rybex', 'home')); await p.waitForFunction(() => document.querySelectorAll('.rf-hero-pic .rf-ph').length === 2, null, { timeout: 5000 }).catch(() => {});
+      ok('exit2r2 blocked hero packshots fall back too', await p.$$eval('.rf-hero-pic .rf-ph', e => e.length === 2 && e.every(x => x.offsetWidth > 40)));
+      ok('exit2r2 no page errors (blocked packshots)', !errs.length, errs.join('|'));
+      await ctx.close(); }
+    { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage();
+      await p.goto('file://' + path.join(HERE, '..', 'rybex-ai-workshop.html') + '#/rybex/products'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
+      await p.$$eval('.rf-prod img', e => e.forEach(x => x.scrollIntoView())); await p.waitForFunction(() => [...document.querySelectorAll('.rf-prod img')].every(i => i.complete), null, { timeout: 5000 }).catch(() => {});
+      ok('exit2r2 packshots load from file://', await p.$$eval('.rf-prod img', e => e.length === 4 && e.every(i => i.complete && i.naturalWidth > 0)));
+      await ctx.close(); }
+    { const m = await fresh('#/rybex/home', '', { width: 375, height: 740 });
+      const sw = [];
+      for (const pg of ['home', 'products']) { await m.evaluate(pg => go('rybex', pg), pg); await m.waitForTimeout(150); sw.push(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('.rybex-frame img')].every(i => i.getBoundingClientRect().right <= innerWidth))); }
+      ok('exit2r2 packshot pages fit at 375 px', sw.every(Boolean), JSON.stringify(sw));
+      await m.close(); }
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

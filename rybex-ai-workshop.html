@@ -562,7 +562,8 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rf-hero p:not(.rf-lead){color:var(--ink-2);font-size:16.5px;margin:6px 0}
 .rf-hero-pic{display:flex;gap:12px;justify-content:center}
 .rf-hero-pic img{width:44%;height:auto;border-radius:12px;box-shadow:var(--shadow-sm);aspect-ratio:4/5;object-fit:cover;background:var(--paper-2)}
-.rf-hero-pic img:nth-child(2){margin-top:28px}
+.rf-hero-pic img:nth-child(2),.rf-hero-pic .rf-ph:nth-child(2){margin-top:28px}
+.rf-ph{display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;aspect-ratio:4/5;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-2);font-weight:600;border-radius:12px}.rf-hero-pic .rf-ph{width:44%}.rf-prod .rf-ph{width:100%;border-radius:0;border-width:0 0 1px}
 .rf-teaser{display:flex;gap:14px;align-items:center;margin:-28px 28px 28px;position:relative;background:var(--surface);border:1px solid var(--line-2);border-left:6px solid var(--red-600);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow-sm)}
 .rf-teaser p{margin:0;font-size:16px}
 .rf-blk{padding:28px 28px 34px}
@@ -608,7 +609,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
  .rf-menu.open{display:flex}
  .rf-menu button[data-rp=intranet]{margin:4px 0 0}
  .rf-hero{grid-template-columns:minmax(0,1fr);padding:26px 16px 48px;gap:18px}
- .rf-hero-pic img{width:40%}
+ .rf-hero-pic img,.rf-hero-pic .rf-ph{width:40%}
  .rf-teaser{margin:-28px 16px 20px;flex-direction:column;align-items:flex-start}
  .rf-blk{padding:22px 16px 26px}
  .rf-art{padding:22px 16px 28px}
@@ -1380,15 +1381,18 @@ function fmtTs(ts){const d=new Date(ts);return isNaN(d)?String(ts):d.toLocaleStr
 function logSig(cfg,res){return JSON.stringify([cfg,{...res,primary:{...(res||{}).primary,m:''}}])}
 function logAdd(track,cfg,res,primary,opt={}){const t=team(),input=opt.base?null:$('#expNote'),note=input?input.value.trim():'',same=logSig(cfg,{...res,primary});
  if(t.log.some(l=>l.track===track&&l.cfg&&l.res&&logSig(l.cfg,l.res)===same)){toast(T('Ten wynik jest już w dzienniku. Zmień parametr, aby zapisać nowy eksperyment.','This result is already in the log. Change a parameter to save a new experiment.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});return}
- if(!opt.base&&noteRequired(track)&&!note&&!S.trainer){toast(NOTE_MSG());noteErr(true);if(input)input.focus();return}
+ if(!opt.base&&noteRequired(track,cmpTestSaved({track,res:{...res,primary}}))&&!note&&!S.trainer){toast(NOTE_MSG());noteErr(true);if(input)input.focus();return}
  const tv=(testLabOf(t,track)||{testViews:0}).testViews;
  t.log.push({id:newId(),ts:new Date().toISOString(),track,cfg,res:{...res,primary:opt.base?{...primary,m:BASE_MK}:primary},note,testViews:tv,...(opt.base?{base:true}:{})});if(input)input.value='';noteErr(false);noteSync(track);
  const ok=save();renderProg();renderHeroProg(track);renderBaseBanner(track);renderCmpList(track);syncRevealGate();
  if(ok)toast(T('Zapisano w dzienniku zespołu.','Saved to the team log.'),{action:[T('Otwórz dziennik','Open log'),()=>go('deliver')]});
  else toast(T('Nie zapisano w pamięci przeglądarki. Pobierz plik zespołu.','Not stored in the browser. Download the team file.'))}
-// The first final-result save (test revealed, at least MIN_EXPERIMENTS experiments, no entry saved with the test visible yet)
-// needs no conclusion sentence; every other save follows the normal rule.
-function noteRequired(track){const t=team(),L=testLabOf(t,track),n=expCount(track);return n>=2&&!(L&&L.revealed&&n>=MIN_EXPERIMENTS&&!t.log.some(l=>l.track===track&&cmpTestSaved(l)))}
+// The first final-result save (test revealed, the save carries a test result, at least MIN_EXPERIMENTS experiments, no entry
+// saved with the test visible yet) needs no conclusion sentence; every other save follows the normal rule. logAdd passes
+// whether the entry being saved carries a test result; the field indicator guesses it from the current view.
+function noteRequired(track,carries=pendingTest(track)){const t=team(),L=testLabOf(t,track),n=expCount(track);return n>=2&&!(carries&&L&&L.revealed&&n>=MIN_EXPERIMENTS&&!t.log.some(l=>l.track===track&&cmpTestSaved(l)))}
+// Would a save now carry a test result? Rules views: the reveal decides; model views: the selected run's set.
+function pendingTest(track){const L=testLabOf(team(),track);if(!L||!L.revealed)return false;if(L.method==='llm'&&(track==='vision'||track==='complaints')){const r=track==='vision'?visSel(L):complSel(L);return!!r&&r.set==='test'}return true}
 const TEST_SAVE_HINT=()=>T('Zapiszcie ten wynik w dzienniku – wtedy trafi do raportu jako ocena końcowa.','Save this result to the log – then it goes into the report as the final evaluation.');
 // The hint by the save bar shows while the test set is revealed; the note field follows.
 function syncTestSave(){const h=$('#testSaveHint');if(!h)return;const k=h.dataset.track,L=testLabOf(team(),k);h.hidden=!(L&&L.revealed);noteSync(k)}
@@ -1673,7 +1677,10 @@ function RYBEX_SITE(){const s=STORY(),lot=s.lot;return{town:'Mirszyce',
 const RYBEX_FISH='<svg class="rf-fish" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#FFD500"/><path d="M13 7.5c2-2.5 5.5-3 8-2-1.5 1.2-2.4 2.8-2.6 4.6z" fill="#1C1917"/><path d="M2.5 16.5C4.5 7.5 15.5 5 22 12.5l6.5-5.5c-.9 3-1.4 6-1.4 9.5s.5 6.5 1.4 9.5L22 20.5C15.5 28 4.5 25.5 2.5 16.5z" fill="#1C1917"/><circle cx="9.5" cy="14.5" r="2.8" fill="#FFD500"/></svg>';
 // Generated catalogue packshots are independent of the vision-lab training images.
 const RYBEX_PACKSHOTS=['szprot-w-oleju','makrela-w-pomidorach','sledz-po-kaszubsku','tunczyk-w-sosie-wlasnym'];
-function rybexImg(slot,pi){const nm2=PRODUCTS[pi];return`<img data-slot="${slot}" data-product="${pi}" src="assets/products/${RYBEX_PACKSHOTS[pi]}.webp" alt="${esc(T(`Puszka Rybex: ${nm2[0]}`,`Rybex can: ${nm2[1]}`))}" width="1122" height="1402">`}
+function rybexImg(slot,pi){const nm2=PRODUCTS[pi];return`<img data-slot="${slot}" data-product="${pi}" src="assets/products/${RYBEX_PACKSHOTS[pi]}.webp" alt="${esc(T(`Puszka Rybex: ${nm2[0]}`,`Rybex can: ${nm2[1]}`))}" width="1122" height="1402"${slot[0]==='p'?' loading="lazy"':''}>`}
+// A packshot that fails to load becomes a neutral tile with the product name (same slot, size and accessible name).
+addEventListener('error',e=>{const i=e.target;if(!(i instanceof HTMLImageElement)||!i.matches('.rybex-frame img[data-product]'))return;const pi=+i.dataset.product,f=document.createElement('span');
+ f.className='rf-ph';f.setAttribute('role','img');f.setAttribute('aria-label',i.alt);f.dataset.slot=i.dataset.slot;f.dataset.product=pi;f.dataset.failed='true';f.textContent=T(PRODUCTS[pi][0],PRODUCTS[pi][1]);i.replaceWith(f)},true);
 function rybexChrome(page,inner){const R=RYBEX_SITE(),back=(id,cls)=>`<button type="button" class="btn btn-sm rf-back${cls}"${id?` id="${id}"`:''} aria-label="${R.back}">${ic('arrow-left')}<span class="t">${R.back}</span></button>`;
  return`<div class="rybex-frame" data-page="${page}"><div class="rf-chrome"><div class="rf-tabs"><span class="rf-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="rf-tab" aria-hidden="true">${RYBEX_FISH}<span>${R.tagline.replace(/\.$/,'')}</span></span></div>
  <div class="rf-bar"><span class="rf-nav" aria-hidden="true">${ic('arrow-left')}${ic('arrow-right')}</span><span class="rf-url">${ic('lock')}<b data-addr>rybex.example/${R.addr[page]}</b></span>${back('backToWs','')}</div></div>
@@ -1737,7 +1744,7 @@ function personaQuote(id,slot){const P=PERSONAS(),p=Object.hasOwn(P,id)?P[id]:nu
 function personaSay(id,text,slot=''){const P=PERSONAS(),p=Object.hasOwn(P,id)?P[id]:null;if(!p)return'';
  return`<figure class="persona" data-persona="${id}"${slot?` data-slot="${slot}"`:''}><span class="ps-av" aria-hidden="true">${initials(p.name)}</span><div><blockquote><p>${text}</p></blockquote><figcaption><b>${p.name}</b>, ${p.role}</figcaption></div></figure>`}
 function rybexBack(){const f=siteFrom;siteFrom=null;if(f&&f.v!=='rybex'&&NAV.some(n=>n[0]===f.v))return go(f.v,f.v==='demos'||f.v==='lab'?f.sub:undefined);const s=pathState(team()).next;if(s&&s.id==='data'&&team().track&&!AIS.run)FSEL=TRACK_FILE[team().track];go(...(s?s.go:['home']))}
-function vRybex(){const pg=RYBEX_PAGES.includes(S.sub.rybex)?S.sub.rybex:'home',R=RYBEX_SITE();if(pg==='home'||pg==='products')visInit();
+function vRybex(){const pg=RYBEX_PAGES.includes(S.sub.rybex)?S.sub.rybex:'home',R=RYBEX_SITE();
  mainEl.innerHTML=pageHead(R.title,R.intro)+`<div class="rf-stage">${rybexChrome(pg,({home:rybexHome,about:rybexAbout,products:rybexProducts,quality:rybexQuality,news:rybexNews,contact:rybexContact,career:rybexCareer,intranet:rybexIntranet})[pg](R))}</div>`;
  if(pg==='contact')bindContact(R);
  const fr=$('.rybex-frame',mainEl);
@@ -2593,7 +2600,7 @@ function GO_LIVE_WARN_TXT(t,k){return({privacy:()=>(t.track==='rag'?T('Pytania p
 function hitlWarn(t){const sys=goLiveAns(t,'stopAuthority')==='system',W={
  complaints:[T('Uwaga: odpowiedź wychodzi do klienta, zanim przeczyta ją człowiek, a w schemacie nie ma weryfikacji przez człowieka. Błędnej odpowiedzi nikt nie zatrzyma, a zgłoszenia o bezpieczeństwie żywności nikt nie wyłapie.','Warning: the reply goes to the customer before a person reads it, and the diagram has no human-in-the-loop. Nobody can stop a wrong reply or catch a food-safety complaint.'),T('Uwaga: odpowiedź ma zatwierdzać człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to approve the reply, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')],
  rag:[T('Uwaga: pracownik działa według odpowiedzi o procedurze, której nikt nie sprawdził, a w schemacie nie ma weryfikacji przez człowieka. Pomylonej albo nieaktualnej procedury nikt nie wyłapie.','Warning: a worker acts on an answer about a procedure that nobody checked, and the diagram has no human-in-the-loop. Nobody will catch a mixed-up or outdated procedure.'),T('Uwaga: odpowiedź o procedurze ma sprawdzać człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to check the answer about a procedure, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')],
- forecast:[T('Uwaga: plan produkcji wchodzi na linię bez niczyjej akceptacji, a w schemacie nie ma weryfikacji przez człowieka. Błędu prognozy nikt nie poprawi przed produkcją.','Warning: the production plan is adopted without anyone approving it, and the diagram has no human-in-the-loop. Nobody corrects a forecast error before production.'),T('Uwaga: plan produkcji ma zatwierdzać człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to approve the production plan, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')],
+ forecast:[T('Uwaga: plan produkcji zostaje przyjęty bez niczyjej akceptacji, a w schemacie nie ma weryfikacji przez człowieka. Błędu prognozy nikt nie poprawi przed produkcją.','Warning: the production plan is adopted without anyone approving it, and the diagram has no human-in-the-loop. Nobody corrects a forecast error before production.'),T('Uwaga: plan produkcji ma zatwierdzać człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to approve the production plan, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')],
  maint:[T('Uwaga: system sam zatrzymuje maszynę, a w schemacie nie ma weryfikacji przez człowieka. Fałszywego alarmu nikt nie odwoła, a przeoczonej awarii nikt nie zauważy.','Warning: the system stops the machine on its own and the diagram has no human-in-the-loop. Nobody can overrule a false alarm or notice a missed failure.'),T('Uwaga: o zatrzymaniu maszyny ma decydować człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to decide on stopping the machine, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')]},
  w=Object.hasOwn(W,t.track)?W[t.track]:[T('Uwaga: system sam zatrzymuje linię, a w schemacie nie ma weryfikacji przez człowieka. Fałszywego alarmu nikt nie odwoła, a przeoczenia nikt nie zauważy.','Warning: the system stops the line on its own and the diagram has no human-in-the-loop. Nobody can overrule a false alarm or notice a miss.'),T('Uwaga: zatrzymanie ma potwierdzać człowiek, ale w schemacie nie ma komponentu «Weryfikacja przez człowieka». Schemat i decyzja mówią co innego.','Warning: a person is meant to confirm the stop, but the diagram has no «Human-in-the-loop» component. The diagram and the decision say different things.')];
  return w[sys?0:1]}
