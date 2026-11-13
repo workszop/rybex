@@ -1674,6 +1674,67 @@ try {
       const r = await p.evaluate(() => ({ btn: document.querySelector('#ragRv').textContent.trim(), bar: document.querySelector('#pathNext .pb-lbl').textContent, rv: document.querySelector('#ragRv').dataset.reveal }));
       ok('final 12 knowledge assistant: "Odsłońcie pytania testowe" on the control and the bar', r.btn === 'Odsłońcie pytania testowe' && r.bar === 'Odsłońcie pytania testowe' && r.rv === 'rag', JSON.stringify(r));
       ok('final 12 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // ─── Re-review fixes ───
+    // R1. Teams stored without the step-7 marker get it unless their log holds an entry saved after a test view.
+    await B(async () => { const p = await fresh('#/lab/complaints');
+      await p.evaluate(() => localStorage.setItem(STORE_KEY, JSON.stringify({ team: 1, teams: { 1: { name: '', track: null, log: [] } } })));
+      await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      ok('final r1 a stored version-2 slot without such an entry gets the marker', await p.evaluate(() => team().seen.testSave === true));
+      await at7(p, 'complaints'); await tap(p, '#rv'); await tap(p, '#rv');
+      await p.evaluate(() => { lab().compl.kw.damage += ',rysa'; save(); render(); }); await p.fill('#expNote', 'Nowe słowo kluczowe.'); await tap(p, '#sv');
+      ok('final r1 that slot played as a new team: reveal, hide and a tuning save leave step 7 open', await p.evaluate(() => expCount('complaints') === 4 && !pathState(team()).steps.find(s => s.id === 'iterate').done));
+      const v = await p.evaluate(() => { const e = (id, tv) => ({ id, ts: '2026-11-10T10:00:00.000Z', track: 'complaints', cfg: { x: id }, res: { dev: .5, primary: { m: 'x', v: .5, base: .4, hi: true } }, note: 'n', testViews: tv });
+        const base = { onboardedAt: 'x', track: 'complaints', goal: 'g', site: { newsRead: true }, lab: { compl: { testViews: 1 } } };
+        const a = normTeam({ ...base, log: [e('a', 0), e('b', 0), e('c', 1)] }), b = normTeam({ ...base, log: [e('a', 0), e('b', 0), e('c', 0)] });
+        const many = Object.fromEntries(Array.from({ length: 60 }, (_, i) => ['k' + i, true])), c = normTeam({ ...base, seen: { ...many, testSave: true }, log: [e('c', 1)] });
+        return { a: !a.seen.testSave && pathState(a).steps.find(s => s.id === 'iterate').done, b: b.seen.testSave === true, c: c.seen.testSave === true }; });
+      ok('final r1 a version-2 file with an entry saved after a view keeps step 7 done', v.a, JSON.stringify(v));
+      ok('final r1 a version-2 file without such an entry gets the marker', v.b, JSON.stringify(v));
+      ok('final r1 the seen key cap never drops the marker', v.c, JSON.stringify(v));
+      await p.close(); });
+    // R2. Model views: a revealed test with a tuning run selected asks to run the model on the test set first.
+    await B(async () => { const p = await fresh('#/lab/complaints'); await at7(p, 'complaints');
+      await p.evaluate(() => { S.ai.code = 'test-code'; const L = lab().compl, ids = Array.from({ length: 16 }, (_, i) => 21 + i), tids = Array.from({ length: 24 }, (_, i) => 37 + i), run = (id, set, ii) => ({ id, ts: '', ver: 'v1', model: 'deepseek', shots: 0, set, n: ii.length, failed: 0, acc: .5, macro: .5, safety: .5, safetyFalse: 0, ruleAcc: .4, sum: { model: 'deepseek', calls: ii.length, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, ids: ii, preds: ii.map(() => ({ c: 'other', h: false, r: '', bad: false })) });
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.runs = [run('rd', 'dev16', ids)]; L.rsel = 'rd'; L.__run = run; save(); render(); });
+      let s = await st7(p);
+      ok('final r2 complaints model view, dev run selected: bar asks to run the model on the test set', s.next === 'iterate' && s.lbl === 'Uruchomcie model na zbiorze testowym' && s.hint.includes('uruchomcie model na zbiorze testowym, a potem zapiszcie wynik'), JSON.stringify(s));
+      await tap(p, '#pathNext'); ok('final r2 complaints: Next focuses the run button', await p.evaluate(() => document.activeElement.id) === 'cRun');
+      await p.evaluate(() => { const L = lab().compl; L.runs.push(L.__run('rt', 'test', Array.from({ length: 24 }, (_, i) => 37 + i))); delete L.__run; L.rsel = 'rt'; save(); render(); });
+      s = await st7(p); ok('final r2 complaints: with the test run selected the bar asks to save', s.lbl === 'Zapiszcie wynik testu', JSON.stringify(s));
+      await tap(p, '#sv'); s = await st7(p); ok('final r2 complaints: saving the test run completes step 7', s.done && s.next === 'risk', JSON.stringify(s));
+      ok('final r2 complaints no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    await B(async () => { const p = await fresh('#/lab/vision'); await p.waitForFunction(() => !VIS.loading); await at7(p, 'vision');
+      await p.evaluate(() => { S.ai.code = 'test-code'; const L = lab().vision, run = (id, set) => ({ id, ts: '', model: 'deepseek', datasetKey: VIS.datasetKey, shots: 0, set, failed: 0, n: 60, m: { tp: 5, fp: 2, fn: 3, tn: 50, p: .7, r: .6, f1: .65, acc: .9 }, types: [], ruleF1: .5, sum: { model: 'deepseek', calls: 60, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, preds: Array.from({ length: 60 }, () => ({ d: 'ok', r: '', bad: false })) });
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.mruns = [run('vv', 'val')]; L.vsel = 'vv'; L.__run = run; save(); render(); });
+      let s = await st7(p);
+      ok('final r2 vision model view, validation run selected: bar asks to run the model on the test set', s.lbl === 'Uruchomcie model na zbiorze testowym', JSON.stringify(s));
+      await tap(p, '#pathNext'); ok('final r2 vision: Next focuses the run button', await p.evaluate(() => document.activeElement.id) === 'visRun');
+      await p.evaluate(() => { const L = lab().vision; L.mruns.push(L.__run('vt', 'test')); delete L.__run; L.vsel = 'vt'; save(); render(); });
+      s = await st7(p); ok('final r2 vision: with the test run selected the bar asks to save', s.lbl === 'Zapiszcie wynik testu', JSON.stringify(s));
+      await tap(p, '#sv'); s = await st7(p); ok('final r2 vision: saving the test run completes step 7', s.done && s.next === 'risk', JSON.stringify(s));
+      ok('final r2 vision no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // R3. A track change clears the monitoring answer.
+    await B(async () => { const p = await fresh('#/brief');
+      await p.evaluate(() => { const t = team(); t.track = 'complaints'; t.arch.decisions.monitor = 'refusals'; save(); render(); });
+      await tap(p, '#main [data-t=forecast]');
+      ok('final r3 switching the track clears question 3', await p.evaluate(() => team().track === 'forecast' && !Object.hasOwn(team().arch.decisions, 'monitor') && goLiveAns(team(), 'monitor') === null && goLiveReport().rows[2][1] === null && !GO_LIVE_DECISIONS().find(d => d.id === 'monitor').options.some(o => o.id === 'refusals')));
+      await p.close(); });
+    // R4. The agenda heading states the total of the steps' minutes.
+    await B(async () => { const p = await fresh('#/home'); await seed(p, () => { team().onboardedAt = 'x'; });
+      const r = await p.evaluate(() => { const m = PATH_STEPS().reduce((a, s) => a + s.min, 0), h = [...document.querySelectorAll('#main h2')].find(e => /przebieg/i.test(e.textContent)); return { m, h: h && h.textContent, want: `ok. ${Math.floor(m / 60)} godz. ${m % 60} min` }; });
+      ok('final r4 agenda heading total equals the steps\' minutes', !!r.h && r.h.includes(r.want) && !/3 godz/.test(r.h), JSON.stringify(r));
+      const en = await p.evaluate(() => { S.lang = 'en'; render(); const h = [...document.querySelectorAll('#main h2')].find(e => /flow/i.test(e.textContent)).textContent; S.lang = 'pl'; render(); return h; });
+      ok('final r4 English heading', /about 2 h 35 min/.test(en), en);
+      await p.close(); });
+    // R5. Replayed answers keep their label after a reload.
+    await B(async () => { const p = await fresh('#/lab/rag');
+      const r = await p.evaluate(() => { const t = normTeam({ lab: { rag: { msgs: [{ q: 'q', a: 'a', src: [], sim: 0, refused: false, ai: { model: 'deepseek', in: 1, out: 1, cost: 0, ms: 0, cached: true, replayed: true } }] }, compl: { runs: [{ id: 'r', ts: '', ver: 'v1', model: 'deepseek', shots: 0, set: 'dev', ids: [1], preds: [{ c: 'other', h: false, r: '' }], sum: { model: 'deepseek', calls: 3, inTok: 1, outTok: 1, cost: 0, ms: 1, cached: 3, replayed: 3 } }] } } });
+        return { use: t.lab.rag.msgs[0].ai.replayed, sum: t.lab.compl.runs[0].sum.replayed, txt: aiSumText(t.lab.compl.runs[0].sum) }; });
+      ok('final r5 normTeam keeps the replayed flag and count', r.use === true && r.sum === 3 && /nagrane odpowiedzi: 3/.test(r.txt) && !/pamięci podręcznej/.test(r.txt), JSON.stringify(r));
+      await p.evaluate(() => { const L = lab().rag; L.gen = 'llm'; L.msgs = [{ q: 'Jak często?', a: 'Szew co 30 minut.', src: [], sim: .5, refused: false, ai: { model: 'deepseek', in: 1, out: 1, cost: 0, paid: 0, ms: 0, cached: true, replayed: true } }]; save(); });
+      await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      ok('final r5 after a reload the answer is still labelled as recorded', await p.evaluate(() => /nagrana odpowiedź/.test(document.querySelector('#proto').textContent) && !/z pamięci podręcznej/.test(document.querySelector('#proto').textContent)));
+      await p.close(); });
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
