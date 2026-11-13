@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rybex AI – prezentacja warsztatu</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+
+<!-- Boot gate: hidden until reveal.js has laid out the deck and fonts are in (failsafe 4 s). -->
+<style>
+  @keyframes boot-reveal { to { visibility: visible; } }
+  html:not(.deck-ready) body { visibility: hidden; animation: boot-reveal 0s 4s forwards; }
+  @media print { html:not(.deck-ready) body { visibility: visible; animation: none; } }
+</style>
+
+<style>
+/* ============================================================
+   1) DESIGN TOKENS - copied from rybex-ai-workshop.html (edulab Editorial Color)
+   ============================================================ */
+:root {
+  /* ---- Brand fonts ---- */
+  --font-display: 'Outfit', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-sans:    'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ============================================================
+     RAW COLOR TOKENS
+     ============================================================ */
+
+  /* Paper - page background is white; the stone steps are bands / wells.
+     Warm neutral grey (no yellow cast) so yellow and the colour blocks stay the
+     loudest thing on the page. Stone v2 (2026-10-10) replaced the cream sand
+     (#FBF7E6 / #F5EDCB), which at 1.07:1 on white did not read as a surface. */
+  --paper:    #FFFFFF;   /* page background (white)                       */
+  --paper-2:  #F5F3F0;   /* stone band: alternating sections, card heads   */
+  --paper-3:  #EAE6E0;   /* deepest stone: wells, table heads, bar tracks  */
+  --surface:  #FFFFFF;   /* cards & sheets                                */
+
+  /* Ink - warm near-black text & lines */
+  --ink:      #1C1917;   /* primary text                                    */
+  --ink-2:    #44403C;   /* secondary text, 10.3:1 on white                 */
+  --ink-3:    #625B53;   /* muted / placeholder: >= 4.5:1 on every paper step */
+  --line:     #E0DBD3;   /* hairline: dividers, table rows, card heads      */
+  --line-2:   #C9C2B7;   /* stronger: card contours, section rules          */
+  --line-strong: #857C69;/* control boundaries (inputs, ghost buttons,
+                            answer options): >= 3:1 on paper steps (WCAG 1.4.11) */
+
+  /* ---- Brand: Yellow main · Blue + Green secondary · Red danger ----
+     Plain saturated colours. The base colour (--blue) is for large fills,
+     illustrations and large text (>= 24px, or 19px bold). "-soft" is the
+     solid fill for chips and panels that carry small text: it is the
+     AA shade (= "-600"), so its "-ink" (white; dark ink on yellow) reaches
+     4.5:1. A colour used AS text goes only on white and uses "-600".
+     Never colour-on-colour (no green text on green).
+     Gate: python3 scripts/check-contrast.py */
+
+  /* Yellow - primary (buttons, progress, values on dark panels) */
+  --yellow:      #FFD500;
+  --yellow-600:  #F0C800;  /* hover / press          */
+  --yellow-soft: #FFD500;  /* chip / panel fill      */
+  --yellow-ink:  #1C1917;  /* text on yellow         */
+
+  /* Blue - secondary (panels, chips, correct / selected state) */
+  --blue:      #1E8FC2;
+  --blue-600:  #177AA8;
+  --blue-soft: #177AA8;   /* = blue-600, white text 4.8:1 */
+  --blue-ink:  #FFFFFF;
+
+  /* Green - secondary support (chips, success) */
+  --green:      #00A651;
+  --green-600:  #078342;  /* hover / press, AA text shade */
+  --green-soft: #078342;  /* = green-600, white text 4.9:1 */
+  --green-ink:  #FFFFFF;
+
+  /* Red - danger / important / wrong (use sparingly) */
+  --red:      #E5322D;
+  --red-600:  #C92823;
+  --red-soft: #C92823;   /* = red-600, white text 5.5:1 */
+  --red-ink:  #FFFFFF;
+
+  /* Grape - 5th category tone (colour-coded groups), from the play palette */
+  --grape:      #7A5AC2;
+  --grape-soft: #7A5AC2;  /* white text 5.2:1 */
+  --grape-ink:  #FFFFFF;
+
+  /* ---- Functional ---- */
+  --on-primary:#1C1917;      /* dark text on yellow */
+  /* White gap + ink band: >= 3:1 on paper, sand, yellow and every chip fill.
+     Pair with `outline: 3px solid transparent` so forced-colours mode still shows focus. */
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 5px var(--ink);
+  /* Range-slider track */
+  --track: color-mix(in srgb, var(--ink) 24%, transparent);
+
+  /* ---- Radii (friendly, generous) ---- */
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --r-pill: 999px;
+
+  /* ---- Elevation - warm, low, soft ---- */
+  --shadow-sm: 0 1px 2px rgba(33,30,26,.10), 0 2px 6px rgba(33,30,26,.06);
+  --shadow-lg: 0 16px 40px rgba(33,30,26,.12), 0 3px 8px rgba(33,30,26,.06);
+
+  /* ============================================================
+     TYPE SCALE (semantic sizes)
+     ============================================================ */
+  --h1: 44px; --h2: 33px; --h3: 25px; --h4: 19px;
+  --body: 16px; --body-sm: 14px;
+  --caption: 13px; --overline: 12px;
+}
+
+/* Deck aliases onto the app tokens */
+:root {
+  --brand: var(--yellow); --brand-soft: var(--yellow-soft); --brand-ink: var(--ink);
+  --accent: var(--blue-600); --accent-soft: color-mix(in srgb, var(--blue) 14%, #fff); --accent-ink: var(--blue-600);
+  --warn: var(--red); --warn-soft: color-mix(in srgb, var(--red) 12%, #fff); --warn-ink: var(--red-600);
+  --shadow-md: var(--shadow-sm);
+  --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --deck-font: 24px;
+  --slide-h: 720px;
+}
+
+/* ============================================================
+   2) REVEAL THEME OVERRIDE
+   ============================================================ */
+:root {
+  --r-background-color: var(--paper);
+  --r-main-font: var(--font-sans);
+  --r-heading-font: var(--font-display);
+  --r-heading-color: var(--ink);
+  --r-link-color: var(--accent);
+}
+html, body { background: var(--paper); }
+
+.reveal { font-family: var(--font-sans); color: var(--ink-2); font-size: var(--deck-font);
+  font-variant-numeric: lining-nums; }
+.reveal .slides { text-align: left; margin-top: 14px; }
+.reveal h1, .reveal h2, .reveal h3 { font-family: var(--font-display); color: var(--ink);
+  text-transform: none; letter-spacing: -0.02em; line-height: 1.08; margin: 0 0 var(--sp-5); }
+.reveal h1 { font-size: 2.2em; font-weight: 700; }
+.reveal h2 { font-size: 1.72em; font-weight: 700; }
+.reveal h3 { font-size: 1.28em; font-weight: 600; }
+.reveal p, .reveal li { color: var(--ink-2); line-height: 1.45; }
+.reveal strong { color: var(--ink); }
+.reveal .progress { color: var(--accent); }
+.reveal .controls { color: var(--accent); }
+.reveal .slide-number { background: transparent; color: var(--ink-3); font-family: var(--font-mono); }
+
+/* ============================================================
+   3) VERTICAL FILL (template structural CSS, kept as is)
+   ============================================================ */
+.reveal .slides section.present:not(:has(> section)) {
+  height: var(--slide-h); display: flex !important; flex-direction: column;
+  justify-content: flex-start; padding: 26px 6px 14px; box-sizing: border-box;
+}
+.reveal .slides section.present.centerme:not(:has(> section)) {
+  justify-content: center; align-items: center; text-align: center;
+}
+.reveal .slides section:not(.centerme):not(:has(> section)) > .row,
+.reveal .slides section:not(.centerme):not(:has(> section)) > table,
+.reveal .slides section:not(.centerme):not(:has(> section)) > ol,
+.reveal .slides section:not(.centerme):not(:has(> section)) > ul { flex: 1 1 auto; width: 100%; }
+.reveal .slides section:not(.centerme):not(:has(> section)) > .row { align-content: center; }
+.reveal .slides section:not(.centerme):not(:has(> section)) > ol,
+.reveal .slides section:not(.centerme):not(:has(> section)) > ul {
+  display: flex; flex-direction: column; justify-content: center; }
+.reveal .slides section { max-width: 1240px; width: 100%; }
+.reveal .slides section.centerme { max-width: none; }  /* centred slides span the full 1360 px so they sit in the middle */
+
+/* ============================================================
+   4) CONTENT PRIMITIVES
+   ============================================================ */
+.reveal .eyebrow { font-family: var(--font-mono); font-size: .52em; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 var(--sp-4); }
+.reveal .ref { font-family: var(--font-mono); font-size: .62em; color: var(--accent-ink);
+  background: var(--accent-soft); padding: 3px 9px; border-radius: var(--r-pill); }
+.row { display: grid; gap: var(--sp-8); width: 100%; }
+.row.c2 { grid-template-columns: 1fr 1fr; align-items: stretch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm); padding: var(--sp-6) var(--sp-8);
+  display: flex; flex-direction: column; justify-content: center; }
+.callout { border-radius: var(--r-md); padding: var(--sp-4) var(--sp-5); font-size: .94em; border: 1px solid transparent; }
+.callout.key  { background: var(--brand-soft); color: var(--brand-ink); border-color: var(--yellow-600); }
+.callout.warn { background: var(--warn-soft);  color: var(--warn-ink);  border-color: color-mix(in srgb, var(--warn-ink) 30%, #fff); }
+.callout.note { background: var(--accent-soft); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 30%, #fff); }
+.reveal table { border-collapse: collapse; width: 100%; font-size: .82em;
+  box-shadow: var(--shadow-sm); border-radius: var(--r-md); overflow: hidden; }
+.reveal th, .reveal td { border: 1px solid var(--line); padding: .55em .7em; background: var(--surface); }
+.reveal thead th { background: var(--paper-2); font-family: var(--font-display); }
+
+.t-title h1 { font-size: 2.7em; } .t-title .sub { font-size: 1.1em; color: var(--ink-2); }
+.reveal .qr { display: flex; justify-content: center; margin: var(--sp-4) 0; }
+.reveal .qr svg { width: 280px; height: 280px; display: block; }
+.reveal .url { font-family: var(--font-mono); font-size: .8em; color: var(--ink); margin: 0; }
+
+.reveal .tracks { list-style: none; padding: 0; margin: 0; gap: var(--sp-3); }
+.reveal .tracks li { background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: .5em .9em; }
+
+/* placeholder chip: text the organiser still has to fill in */
+.reveal .fill { display: inline-block; background: var(--yellow); color: var(--ink);
+  font-family: var(--font-mono); font-size: .8em; padding: .05em .5em; border-radius: var(--r-xs); }
+
+/* screenshot frames: any aspect ratio scales into the free slide area, never overflows */
+.reveal .shots { flex: 1 1 0; min-height: 0; width: 100%; display: flex; gap: var(--sp-6);
+  align-items: center; justify-content: center; }
+.reveal .shots figure { margin: 0; flex: 1 1 0; min-width: 0; min-height: 0; display: flex;
+  align-items: center; justify-content: center; }
+.reveal .shots img { display: block; margin: 0; width: auto; height: auto;
+  max-width: 100%;
+  max-height: min(72vh, calc(var(--slide-h) * .72));  /* 72 vh, and never taller than 72 % of the slide */
+  border-radius: var(--r-md); border: 1px solid var(--line-2); box-shadow: var(--shadow-lg);
+  background: var(--surface); }
+/* two shots side by side: each gets half the column */
+.reveal .shots figure:only-child { flex-basis: 100%; }
+
+.reveal .fragment.dim { opacity: 1; visibility: visible; }
+.reveal .fragment.dim.visible { opacity: .32; filter: grayscale(.4); }
+</style>
+</head>
+<body>
+
+<div class="reveal"><div class="slides">
+
+  <section data-slide="title" class="centerme">
+    <div class="t-title"><p class="eyebrow">Warsztat</p><h1>Warsztat Rybex AI</h1><p class="sub">Podtytuł <span class="fill">[uzupełnij: data warsztatów]</span></p></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="why">
+    <p class="eyebrow">02</p><h2>Dlaczego ten warsztat</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="company">
+    <p class="eyebrow">03</p><h2>Firma Rybex</h2>
+    <div class="shots"><figure><img data-shot="site-home" src="assets/presentation/site-home.webp" alt="Strona główna fikcyjnej firmy Rybex, producenta konserw rybnych, w ramce przeglądarki." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="incident">
+    <p class="eyebrow">04</p><h2>Zwrot partii konserw</h2>
+    <div class="shots"><figure><img data-shot="site-news" src="assets/presentation/site-news.webp" alt="Strona firmy Rybex z aktualnością o partii konserw zwróconej przez sieć handlową." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="tasks">
+    <p class="eyebrow">05</p><h2>Pięć zadań do wyboru</h2>
+    <ul class="tracks"><li data-track="vision">Wizja</li><li data-track="rag">Wiedza firmowa</li><li data-track="complaints">Reklamacje</li><li data-track="forecast">Prognoza</li><li data-track="maint">Awarie maszyn</li></ul>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="memos">
+    <p class="eyebrow">06</p><h2>Notatki służbowe</h2>
+    <div class="shots"><figure><img data-shot="brief-memo" src="assets/presentation/brief-memo.webp" alt="Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="path">
+    <p class="eyebrow">07</p><h2>Ścieżka warsztatu</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="pathbar">
+    <p class="eyebrow">08</p><h2>Pasek ścieżki</h2>
+    <div class="shots"><figure><img data-shot="path-bar" src="assets/presentation/path-bar.webp" alt="Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="join" data-step="join" data-min="10">
+    <p class="eyebrow">09 · join · 10 min</p><h2>Krok: Dołącz</h2>
+    <div class="shots"><figure><img data-shot="start" src="assets/presentation/start.webp" alt="Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="cycle" data-step="cycle" data-min="10">
+    <p class="eyebrow">10 · cycle · 10 min</p><h2>Krok: Cykl projektu AI</h2>
+    <div class="shots"><figure><img data-shot="cycle" src="assets/presentation/cycle.webp" alt="Demonstracja cyklu projektu AI: etapy od problemu biznesowego do wdrożenia i monitoringu." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="task" data-step="task" data-min="10">
+    <p class="eyebrow">11 · task · 10 min</p><h2>Krok: Zadanie</h2>
+    <div class="shots"><figure><img data-shot="brief-memo" src="assets/presentation/brief-memo.webp" alt="Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="data" data-step="data" data-min="15">
+    <p class="eyebrow">12 · data · 15 min</p><h2>Krok: Dane</h2>
+    <div class="shots"><figure><img data-shot="data" src="assets/presentation/data.webp" alt="Strona danych zadania „Awarie maszyn”: lista plików i karta danych z odczytami czujników." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="demos" data-step="demos" data-min="20">
+    <p class="eyebrow">13 · demos · 20 min</p><h2>Krok: Demonstracje</h2>
+    <div class="shots"><figure><img data-shot="demos" src="assets/presentation/demos.webp" alt="Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="base" data-step="base" data-min="25">
+    <p class="eyebrow">14 · base · 25 min</p><h2>Krok: Metoda odniesienia</h2>
+    <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="iterate" data-step="iterate" data-min="30">
+    <p class="eyebrow">15 · iterate · 30 min</p><h2>Krok: Ulepszanie</h2>
+    <div class="shots"><figure><img data-shot="test-reveal" src="assets/presentation/test-reveal.webp" alt="Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="model">
+    <p class="eyebrow">16</p><h2>Model językowy</h2>
+    <div class="shots"><figure><img data-shot="ai-run" src="assets/presentation/ai-run.webp" alt="Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas." loading="eager"></figure><figure><img data-shot="ai-bar" src="assets/presentation/ai-bar.webp" alt="Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="risk" data-step="risk" data-min="20">
+    <p class="eyebrow">17 · risk · 20 min</p><h2>Krok: Ryzyko</h2>
+    <div class="shots"><figure><img data-shot="risk" src="assets/presentation/risk.webp" alt="Karty ryzyk projektu AI (dane osobowe, halucynacje) z wybraną odpowiedzią i widocznym uzasadnieniem." loading="eager"></figure><figure><img data-shot="golive" src="assets/presentation/golive.webp" alt="Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="architecture">
+    <p class="eyebrow">18</p><h2>Architektura rozwiązania</h2>
+    <div class="shots"><figure><img data-shot="arch" src="assets/presentation/arch.webp" alt="Schemat blokowy architektury rozwiązania złożony z wybranych komponentów." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="report" data-step="report" data-min="15">
+    <p class="eyebrow">19 · report · 15 min</p><h2>Krok: Raport</h2>
+    <div class="shots"><figure><img data-shot="report-gaps" src="assets/presentation/report-gaps.webp" alt="Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="rules">
+    <p class="eyebrow">20</p><h2>Zasady pracy</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="badges">
+    <p class="eyebrow">21</p><h2>Odznaki</h2>
+    <div class="shots"><figure><img data-shot="badges" src="assets/presentation/badges.webp" alt="Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="teamfile">
+    <p class="eyebrow">22</p><h2>Plik zespołu</h2>
+    <div class="shots"><figure><img data-shot="team-file" src="assets/presentation/team-file.webp" alt="Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="handin">
+    <p class="eyebrow">23</p><h2>Oddanie pracy</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="example">
+    <p class="eyebrow">24</p><h2>Przykładowy projekt</h2>
+    <div class="shots"><figure><img data-shot="example" src="assets/presentation/example.webp" alt="Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem." loading="eager"></figure></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="talk">
+    <p class="eyebrow">25</p><h2>Rozmowa o wynikach</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="learn">
+    <p class="eyebrow">26</p><h2>Czego się nauczyliście</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="start" class="centerme">
+    <div class="t-title"><h1>Zaczynamy</h1><div id="qr" class="qr" data-url="https://rybex.warsztaty-ai.com/rybex-ai-workshop.html"></div><p class="url">https://rybex.warsztaty-ai.com/rybex-ai-workshop.html</p></div>
+    <aside class="notes">TODO</aside>
+  </section>
+
+  <section data-slide="recap">
+    <p class="eyebrow">28</p><h2>Podsumowanie</h2>
+    <aside class="notes">TODO</aside>
+  </section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+  // QR code: skipped silently when the library did not load; the URL stays printed as text.
+  try {
+    const box = document.getElementById('qr');
+    if (box && typeof qrcode === 'function') {
+      const q = qrcode(0, 'M'); q.addData(box.dataset.url); q.make();
+      box.innerHTML = q.createSvgTag({ cellSize: 8, margin: 2, scalable: true });
+    }
+  } catch (e) { /* no QR, the URL text is enough */ }
+
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    controls: true, progress: true, overview: true,
+    center: false,
+    transition: 'slide',
+    width: 1360, height: 765, margin: 0.035,
+    minScale: 0.2, maxScale: 2.0,
+    plugins: [RevealNotes],
+  }).then(() => {
+    const DECK_FONTS = ['400 1em "Outfit"', '700 1em "Outfit"', '400 1em "IBM Plex Sans"', '400 1em "Roboto Mono"'];
+    return Promise.race([
+      Promise.all(DECK_FONTS.map(f => document.fonts.load(f).catch(() => null))),
+      new Promise(r => setTimeout(r, 1500)),
+    ]);
+  }).finally(() => document.documentElement.classList.add('deck-ready'));
+</script>
+</body>
+</html>
