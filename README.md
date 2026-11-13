@@ -18,7 +18,7 @@ node tools/vision-bundle.mjs
 
 Model calls go through the Cloudflare Worker in `worker/`, which holds the API key and checks a class code; see [worker/README.md](worker/README.md). Without the Worker the labs run on their rule-based baselines.
 
-`replay.json` holds recorded answers for the default model runs and is used when the Worker is unreachable. A recorded answer is found by the exact request body, so an edited prompt or any other changed setting is never answered from the recording. Re-record it only when a default prompt, the photos or a default setting changes (about $0.04 of team 8's budget). This branch changed no default request: the default vision, complaints and knowledge-assistant runs are still served from the existing recording.
+`replay.json` holds recorded answers for the default model runs and is used when the Worker is unreachable; the AI panel then says that recorded answers are shown, and each such answer is labelled as recorded. A recorded answer is found by the exact request body, so an edited prompt or any other changed setting is never answered from the recording. Re-record it only when a default prompt, the photos or a default setting changes (about $0.04 of team 8's budget). This branch changed no default request: the default vision, complaints and knowledge-assistant runs are still served from the existing recording.
 
 ```bash
 CC='class-code' node tools/record-replay.mjs
@@ -30,15 +30,15 @@ The dry run checks that the tool still drives every lab to the end. With `AI` se
 
 ## Guided path
 
-A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
+The start page's main button and agenda follow the same nine steps. A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
 
 1. Przydział i strona firmy (Team set-up and the company) – read the incident memo, enter the team name, read the notice about the returned lot on the company site.
 2. Cykl projektu (Project lifecycle) – the lifecycle demo and its quiz.
 3. Wybór zadania (Choosing the task) – pick one of the five tracks and write a success criterion.
 4. Dane zadania (Task data) – open the data file of the chosen task.
-5. Mini-demonstracje (Mini demos) – the demos the task needs, each followed by a quiz.
+5. Demonstracje (Demos) – the demos the task needs, each followed by a quiz.
 6. Laboratorium, runda 1 (Build lab, round 1) – run and save the baseline.
-7. Rundy 2–3 i test (Rounds 2–3 and the test) – save at least three experiments, then reveal the test set once (tracks with a hidden test set).
+7. Rundy 2–3 i test (Rounds 2–3 and the test) – save at least three experiments; on the tracks with a hidden test set, reveal the test once ("Odsłońcie zbiór testowy", in the knowledge assistant "Odsłońcie pytania testowe") and save the result while it is visible. The step is done only when that final result is in the log; a reveal alone does not complete it. Team files from before this rule keep the step done if an entry was saved after a test view.
 8. Ryzyka i wdrożenie (Risks and go-live) – answer at least four risk cards and take the four go-live decisions.
 9. Raport i wystąpienie (Report and presentation) – complete the checklist and export the report.
 
@@ -53,7 +53,7 @@ What participants meet along the way:
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównajcie dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
 - Risk cards on a sixth demo tab, "Ryzyka" (personal data, hallucination, AI Act, bias, prompt injection), told through fictional Rybex staff.
-- Four go-live decisions on the architecture page (where the model runs, who may stop the line, what is monitored, how often it is reviewed). Each answer shows its cost at once. For the complaints and knowledge-assistant tracks, choosing the cloud or hybrid option without the "Anonimizacja danych osobowych" (personal-data anonymisation) component in the diagram shows a privacy warning with a button that adds the component or switches to local processing.
+- Four go-live decisions on the architecture page (where the model runs, who may stop the line, what is monitored, how often it is reviewed); who may stop the line and what is monitored are worded for the team's track. Each answer shows its cost at once. For the complaints and knowledge-assistant tracks, choosing the cloud or hybrid option without the "Anonimizacja danych osobowych" (personal-data anonymisation) component in the diagram shows a privacy warning with a button that adds the component or switches to local processing.
 - Nine badges (baseline saved, baseline beaten, fair test and others), announced when earned.
 - "Pokażcie przykład zespołu" (Show an example team): a read-only preview of a finished, deliberately imperfect forecast project. The team's own work is not touched, the model does not run and report export is off while the example is shown.
 
@@ -71,7 +71,7 @@ Team files are JSON with `version: 3` (`FILE_VERSION`). Version 3 adds the path,
 
 ### Trainer mode
 
-Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It is a convenience, not access control: any participant who knows the parameter can add it to the address. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show the task, path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes and news read, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
+Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It is a convenience, not access control: any participant who knows the parameter can add it to the address. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show the task, path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes, news read, intranet opened and contact form sent, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
 
 ## Tests
 
@@ -84,7 +84,7 @@ node worker.mjs            # Worker contract against a mock OpenRouter
 node guided.mjs [section]  # guided path probes; run one or more sections by name
 ```
 
-`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
+`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
 
 `worker.mjs` starts `wrangler dev` on port 8787 (and a mock OpenRouter on 8799). An aborted run can leave port 8787 taken; free it before the next run.
 

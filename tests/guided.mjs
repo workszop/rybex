@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -124,8 +124,8 @@ try {
     ok('pathState picks the first open step', st.next.id === 'cycle' && st.steps.length === 9, JSON.stringify(st.next));
     ok('PATH_STEPS order and minutes', await p.evaluate(() => PATH_STEPS().map(s => s.id).join() === 'join,cycle,task,data,demos,base,iterate,risk,report' && PATH_STEPS().every(s => s.label && s.min > 0)));
     const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.site.newsRead = true; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
-      const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'lb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; return [a, b, c, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
-    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","risk",true,false]', JSON.stringify(rules));
+      const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'lb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; t.log.push({ id: 'lt', ts: '', track: 'vision', note: '', testViews: 1, res: { test: { f1: .5 } } }); const d = pathState(t).next.id; return [a, b, c, d, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
+    ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","iterate","risk",true,false]', JSON.stringify(rules));
     ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
     await seed(p, () => { team().onboardedAt = 'x'; team().site.newsRead = true; });
     const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
@@ -184,7 +184,7 @@ try {
     ok('bar fresh after saving an experiment', await f.evaluate(() => document.querySelector('#pathBar').dataset.next === pathState(team()).next.id && pathState(team()).next.id === 'iterate'));
     await seed(f, () => { const t = team(); t.track = 'vision'; qz(t, 'tok'); t.log = [1, 2, 3].map(i => ({ id: 'v' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'vb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); t.decision.vision = { m: 0, why: 'Reguły są tanie i wyjaśnialne.' }; t.lab.vision.testViews = 0; t.lab.vision.revealed = false; });
     await f.evaluate(() => go('lab', 'vision')); await f.waitForSelector('#visRv'); await f.click('#visRv');
-    ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === (n ? n.id : '') && (!n || n.id !== 'iterate'); }));
+    ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === n.id && n.id === 'iterate' && document.querySelector('#pathNext').textContent.trim() === 'Zapiszcie wynik testu'; }));
     await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; t.site.newsRead = true; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
     const done = await f.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true });
@@ -692,7 +692,7 @@ try {
     ok('risk no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
   if (run('golive')) { const p = await fresh('#/arch');
     ok('four decisions rendered', await p.$eval('#goLive', e => e.dataset.total === '4' && e.dataset.answered === '0' && e.dataset.warn === ''));
-    ok('decision ids and options', await p.evaluate(() => { const D = GO_LIVE_DECISIONS(), o = id => D.find(d => d.id === id).options.map(x => x.id).join(); return D.map(d => d.id).join() === 'runWhere,stopAuthority,monitor,reviewEvery' && o('runWhere') === INFRA.join() && o('stopAuthority') === 'system,operator,quality' && o('monitor') === 'falseAlarms,refusals,photoDrift,nothing' && o('reviewEvery') === 'weekly,quarterly,never' && D.every(d => d.q && d.options.every(x => x.t && x.fb.length > 40)); }));
+    ok('decision ids and options', await p.evaluate(() => { const D = GO_LIVE_DECISIONS(), o = id => D.find(d => d.id === id).options.map(x => x.id).join(); return D.map(d => d.id).join() === 'runWhere,stopAuthority,monitor,reviewEvery' && o('runWhere') === INFRA.join() && o('stopAuthority') === 'system,operator,quality' && o('monitor') === 'falseAlarms,photoDrift,nothing' && o('reviewEvery') === 'weekly,quarterly,never' && D.every(d => d.q && d.options.every(x => x.t && x.fb.length > 40)); }));
     ok('default hybrid of a fresh team is not an answer', await p.evaluate(() => { const t = defaultTeam(); t.track = 'complaints'; return t.arch.infra === 'hybrid' && !goLiveWarnings(t).length && team().arch.infra === 'hybrid'; }) && await p.$eval('#goLive [data-d=runWhere]', e => !e.querySelector('[aria-pressed=true]') && e.querySelector('.fb').textContent === ''));
     ok('Hanna speaks in the go-live block', !!(await p.$('#goLive figure.persona[data-persona=hanna][data-slot=go_live]')));
     ok('static privacy hint replaced', !(await p.evaluate(() => document.querySelector('#main').textContent.includes('Wskazówka: dane wrażliwe'))));
@@ -1035,7 +1035,7 @@ try {
       ok('exit2 the reveal action focuses the reveal button', await p.evaluate(() => document.activeElement.matches('[data-reveal=complaints]')));
       ok('exit2 English reveal action', await p.evaluate(() => { S.lang = 'en'; render(); const s = [$('#pathNext').textContent.trim(), $('.pb-hint').textContent]; S.lang = 'pl'; render(); return s[0] === 'Reveal the test set' && /reveal the test set once and save the result/.test(s[1]); }));
       await p.click('[data-reveal=complaints]');
-      ok('exit2 one reveal completes the step', await p.evaluate(() => lab().compl.testViews === 1 && pathState(team()).steps.find(s => s.id === 'iterate').done && $('#pathBar').dataset.next !== 'iterate'));
+      ok('exit2 one reveal and the saved test result complete the step', await p.evaluate(() => lab().compl.testViews === 1 && !pathState(team()).steps.find(s => s.id === 'iterate').done) && await (async () => { await p.click('#sv'); return p.evaluate(() => pathState(team()).steps.find(s => s.id === 'iterate').done && $('#pathBar').dataset.next !== 'iterate'); })());
       await p.evaluate(`(()=>{ (${prepC})({ why: false }); lab().compl.revealed = false; lab().compl.testViews = 0; save(); render(); })()`);
       ok('exit2 gate closed: the action text stays the reveal', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Odsłońcie zbiór testowy');
       await p.click('#pathNext'); await p.waitForTimeout(50);
@@ -1089,7 +1089,7 @@ try {
       await p.close(); }
     // 5: back to the workshop returns where the participant came from.
     { const p = await fresh('#/lab/complaints');
-      await p.evaluate(`(()=>{ (${prepC})(); lab().compl.testViews = 1; save(); render(); })()`);
+      await p.evaluate(`(()=>{ (${prepC})(); lab().compl.testViews = 1; team().log.push({ id: 'ct', ts: '', track: 'complaints', note: '', testViews: 1, res: { test: .6, primary: { m: 'x', v: .6, test: true } } }); save(); render(); })()`);
       ok('exit2 the next step is not the lab', await p.evaluate(() => pathState(team()).next.id) === 'risk');
       await p.click('#inboxForm'); await p.waitForSelector('#backToWs');
       await p.click('#backToWs'); ok('exit2 lab -> contact -> back: the lab', await p.evaluate(() => location.hash) === '#/lab/complaints');
@@ -1104,13 +1104,14 @@ try {
     // 6: go-live decision 2 says what the diagram has and follows the track.
     { const p = await fresh('#/arch');
       await seed(p, () => { const t = team(); t.track = 'complaints'; t.arch.sel = {}; });
-      const note = () => p.$eval('#goLive [data-d=stopAuthority] .gl-note', e => e.textContent);
+      // Visible text: glossary tooltips are left out.
+      const note = () => p.$eval('#goLive [data-d=stopAuthority] .gl-note', e => { const c = e.cloneNode(true); c.querySelectorAll('.gloss-tip').forEach(x => x.remove()); return c.textContent; });
       const n0 = await note();
       ok('exit2 note without the component says it is missing', !n0.includes('macie już') && /nie ma jeszcze/.test(n0) && !!(await p.$('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]')), n0);
       await p.click('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]');
       const n1 = await note();
       ok('exit2 note with the component', n1.includes('W schemacie macie już komponent „Weryfikacja przez człowieka”.'), n1);
-      const en = await p.evaluate(() => { S.lang = 'en'; render(); const a = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; team().arch.sel.hitl = false; render(); const b = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; S.lang = 'pl'; render(); return [a, b]; });
+      const en = await p.evaluate(() => { const vt = e => { const c = e.cloneNode(true); c.querySelectorAll('.gloss-tip').forEach(x => x.remove()); return c.textContent; }; S.lang = 'en'; render(); const a = vt(document.querySelector('#goLive [data-d=stopAuthority] .gl-note')); team().arch.sel.hitl = false; render(); const b = vt(document.querySelector('#goLive [data-d=stopAuthority] .gl-note')); S.lang = 'pl'; render(); return [a, b]; });
       ok('exit2 English note matches the Polish one', /already has the «Human-in-the-loop» component/.test(en[0]) && !/already/.test(en[1]) && /does not have/.test(en[1]), JSON.stringify(en));
       const q = await p.evaluate(() => { const g = k => { team().track = k; return GO_LIVE_DECISIONS().find(d => d.id === 'stopAuthority'); }; const c = g('complaints'), v = g('vision'), r = g('rag'), f = g('forecast'), m = g('maint'); team().track = 'complaints'; return { c: c.q, v: v.q, qs: new Set([c.q, v.q, r.q, f.q, m.q]).size, ids: [c, v, r, f, m].every(d => d.options.map(o => o.id).join() === 'system,operator,quality'), lab: c.options.map(o => o.t).join('|') !== v.options.map(o => o.t).join('|') }; });
       ok('exit2 decision 2 is track-aware, ids unchanged', q.c !== q.v && /klient/.test(q.c) && q.qs === 5 && q.ids && q.lab, JSON.stringify(q));
@@ -1188,7 +1189,7 @@ try {
     // 2: the human-check warning follows the track.
     { const p = await fresh('#/arch');
       await seed(p, () => { const t = team(); t.track = 'complaints'; t.arch.sel = {}; t.arch.decisions = { stopAuthority: 'system' }; });
-      const w = await p.evaluate(() => ({ s: document.querySelector('#goLive [data-w=hitl]').textContent, md: reportMD(), h: reportHTML() }));
+      const w = await p.evaluate(() => { const c = document.querySelector('#goLive [data-w=hitl]').cloneNode(true); c.querySelectorAll('.gloss-tip').forEach(x => x.remove()); return { s: c.textContent, md: reportMD(), h: reportHTML() }; });
       const sec = x => x.slice(x.indexOf('## Decyzje wdrożeniowe') + 3);
       ok('exit2r complaints hitl warning speaks of the reply, not the line', !/linię/.test(w.s) && /klient/.test(w.s) && /odpowied/.test(w.s), w.s);
       ok('exit2r complaints hitl warning in both reports without the line', w.md.includes(w.s.trim()) && sec(w.md).split('\n## ')[0].includes(w.s.trim()) && !/linię/.test(sec(w.md).split('\n## ')[0]) && !/zatrzymuje linię/.test(w.h), sec(w.md).split('\n## ')[0]);
@@ -1496,6 +1497,183 @@ try {
     const one = await p.evaluate(() => [recapText('vision', { tp: 0, fp: 1, fn: 0 }, { set: 'val', n: 60 }), recapText('vision', { tp: 0, fp: 2, fn: 0 }, { set: 'val', n: 60 })]);
     ok('copy vision recap: one alarm reads "alarm raz", two false ones "oba"', one[0].includes('podniósł alarm raz: puszka była dobra') && one[1].includes('oba dotyczyły dobrych puszek'), one.join(' | '));
     ok('copy no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+  }
+  // ─── Final review fixes ───
+  if (run('final')) {
+    // Each block runs on its own: an exception fails that block and the next one still runs.
+    const B = async f => { try { await f(); } catch (e) { fail++; console.log('  ERROR', e.message.split('\n')[0]); } };
+    // A failed click is reported by the assertions that follow, not by aborting the section.
+    const tap = (p, sel) => p.click(sel, { timeout: 3000 }).catch(() => console.log('  (click failed)', sel));
+    // A team at step 7 on track k: path steps 1–6 done, baseline, justification and three experiments saved, test never seen.
+    const at7 = (p, k) => p.evaluate(k => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: k, goal: 'g' }); t.seen.data = true; qz(t, 'life', ...reqDemos(k));
+      t.decision[k] = { m: 0, why: 'Reguły są tanie i wyjaśnialne, a danych jest mało.' };
+      const e = (id, x, base) => ({ id, ts: '2026-11-13T10:00:00.000Z', track: k, cfg: base ? { base: true, x } : { x }, res: { primary: { m: 'x', v: .5 + x / 10, base: .5, hi: true, test: false } }, note: 'n', testViews: 0, ...(base ? { base: true } : {}) });
+      t.log = [e('b', 0, true), e('e1', 1), e('e2', 2), e('e3', 3)]; save(); render(); }, k);
+    const st7 = p => p.evaluate(() => { const s = pathState(team()); return { next: s.next && s.next.id, done: s.steps.find(x => x.id === 'iterate').done, lbl: document.querySelector('#pathNext .pb-lbl').textContent, hint: document.querySelector('#pathBar .pb-hint')?.textContent || '' }; });
+    // 1. Step 7 needs the saved test result.
+    await B(async () => { for (const [k, rv] of [['complaints', '#rv'], ['vision', '#visRv'], ['rag', '#ragRv']]) {
+      const p = await fresh('#/lab/' + k); await at7(p, k);
+      await tap(p, rv); let s = await st7(p);
+      ok(`final 1 ${k}: reveal without saving keeps step 7 open`, s.next === 'iterate' && !s.done, JSON.stringify(s));
+      ok(`final 1 ${k}: bar asks to save the test result`, s.lbl === 'Zapiszcie wynik testu' && s.hint.includes('zapiszcie wynik testu w dzienniku – trafi do raportu jako ocena końcowa'), JSON.stringify(s));
+      await tap(p, '#pathNext'); ok(`final 1 ${k}: Next focuses the save button`, await p.evaluate(() => document.activeElement.id) === 'sv');
+      await tap(p, '#sv'); s = await st7(p);
+      ok(`final 1 ${k}: save while revealed completes step 7, next is risk`, s.done && s.next === 'risk', JSON.stringify(s));
+      ok(`final 1 ${k}: no page errors`, !p.errs.length, p.errs.join('|')); await p.close();
+    } });
+    await B(async () => { const p = await fresh('#/lab/complaints'); await at7(p, 'complaints');
+      await tap(p, '#rv'); await tap(p, '#rv'); let s = await st7(p);
+      ok('final 1 reveal then hide: re-reveal hint and action', s.next === 'iterate' && s.lbl === 'Odsłońcie test ponownie i zapiszcie wynik' && /nie zapisaliście wyniku testu/.test(s.hint) && /kolejne oglądanie testu/.test(s.hint), JSON.stringify(s));
+      await tap(p, '#pathNext'); ok('final 1 reveal then hide: Next focuses the reveal button', await p.evaluate(() => document.activeElement.id) === 'rv');
+      await p.evaluate(() => { go('lab', 'complaints'); lab().compl.kw.damage += ',rysa'; save(); render(); }); await p.fill('#expNote', 'Nowe słowo kluczowe.', { timeout: 3000 }).catch(() => {}); await tap(p, '#sv'); s = await st7(p);
+      ok('final 1 a tuning save after a hidden view does not complete step 7', s.next === 'iterate' && !s.done, JSON.stringify(s));
+      await p.close(); });
+    await B(async () => { const p = await fresh('#/lab/complaints');
+      await p.evaluate(() => { const e = (id, x, tv) => ({ id, ts: '2026-11-10T10:00:00.000Z', track: 'complaints', cfg: { x }, res: { dev: .5, primary: { m: 'x', v: .5, base: .4, hi: true } }, note: 'n', testViews: tv });
+        S.teams[S.team] = normTeam({ name: 'Stary', onboardedAt: 'x', track: 'complaints', goal: 'g', seen: { data: true }, site: { newsRead: true }, lab: { compl: { testViews: 1, revealed: false } }, log: [{ ...e('b', 0, 0), cfg: { base: true }, base: true }, e('e1', 1, 0), e('e2', 2, 0), e('e3', 3, 1)] }); save(); render(); });
+      ok('final 1 old team file: entry saved after a view keeps step 7 done', await p.evaluate(() => pathState(team()).steps.find(s => s.id === 'iterate').done));
+      await p.evaluate(() => { team().log.forEach(l => l.testViews = 0); });
+      ok('final 1 old team file without such an entry: step 7 open', await p.evaluate(() => !pathState(team()).steps.find(s => s.id === 'iterate').done));
+      await p.evaluate(() => enterExample());
+      ok('final 1 worked example (forecast, no hidden test): step 7 done', await p.evaluate(() => team().track === 'forecast' && pathState(team()).steps.find(s => s.id === 'iterate').done));
+      await p.evaluate(() => exitExample()); await p.close(); });
+    // 2. Glossary on the risk cards, the go-live decisions and the split demo.
+    await B(async () => { const p = await fresh('#/demos/risk');
+      const terms = sel => p.$$eval(sel + ' .gloss', es => [...new Set(es.map(e => e.dataset.term))]);
+      const rk = await terms('#riskDemo'); ok('final 2 risk tab links at least four glossary terms', rk.length >= 4, rk.join());
+      const nest = () => p.evaluate(() => document.querySelectorAll('button .gloss, .gloss .gloss, a .gloss').length);
+      ok('final 2 risk tab: no gloss nested in a button or a gloss', await nest() === 0);
+      await tap(p, '#riskDemo [data-r=injection] [data-o="2"]');
+      ok('final 2 risk feedback is glossed too', (await terms('#riskDemo [data-r=injection] .fb')).length >= 1);
+      await p.focus('#riskDemo .gloss'); ok('final 2 tooltip opens by keyboard', await p.evaluate(() => getComputedStyle(document.activeElement.querySelector('.gloss-tip')).display === 'block'));
+      ok('final 2 forms match the wording on screen', await p.evaluate(() => { const has = (s, id) => glx(s).includes(`data-term="${id}"`);
+        const pl = [['Wstrzyknięcie polecenia w zgłoszeniu', 'injection'], ['komponent „Weryfikacja przez człowieka”', 'hitl'], ['brak weryfikacji przez człowieka', 'hitl'], ['Dane osobowe w reklamacji', 'gdpr'], ['Dryf jakości zdjęć', 'drift'], ['AI Act: o co zapyta', 'ai-act'], ['Wyciek danych: te same', 'leakage'], ['przykłady few-shot', 'few-shot'], ['Halucynacja procedury', 'hallucination']].every(([s, id]) => has(s, id));
+        S.lang = 'en'; const en = [['Prompt injection in a complaint', 'injection'], ['the «Human-in-the-loop» component', 'hitl'], ['Personal data in a complaint', 'gdpr'], ['Drift in photo quality', 'drift'], ['AI Act: what compliance', 'ai-act'], ['Data leakage: the same', 'leakage'], ['A hallucinated procedure', 'hallucination']].every(([s, id]) => has(s, id)); S.lang = 'pl';
+        return pl && en && !has('wstrzyknięciepolecenia', 'injection') && !has('przedryfowany', 'drift'); }));
+      await p.evaluate(() => { const t = team(); t.track = 'complaints'; t.arch.decisions.runWhere = 'cloud'; t.arch.infra = 'cloud'; save(); go('arch'); });
+      const ar = await terms('#goLive'); ok('final 2 architecture view (complaints) links at least two glossary terms', ar.length >= 2, ar.join());
+      ok('final 2 architecture: no gloss nested in a button or a gloss', await nest() === 0);
+      ok('final 2 report rows stay plain text', await p.evaluate(() => !JSON.stringify(goLiveReport()).includes('gloss') && !JSON.stringify(riskReport()).includes('gloss')));
+      await p.evaluate(() => go('demos', 'split'));
+      ok('final 2 split demo links the leakage term', !!(await p.$('#demo .gloss[data-term=leakage]')) && await nest() === 0);
+      await tap(p, '#demo .gloss[data-term=leakage]'); ok('final 2 clicking the term does not tick the leakage box', await p.evaluate(() => !document.querySelector('#lk').checked));
+      ok('final 2 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // 3. The start page follows the path.
+    await B(async () => { const p = await fresh('#/home');
+      await seed(p, () => { team().onboardedAt = 'x'; });
+      const hero = () => p.evaluate(() => { const b = document.querySelector('#heroNext'), s = pathState(team()).next; return { go: b && b.dataset.go, want: s ? s.go.join('/') : 'deliver', txt: b && b.textContent.trim(), bar: document.querySelector('#pathNext .pb-lbl').textContent.trim() }; });
+      let h = await hero(); ok('final 3 after onboarding the hero leads where the path does', h.go === h.want && h.go === 'rybex/news' && h.txt === h.bar, JSON.stringify(h));
+      await seed(p, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { track: 'maint', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); go('home'); });
+      h = await hero(); ok('final 3 a team at step 6: hero leads to the lab', h.go === h.want && h.go === 'lab/maint' && h.txt === h.bar, JSON.stringify(h));
+      await tap(p, '#heroNext'); ok('final 3 hero click goes there', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'maint'));
+      await p.evaluate(() => go('home'));
+      const ag = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#agenda .g-row')].map(r => r.querySelector('.g-name').textContent), want: PATH_STEPS().map(s => s.label), last: document.querySelector('#agenda .g-row:last-child .g-time').textContent }));
+      ok('final 3 agenda has the nine path steps', ag.rows.length === 9 && ag.rows.join('|') === ag.want.join('|'), JSON.stringify(ag));
+      ok('final 3 agenda times run from 0:00', /^0:00–0:10$/.test(await p.$eval('#agenda .g-row .g-time', e => e.textContent)) && ag.last.endsWith('2:35'), ag.last);
+      await seed(p, () => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'maint', cfg: { base: true }, res: { primary: { m: 'F1', v: .3, base: .3, hi: true } }, note: '', testViews: 0, base: true }, ...[1, 2, 3].map(i => ({ id: 'e' + i, ts: '', track: 'maint', cfg: { i }, res: { primary: { m: 'F1', v: .4, base: .3, hi: true } }, note: 'n', testViews: 0 }))];
+        RISK_SCENARIOS().forEach(s => t.risks[s.id] = 0); GO_LIVE_DECISIONS(t).forEach(d => t.arch.decisions[d.id] = d.options[0].id); t.seen.report = true; go('home'); });
+      h = await hero(); ok('final 3 path complete: hero leads to the report', h.go === 'deliver' && !(await p.evaluate(() => pathState(team()).next)), JSON.stringify(h));
+      ok('final 3 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // 4. One name for the demos.
+    await B(async () => { const p = await fresh('#/demos/split');
+      const names = () => p.evaluate(() => ({ menu: document.querySelector('[data-v=demos]').textContent.trim(), step: PATH_STEPS().find(s => s.id === 'demos').label, h1: document.querySelector('#main h1').textContent.trim() }));
+      let n = await names(); ok('final 4 menu, path step and heading say "Demonstracje"', n.menu.endsWith('Demonstracje') && n.step === 'Demonstracje' && n.h1 === 'Demonstracje', JSON.stringify(n));
+      ok('final 4 quiz heading says "demonstracja"', /demonstracja/.test(await p.$eval('#quiz h3', e => e.textContent)));
+      await p.evaluate(() => { S.lang = 'en'; render(); }); n = await names();
+      ok('final 4 English: "Demos" everywhere', n.menu.endsWith('Demos') && n.step === 'Demos' && n.h1 === 'Demos', JSON.stringify(n));
+      await p.close(); });
+    // 5. Go-live question 3 follows the track.
+    await B(async () => { const p = await fresh('#/arch');
+      const r = await p.evaluate(() => { const o = k => { const t = defaultTeam(); t.track = k; return GO_LIVE_DECISIONS(t).find(d => d.id === 'monitor').options; };
+        const c = o('complaints'), v = o('vision'), f = o('forecast'), m = o('maint'), g = o('rag');
+        const t = team(); t.track = 'complaints'; t.arch.decisions.monitor = 'falseAlarms'; const rep = goLiveReport().rows.find(x => x[0] === GO_LIVE_DECISIONS(t).find(d => d.id === 'monitor').q);
+        return { ids: [c, v, f, m, g].map(a => a.map(x => x.id).join()), c: c.map(x => x.t), v: v.map(x => x.t), f: f.map(x => x.t), rep: rep && rep[1], c0: c[0].t, fb: c[0].fb !== v[0].fb }; });
+      ok('final 5 every track uses the stored option ids, ending with "nothing"', r.ids.every(x => x.split(',').every(id => ['falseAlarms', 'refusals', 'photoDrift', 'nothing'].includes(id)) && x.endsWith(',nothing') && x.split(',').length >= 2), r.ids.join(' / '));
+      ok('final 5 complaints and vision labels differ', r.c.slice(0, 3).join() !== r.v.slice(0, 3).join() && r.fb && r.c[3] === r.v[3], JSON.stringify(r));
+      ok('final 5 the report prints the track label', r.rep === r.c0, JSON.stringify(r));
+      ok('final 5 an answer stored before (forecast, falseAlarms) stays answered and shown', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.arch.decisions.monitor = 'falseAlarms'; const o = GO_LIVE_DECISIONS(t).find(d => d.id === 'monitor').options.map(x => x.id); return goLiveAns(t, 'monitor') === 'falseAlarms' && o.join() === 'photoDrift,falseAlarms,nothing'; }));
+      await p.close(); });
+    // 6. Site flags in the trainer view.
+    await B(async () => { const p = await fresh('#/rybex/intranet');
+      ok('final 6 opening the intranet sets the flag', await p.evaluate(() => team().site.intranetOpened === true));
+      const r = await p.evaluate(() => { const t = team(); t.site.contactSent = true; const s = teamSummary(t), keys = trCols().map(c => c[0]), csv = trCSV(); return { s: [s.intranetOpened, s.contactSent], keys, csv: /Intranet otwarty/.test(csv) && /Formularz kontaktowy wysłany/.test(csv) }; });
+      ok('final 6 trainer summary, columns and CSV show intranet and contact form', r.s.join() === 'true,true' && r.keys.includes('intranetOpened') && r.keys.includes('contactSent') && r.keys.indexOf('intranetOpened') === r.keys.indexOf('newsRead') + 1 && r.csv, JSON.stringify(r));
+      await p.close(); });
+    // 7. Caps on free text in team files.
+    await B(async () => { const p = await fresh('#/home');
+      const r = await p.evaluate(() => { const many = n => Object.fromEntries(Array.from({ length: n }, (_, i) => ['k' + i, true]));
+        const t = normTeam({ name: 'N'.repeat(500), goal: 'G'.repeat(900), notes: { s1: 'x'.repeat(300000), s2: 'krótka' }, decision: { vision: { m: 1, why: 'w'.repeat(5000) } }, log: [{ id: 'a', ts: 't', track: 'vision', note: 'n'.repeat(5000), cfg: { x: 1 }, res: { primary: { v: .5 } } }, { id: 'b', track: 'vision', note: 'ok' }],
+          seen: many(80), challenges: Object.fromEntries(Array.from({ length: 80 }, (_, i) => ['c' + i, 'done'])), risks: Object.fromEntries(Array.from({ length: 80 }, (_, i) => ['r' + i, 1])), badges: Array.from({ length: 60 }, (_, i) => 'b' + i), track: 'vision' });
+        return { name: t.name.length, goal: t.goal.length, n1: t.notes.s1.length, n2: t.notes.s2, why: t.decision.vision.why.length, m: t.decision.vision.m, ln: t.log[0].note.length, l2: t.log[1].note, cfg: t.log[0].cfg.x, seen: Object.keys(t.seen).length, ch: Object.keys(t.challenges).length, rk: Object.keys(t.risks).length, bd: t.badges.length, tr: t.track }; });
+      ok('final 7 oversized fields are cut to the caps', r.name === 120 && r.goal === 300 && r.n1 === 4000 && r.why === 2000 && r.ln === 1000 && r.seen === 50 && r.ch === 50 && r.rk === 50 && r.bd === 30, JSON.stringify(r));
+      ok('final 7 everything else survives', r.n2 === 'krótka' && r.m === 1 && r.l2 === 'ok' && r.cfg === 1 && r.tr === 'vision', JSON.stringify(r));
+      await p.close(); });
+    // 8. A note typed while the photos load survives the redraw.
+    await B(async () => { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage(); p.errs = [];
+      p.on('pageerror', e => p.errs.push(e.message));
+      await p.route('**/assets/vision-realistic/**/manifest.json', async r => { await new Promise(x => setTimeout(x, 1500)); await r.continue(); });
+      await p.goto(APP() + '#/lab/vision'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await p.waitForSelector('#expNote'); const loading = await p.evaluate(() => VIS.loading);
+      await tap(p, '#expNote'); await p.keyboard.type('Wgniecenia są trudne');
+      await p.waitForFunction(() => !VIS.loading, null, { timeout: 15000 }); await p.waitForTimeout(200);
+      const r = await p.evaluate(() => { const e = document.querySelector('#expNote'); return { v: e.value, f: document.activeElement === e, c: e.selectionStart }; });
+      ok('final 8 note typed while the photos load is kept with focus and caret', loading && r.v === 'Wgniecenia są trudne' && r.f && r.c === r.v.length, JSON.stringify({ loading, ...r }));
+      await ctx.close(); });
+    // 9. Replayed answers: the status line and the label say so.
+    await B(async () => { const p = await fresh('#/lab/rag');
+      const rec = await p.evaluate(async () => { S.ai.code = 'test-code'; await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
+      await fetch(MOCK + '/replay', { method: 'POST', body: rec }); await p.close();
+      const ctx = await browser.newContext(); const q = await ctx.newPage();
+      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await q.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; lab().rag.gen = 'llm'; render(); await aiCheck(); });
+      const before = await q.$eval('#aiStatus', e => e.textContent);
+      const r = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] });
+        return { rp: x.replayed, st: document.querySelector('#aiStatus').textContent, use: useText(aiUse(x)), sum: aiSumText(aiSummary([aiUse(x)])) }; });
+      ok('final 9 status before the replay: no connection', /Brak połączenia z serwerem modelu/.test(before), before);
+      ok('final 9 after a replayed answer the status says recorded answers are shown', r.rp && r.st === 'Serwer modelu jest niedostępny – pokazujemy nagrane odpowiedzi dla ustawień domyślnych.', JSON.stringify(r));
+      ok('final 9 replayed answers are labelled as recorded, not cache', /nagrana odpowiedź/.test(r.use) && !/pamięci podręcznej/.test(r.use) && /nagrane odpowiedzi/.test(r.sum) && !/pamięci podręcznej/.test(r.sum), JSON.stringify(r));
+      ok('final 9 the Worker cache keeps its wording', await q.evaluate(() => /pamięci podręcznej/.test(useText({ model: 'deepseek', in: 1, out: 1, cost: 0, ms: 1, cached: true }))));
+      const miss = await q.evaluate(() => callModel({ messages: [{ role: 'user', content: 'never recorded' }] }).then(() => 'resolved', e => document.querySelector('#aiStatus').textContent));
+      ok('final 9 a call missing from the recording brings back the offline message', /Brak połączenia z serwerem modelu/.test(miss), miss);
+      await ctx.close(); await fetch(MOCK + '/reset'); });
+    // 10. Forecast baseline after a product or horizon change.
+    await B(async () => { const p = await fresh('#/lab/forecast');
+      await tap(p, '#runBase'); await tap(p, '#saveBase');
+      ok('final 10 baseline saved, no stale "run again" hint', await p.evaluate(() => { const o = document.querySelector('#baseOut'); return o.dataset.saved === 'true' && !/uruchomcie metodę odniesienia ponownie/i.test(o.textContent); }));
+      await p.evaluate(() => { lab().fc.h = 9; save(); render(); showBase('forecast', true); });
+      let r = await p.evaluate(() => { const o = document.querySelector('#baseOut'); return { saved: o.dataset.saved, txt: o.textContent }; });
+      ok('final 10 other horizon: not saved yet, hint says it is a baseline for other data', r.saved === 'false' && /dla innego produktu lub horyzontu/.test(r.txt), JSON.stringify(r.saved));
+      await tap(p, '#saveBase'); await p.evaluate(() => { lab().fc.h = 6; save(); render(); showBase('forecast', true); });
+      r = await p.evaluate(() => ({ saved: document.querySelector('#baseOut').dataset.saved, n: team().log.filter(l => l.base).length }));
+      ok('final 10 back to the first horizon: shows saved, one entry per data configuration', r.saved === 'true' && r.n === 2, JSON.stringify(r));
+      await p.close(); });
+    // 11. Smaller state fixes.
+    await B(async () => { const p = await fresh('#/lab/vision'); await p.waitForFunction(() => !VIS.loading);
+      const r = await p.evaluate(() => { team().challenges.vision_borderline = 'done'; VIS.featureSource = 'synthetic'; renderChallenge('vision'); return document.querySelector('.challenge .status').textContent; });
+      ok('final 11 passed vision challenge without photos: says the photos did not load, pass kept', !/nie spełniają/.test(r) && /zdjęcia/i.test(r) && /nie wczytały/.test(r) && await p.evaluate(() => team().challenges.vision_borderline === 'done' && document.querySelector('.challenge').dataset.state === 'done'), r);
+      await p.close(); });
+    await B(async () => { const p = await fresh('#/home');
+      const r = await p.evaluate(async () => { S.teams[2] = defaultTeam(); S.teams[2].badges = ['news']; team().badges.push('news'); toastEl.hidden = true;
+        badgeQ.push({ id: 'news', name: 'X', msg: 'ODZNAKA-ZESPOŁU-1' }); const sel = document.querySelector('#teamSel'); sel.value = '2'; sel.dispatchEvent(new Event('change'));
+        await new Promise(r => setTimeout(r, 50)); flushBadges(); return { team: S.team, toast: toastEl.textContent, q: badgeQ.length }; });
+      ok('final 11 badge queue is cleared on a team switch', r.team === 2 && !r.toast.includes('ODZNAKA-ZESPOŁU-1') && r.q === 0, JSON.stringify(r));
+      await p.close(); });
+    await B(async () => { const p = await fresh('#/lab/complaints');
+      await at7(p, 'complaints');
+      await p.evaluate(() => { const L = lab().compl, ids = Array.from({ length: 16 }, (_, i) => 21 + i), tids = Array.from({ length: 24 }, (_, i) => 37 + i), run = (id, set, ii) => ({ id, ts: '', ver: 'v1', model: 'deepseek', shots: 0, set, n: ii.length, failed: 0, acc: .5, macro: .5, safety: .5, safetyFalse: 0, ruleAcc: .4, sum: { model: 'deepseek', calls: ii.length, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, ids: ii, preds: ii.map(() => ({ c: 'other', h: false, r: '', bad: false })) });
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.runs = [run('rd', 'dev16', ids), run('rt', 'test', tids)]; L.rsel = 'rt'; save(); render(); });
+      const req = () => p.$eval('#expNoteReq', e => e.textContent);
+      const a = await req(); await tap(p, '[data-run=rd]'); const b = await req(); await tap(p, '[data-run=rt]'); const c = await req();
+      ok('final 11 note marker follows the selected run while the test is revealed', a === '' && b === '(wymagane)' && c === '', JSON.stringify([a, b, c]));
+      ok('final 11 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // 12. One label for the reveal control.
+    await B(async () => { const p = await fresh('#/lab/vision'); await at7(p, 'vision');
+      ok('final 12 vision rules reveal control', (await p.$eval('#visRv', e => e.textContent.trim())) === 'Odsłońcie zbiór testowy');
+      ok('final 12 vision bar uses the same words', (await st7(p)).lbl === 'Odsłońcie zbiór testowy');
+      await p.evaluate(() => go('lab', 'rag')); await at7(p, 'rag');
+      const r = await p.evaluate(() => ({ btn: document.querySelector('#ragRv').textContent.trim(), bar: document.querySelector('#pathNext .pb-lbl').textContent, rv: document.querySelector('#ragRv').dataset.reveal }));
+      ok('final 12 knowledge assistant: "Odsłońcie pytania testowe" on the control and the bar', r.btn === 'Odsłońcie pytania testowe' && r.bar === 'Odsłońcie pytania testowe' && r.rv === 'rag', JSON.stringify(r));
+      ok('final 12 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
