@@ -30,15 +30,15 @@ curl -s https://rybex-ai.andrzey-jankowski.workers.dev/status -H "X-Class-Code: 
 
 ## On the day
 
-- Give students the class code. They type it in the "Language model via API" card in the Build lab (Vision, Knowledge assistant, Complaints).
+- Give students the class code. They type it in the "Language model via API" card in the Build lab (Vision, Knowledge assistant, Complaints). The card appears once the lab uses the model: "Vision model" in Vision, "Language model" in Knowledge assistant, "Language model with a prompt" in Complaints.
 - Change or revoke the code: `npx wrangler secret put CLASS_CODE` (takes effect immediately).
 - Raise or lower the budget: edit `TEAM_DAILY_USD` / `TOTAL_DAILY_USD` in `wrangler.toml` and `npx wrangler deploy`, or edit the variables in the Cloudflare dashboard.
 - Spend so far: `GET /status` with the code (per team via `X-Team`), or OpenRouter's activity page.
 
 ## Backup without the Worker (replay.json)
 
-1. Before class, run the labs once with the model (all tracks you want to show).
-2. In the "Language model via API" card click "For the facilitator: download this session's answers as replay.json".
+1. Before class, open the app in trainer mode (`?trainer=1`) and run the labs once with the model (all tracks you want to show).
+2. In the "Language model via API" card click "For the facilitator: download this session's answers as replay.json" (shown only in trainer mode).
 3. Put `replay.json` next to `rybex-ai-workshop.html` in the GitHub Pages repo.
 
 If the Worker is unreachable, the app answers recorded requests from that file at no cost. Requests that were not recorded fall back to the rule-based baselines with a message.
