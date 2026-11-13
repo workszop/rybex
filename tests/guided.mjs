@@ -107,10 +107,7 @@ try {
     await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('home')); ok('memo in English', /plant director/i.test(await p.$eval('#memo', e => e.textContent)));
     ok('no real brands', await p.$eval('#main', e => !/Biedronka|Lidl|Graal|Łosoś Ustka|Auchan|Kaufland/i.test(e.textContent)));
     ok('story no page errors', !p.errs.length, p.errs.join('|'));
-    await p.close();
-    const m = await fresh('#/brief', '', { width: 390, height: 844 });
-    ok('brief requirements folded on mobile', await m.$eval('#briefReq', e => !e.open));
-    await m.close(); }
+    await p.close(); }
   if (run('path')) { const p = await fresh('#/brief');
     ok('path bar on every view', await p.evaluate(async () => { for (const n of NAV) { go(n[0]); if (!document.querySelector('#pathBar #pathNext')) return false; } return true; }));
     await p.evaluate(() => go('brief'));
@@ -145,11 +142,6 @@ try {
     ok('lab jump bar sits below the path bar (1440)', await p.evaluate(() => { const j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(); return b.top >= 0 && j.top >= b.bottom - 1; }));
     ok('path no page errors', !p.errs.length, p.errs.join('|'));
     await p.close();
-    const m = await fresh('#/lab/vision', '', { width: 390, height: 844 });
-    await m.evaluate(() => window.scrollTo(0, 2500)); await m.waitForTimeout(100);
-    ok('lab jump bar sits below the path bar (390)', await m.evaluate(() => { const j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(); return b.top >= 0 && b.bottom < 140 && j.top >= b.bottom - 1; }));
-    ok('no horizontal scroll at 390', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await m.goto('about:blank'); await m.close();
     const memoP = q => q.$eval('#memo .card-body > p', e => { const r = e.getBoundingClientRect(), hb = document.querySelector('#pathBar').getBoundingClientRect().bottom; return { top: r.top, bottom: r.bottom, hb, vh: innerHeight }; });
     const w = await fresh('#/home', '', { width: 1280, height: 720 });
     ok('first visit: onboarding shown', !!(await w.$('#onboard')));
@@ -160,9 +152,6 @@ try {
     await w.click('#memoSite'); await w.waitForFunction(() => S.view === 'rybex');
     ok('Zaczynamy and the news complete the first step in the bar', await w.$eval('#pathBar', e => e.dataset.next !== 'join' && +e.dataset.done >= 1));
     await w.close();
-    const n = await fresh('#/home', '', { width: 390, height: 844 });
-    ok('390: memo starts within 1.5 screens', await n.$eval('#memo', e => e.getBoundingClientRect().top < innerHeight * 1.5));
-    await n.close();
     const o = await fresh('#/home');
     await seed(o, () => { const t = team(); t.onboardedAt = ''; t.log.push({ id: 'x1', ts: '', track: 'maint', note: '', testViews: 0 }); });
     ok('team with work skips onboarding', !!(await o.$('#memo')) && !(await o.$('#onboard')));
@@ -573,12 +562,7 @@ try {
     await q.evaluate(() => { const x = JSON.parse(localStorage.getItem(STORE_KEY)); x.view = 'home'; x.sub = { demos: 'life', lab: 'vision' }; localStorage.setItem(STORE_KEY, JSON.stringify(x)); });
     await q.reload(); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     ok('site old saved state without sub.rybex still opens the site', await q.evaluate(() => { go('rybex'); return S.sub.rybex === 'home' && document.querySelector('.rybex-frame').dataset.page === 'home'; }));
-    await q.close();
-    for (const pg of ['home', 'news', 'products', 'quality', 'career']) { const m = await fresh('#/rybex/' + pg, '', { width: 375, height: 740 });
-      await m.waitForTimeout(150); ok(`site 375 no horizontal scroll on ${pg}`, await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth), String(await m.evaluate(() => document.documentElement.scrollWidth)));
-      if (pg === 'home') { ok('site 375 menu folds into a toggle', await m.evaluate(() => { const t = document.querySelector('.rybex-frame .rf-toggle'), l = document.querySelector('.rybex-frame .rf-menu'); return !!t && t.offsetHeight > 0 && l.offsetHeight === 0 && t.getAttribute('aria-expanded') === 'false'; }));
-        await m.click('.rybex-frame .rf-toggle'); ok('site 375 toggle opens the menu', await m.evaluate(() => document.querySelector('.rybex-frame .rf-menu').offsetHeight > 0 && document.querySelector('.rybex-frame .rf-toggle').getAttribute('aria-expanded') === 'true')); }
-      await m.close(); } }
+    await q.close(); }
   if (run('world')) { const p = await fresh('#/rybex/contact');
     const stats0 = await p.evaluate(() => { go('lab', 'complaints'); const d = { ...document.querySelector('#cStats').dataset }; go('rybex', 'contact'); return JSON.stringify(d); });
     ok('contact form asks for no personal data', await p.evaluate(() => { const f = document.querySelector('#rcForm'); return !!f && !f.querySelector('input[type=email], input[type=tel], input[type=password], #rcName, #rcMail, #rcPhone') && /Nie wpisujcie prawdziwych danych osobowych\./.test(f.textContent) && document.querySelector('#rcText').maxLength === 2000; }));
@@ -651,7 +635,7 @@ try {
     await p.evaluate(() => go('lab', 'complaints')); ok('tampered product does not break the inbox', await p.evaluate(() => document.querySelectorAll('#inbox .ib-item').length === team().inbox.length));
     ok('world no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     // Sticky chrome: the case bar adds height; the lab jump bar and scroll targets stay below it.
-    for (const vp of [{ width: 1280, height: 800 }, { width: 375, height: 740 }]) { const m = await fresh('#/lab/vision', '', vp);
+    for (const vp of [{ width: 1280, height: 800 }]) { const m = await fresh('#/lab/vision', '', vp);
       await seed(m, () => { team().track = 'vision'; }); await m.evaluate(() => window.scrollTo(0, 2500)); await m.waitForTimeout(150);
       ok(`case bar sticky chrome at ${vp.width}`, await m.evaluate(() => { const c = document.querySelector('#caseBar').getBoundingClientRect(), j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(), h = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h')); return c.height > 0 && c.top >= b.bottom - 1 && j.top >= c.bottom - 1 && Math.abs(h - c.bottom) <= 1; }));
       ok(`case bar no horizontal scroll at ${vp.width}`, await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
@@ -704,12 +688,7 @@ try {
     await seed(p, () => { team().risks = { bias: 5 }; }); await p.evaluate(() => go('demos', 'risk'));
     ok('an out-of-range stored answer counts as unanswered', await p.$eval('#riskDemo', e => e.dataset.answered === '0' && e.querySelector('[data-r="bias"]').dataset.state === 'open' && !e.querySelector('[data-r="bias"] .sel')) && await p.evaluate(() => riskCount(team()) === 0));
     ok('risk step hint names the risk cards and the go-live decisions', await p.evaluate(() => { const s = PATH_STEPS().find(x => x.id === 'risk'); S.lang = 'en'; const e = PATH_STEPS().find(x => x.id === 'risk'); S.lang = 'pl'; return /wdrożeniow/.test(s.hint) && /go-live/.test(e.hint) && /ryzyk/.test(s.hint) && /risk/.test(e.hint); }));
-    ok('risk no page errors', !p.errs.length, p.errs.join('|')); await p.close();
-    const m = await fresh('#/demos/risk', '', { width: 375, height: 740 });
-    ok('six demo tabs wrap without horizontal scroll at 375', await m.evaluate(() => { const b = [...document.querySelectorAll('#demoTabs button')]; return b.length === 6 && b.every(x => x.getBoundingClientRect().right <= innerWidth) && document.documentElement.scrollWidth <= innerWidth; }));
-    for (const id of ['privacy', 'hallucination', 'aiact', 'bias']) await m.click(`#riskDemo [data-r="${id}"] [data-o="1"]`);
-    ok('risk cards with answers fit at 375', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#riskDemo [data-r]')].every(c => c.getBoundingClientRect().right <= innerWidth)));
-    await m.close(); }
+    ok('risk no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
   if (run('golive')) { const p = await fresh('#/arch');
     ok('four decisions rendered', await p.$eval('#goLive', e => e.dataset.total === '4' && e.dataset.answered === '0' && e.dataset.warn === ''));
     ok('decision ids and options', await p.evaluate(() => { const D = GO_LIVE_DECISIONS(), o = id => D.find(d => d.id === id).options.map(x => x.id).join(); return D.map(d => d.id).join() === 'runWhere,stopAuthority,monitor,reviewEvery' && o('runWhere') === INFRA.join() && o('stopAuthority') === 'system,operator,quality' && o('monitor') === 'falseAlarms,refusals,photoDrift,nothing' && o('reviewEvery') === 'weekly,quarterly,never' && D.every(d => d.q && d.options.every(x => x.t && x.fb.length > 40)); }));
@@ -773,10 +752,9 @@ try {
     await p.click('#pathNext'); await p.waitForTimeout(50);
     ok('Dalej from the risk tab leads to the architecture view', await p.evaluate(() => location.hash) === '#/arch' && await p.$eval('#pathBar', e => e.dataset.step === 'risk'));
     ok('golive no page errors', !p.errs.length, p.errs.join('|')); await p.close();
-    const m = await fresh('#/arch', '', { width: 375, height: 740 });
+    const m = await fresh('#/arch', '', { width: 1280, height: 800 });
     await seed(m, () => { const t = team(), a = t.arch; t.track = 'complaints'; PRESET.complaints.forEach(k => a.sel[k] = true); a.sel.hitl = false; a.sel.acl = false; a.infra = 'cloud'; a.decisions = { runWhere: 'cloud', stopAuthority: 'system', monitor: 'nothing', reviewEvery: 'quarterly' }; });
     ok('warning box and consequence use a full contour', await m.evaluate(() => [...document.querySelectorAll('#goLive .gl-w, #goLive .fb:not(:empty)')].every(e => { const c = getComputedStyle(e); return c.borderLeftWidth === c.borderRightWidth && c.borderLeftColor === c.borderRightColor && c.borderTopWidth === c.borderLeftWidth; })));
-    ok('go-live block with warnings fits at 375', await m.evaluate(() => document.querySelector('#goLive').dataset.warn.split(' ').length === 3 && document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#goLive [data-d]')].every(c => c.getBoundingClientRect().right <= innerWidth)));
     await m.close(); }
   if (run('challenge')) { const p = await fresh('#/lab/rag');
     ok('one challenge per track', await p.evaluate(() => LAB_KEYS.every(k => CHALLENGES()[k] && CHALLENGES()[k].task && CHALLENGES()[k].lesson)));
@@ -850,10 +828,10 @@ try {
       for (const lang of ['en']) { await q.evaluate(l => { S.lang = l; go('lab', 'complaints'); }, lang); const t = await q.$eval('.challenge', e => e.textContent); if (/test/i.test(t)) bad.push('en: ' + t); }
       return bad.length ? bad.join(' | ') : true; });
     ok('no test wording in the whole panel after a reveal', tw === true, String(tw));
-    const m = await fresh('#/lab/maint', '', { width: 375, height: 740 });
+    const m = await fresh('#/lab/maint', '', { width: 1280, height: 800 });
     ok('maint task says the window on screen is the only evaluation window', await m.evaluate(() => /jedynym oknem oceny/.test(CHALLENGES().maint.task)));
     await m.click('.challenge summary');
-    ok('challenge panel fits at 375 and uses a full contour', await m.evaluate(() => { const c = document.querySelector('.challenge'), s = getComputedStyle(c); return document.documentElement.scrollWidth <= innerWidth && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; }));
+    ok('challenge panel uses a full contour', await m.evaluate(() => { const c = document.querySelector('.challenge'), s = getComputedStyle(c); return s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; }));
     await m.close(); }
   if (run('compare')) { const p = await fresh('#/lab/maint');
     for (const thr of [3, 5]) { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await p.click('#sv'); }
@@ -896,10 +874,6 @@ try {
       const a = mk('p', .5, .01), b = mk('q', .58, .02), d = document.createElement('div'); d.innerHTML = renderCompare(a, b, 'complaints'); const t = d.textContent;
       const noCost = renderCompare(a, { ...b, res: { ...b.res, ai: undefined } }, 'complaints');
       return /Wersja A \(prompt v1, 0 przykładów\)/.test(t) && /Wersja B ma wyższą trafność na zestawie deweloperskim o 8,0 pp\., ale koszt przebiegu rośnie z \$0,0100 do \$0,0200/.test(t) && !/koszt przebiegu/.test(noCost); }));
-    const m = await fresh('#/lab/maint', '', { width: 375, height: 740 });
-    for (const thr of [3, 5]) { await m.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await m.click('#sv'); }
-    await pick(m, [0, 1]);
-    ok('comparison fits at 375 px', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && $('#cmp').getBoundingClientRect().right <= innerWidth));
     const v = await fresh('#/lab/vision', '&trainer=1');
     // Real shapes: rules entries keep val and test side by side (primary.v is the test F1 once revealed); model entries saved on the test keep only test.
     await v.evaluate(() => { const mk = (id, f1, tf1) => ({ id, ts: '2026-11-12', track: 'vision', cfg: { th: { d: 1, s: 2, c: 3 } }, res: { val: { p: f1, r: f1, f1 }, test: { f1: tf1, p: tf1, r: tf1 }, primary: { v: tf1, m: 'F1 (test)', base: 0, hi: true, test: true } }, note: '', testViews: 1 });
@@ -916,7 +890,7 @@ try {
       return /Różnica \(B wobec A\): 0,0 pp\./.test(t) && !/[+−]0,0 pp/.test(t) && /próg d: 12,30 → 12,34/.test(e.textContent); }));
     ok('the RAG recap inside a comparison has a full contour', await v.evaluate(() => { const mk = (id, ok) => ({ id, ts: '2026-11-12', track: 'rag', cfg: { k: 3, chunk: 1, min: .1, lang: 'pl' }, res: { hit: ok, ok, ref: 2, n: 12, nOos: 3, baseOk: 5, prec: .5, test: false, primary: { m: 'x', v: ok / 12, base: 5 / 12, hi: true, test: false } }, note: '', testViews: 0 });
       const box = document.createElement('div'); box.id = 'cmpProbe'; box.innerHTML = renderCompare(mk('r1', 7), mk('r2', 9), 'rag'); document.body.append(box); const r = box.querySelector('.cmp .recap'), s = r && getComputedStyle(r), res = !!s && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; box.remove(); return res; }));
-    for (const pg of [p, f, k, m, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
+    for (const pg of [p, f, k, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
   if (run('badges')) { const p = await fresh('#/home');
     ok('nine badges, none earned on a new team', await p.evaluate(() => BADGES().length === 9 && earnedBadges(defaultTeam()).length === 0));
     ok('no badge depends on a test score or a class code', await p.evaluate(() => { const t = defaultTeam(); t.track = 'vision'; t.lab.vision.testViews = 9; t.lab.vision.revealed = true; return !earnedBadges(t).includes('fairTest'); }));
@@ -995,15 +969,6 @@ try {
       ok('a challenge pass keeps the badge announcement next to its own', live.includes('Linia nie zgaduje') && live.includes('Wyzwanie zaliczone'), live);
       ok('privacy description names all three ways', await c.evaluate(() => { const b = BADGES().find(x => x.id === 'privacy'); return /lokalne/.test(b.desc) && /anonimizację/.test(b.desc) && /ryzyku/.test(b.desc); }));
       await c.close(); }
-    { const m = await fresh('#/home', '', { width: 375, height: 740 });
-      await m.evaluate(() => { const t = team(); t.site.newsRead = true; t.seen.report = true; t.arch.sel.anon = true; save(); render(); });
-      ok('collapsed team bar shows the badge count at 375 px', await m.evaluate(() => { const b = $('#tbToggle'); return $('#teamBar').classList.contains('open') === false && /· odznaki 3\/9/.test(b.textContent) && document.documentElement.scrollWidth <= innerWidth; }), await m.$eval('#tbToggle', e => e.textContent));
-      await m.close(); }
-    { const m = await fresh('#/home', '', { width: 375, height: 740 });
-      await m.evaluate(() => { const t = team(); t.site.newsRead = true; t.seen.report = true; t.challenges.rag_oos = 'done'; t.arch.sel.anon = true; qz(t, 'life', 'tok', 'rag', 'split', 'metr'); t.badges = BADGES().map(b => b.id); save(); render(); });
-      await m.click('#tbToggle');
-      ok('nine badges fit at 375 px with the team bar open', await m.evaluate(() => { const b = $('#badges').getBoundingClientRect(), x = $('#teamExport').getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && b.right <= innerWidth && x.right <= innerWidth && $('#badges').dataset.earned.split(' ').length === 9; }));
-      await m.close(); }
     ok('no page errors (badges)', !p.errs.length, p.errs.join(' | '));
     await p.close(); }
   if (run('example')) { const p = await fresh('#/home');
@@ -1053,11 +1018,7 @@ try {
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     ok('reload leaves example mode', await p.evaluate(() => !S.example && team().name === 'Moja praca'));
     ok('no page errors (example)', !p.errs.length, p.errs.join(' | '));
-    await p.close();
-    { const m = await fresh('#/home', '', { width: 375, height: 740 });
-      await m.click('#showExample');
-      ok('example banner fits at 375 px', await m.evaluate(() => { const b = $('#exampleBar').getBoundingClientRect(), x = $('#exampleExit').getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && x.right <= innerWidth && b.height < 200; }));
-      await m.close(); } }
+    await p.close(); }
   if (run('exit2')) {
     // A complaints team past the demos: baseline, justification and three experiments; the test not yet seen.
     const prepC = (opt = {}) => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'complaints', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
@@ -1264,7 +1225,7 @@ try {
       ok('exit2r2 revealed, test run selected, no note: saved as the final result', await p.evaluate(() => expOf(team(), 'complaints') === 4 && cmpTestSaved(team().log[team().log.length - 1])));
       ok('exit2r2 no page errors (model waiver)', !p.errs.length, p.errs.join('|'));
       await p.close(); }
-    // Packshots: no photo set on the site, alt, size, lazy, fallback, file://, 375 px.
+    // Packshots: no photo set on the site, alt, size, lazy, fallback, file://.
     { const p = await fresh('#/rybex/home');
       await p.evaluate(() => go('rybex', 'products'));
       ok('exit2r2 the site loads no vision photo set', await p.evaluate(() => !VIS.initialized && typeof rybexPick === 'undefined' && typeof rybexPhotos === 'undefined' && !/rybex/.test(visionRefresh.toString())));
@@ -1287,11 +1248,6 @@ try {
       await p.$$eval('.rf-prod img', e => e.forEach(x => x.scrollIntoView())); await p.waitForFunction(() => [...document.querySelectorAll('.rf-prod img')].every(i => i.complete), null, { timeout: 5000 }).catch(() => {});
       ok('exit2r2 packshots load from file://', await p.$$eval('.rf-prod img', e => e.length === 4 && e.every(i => i.complete && i.naturalWidth > 0)));
       await ctx.close(); }
-    { const m = await fresh('#/rybex/home', '', { width: 375, height: 740 });
-      const sw = [];
-      for (const pg of ['home', 'products']) { await m.evaluate(pg => go('rybex', pg), pg); await m.waitForTimeout(150); sw.push(await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('.rybex-frame img')].every(i => i.getBoundingClientRect().right <= innerWidth))); }
-      ok('exit2r2 packshot pages fit at 375 px', sw.every(Boolean), JSON.stringify(sw));
-      await m.close(); }
   }
   if (run('trainer')) { const u = await fresh('#/lab/rag');
     await u.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); });

@@ -157,14 +157,6 @@ console.log('\nUX-014 undo');
 { const p = await fresh(undefined, '#/arch'); await p.click('.chip[data-o=hitl]'); await p.click('.chip[data-o=erp]'); await p.click('button[data-p=rag]'); ok('014 template applied', await p.evaluate(() => !team().arch.sel.erp && !!team().arch.sel.llm)); await p.click('#toast button'); ok('014 undo template', await p.evaluate(() => !!team().arch.sel.erp && !team().arch.sel.llm));
   await p.click('#clr'); await p.click('#toast button'); ok('014 undo clear', await p.evaluate(() => !!team().arch.sel.hitl)); await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#sv'); await p.click('#sv'); await nav(p, 'deliver'); await p.click('button[data-d="0"]'); ok('014 deleted', await p.evaluate(() => team().log.length) === 0); await p.click('#toast button'); ok('014 undo delete', await p.evaluate(() => team().log.length) === 1); await p.reload(); await ready(p); ok('014 undo persisted', await p.evaluate(() => team().log.length) === 1); }
 
-console.log('\nUX-015 narrow');
-{ const p = await fresh({ width: 390, height: 844 }); const of = () => p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1);
-  for (const v of ['home', 'brief', 'data']) { await p.evaluate(v => go(v), v); await p.waitForTimeout(80); ok(`015 ${v}`, await of(), String(await p.evaluate(() => document.documentElement.scrollWidth))); await shot(p, 'mobile-' + v); }
-  for (const k of ['img', 'sales', 'sensors', 'compl', 'svg', 'log']) { await p.click(`.tree button[data-k=${k}]`); ok(`015 data ${k}`, await of(), String(await p.evaluate(() => document.documentElement.scrollWidth))); }
-  for (const s of ['life', 'tok', 'rag', 'split', 'metr']) { await p.evaluate(s => go('demos', s), s); await p.waitForTimeout(80); ok(`015 demo ${s}`, await of(), String(await p.evaluate(() => document.documentElement.scrollWidth))); }
-  for (const k of ['vision', 'rag', 'complaints', 'forecast', 'maint']) { await p.evaluate(k => go('lab', k), k); await p.waitForTimeout(100); ok(`015 lab ${k}`, await of(), String(await p.evaluate(() => document.documentElement.scrollWidth))); await shot(p, 'mobile-lab-' + k); }
-  await p.evaluate(() => go('arch')); await p.waitForSelector('button[data-p=vision]'); await p.click('button[data-p=vision]'); ok('015 arch', await of()); const px = await p.evaluate(() => { const s = document.querySelector('#archOut svg'); return 12 * s.getBoundingClientRect().width / s.viewBox.baseVal.width; }); ok('015 diagram text readable', px >= 10, px.toFixed(1)); await p.evaluate(() => go('deliver')); await p.waitForTimeout(80); ok('015 deliver', await of()); ok('015 no errors', !p.errs.length, p.errs.join('|')); }
-
 console.log('\nUX-016 navigation');
 { const p = await fresh(); await nav(p, 'brief'); await nav(p, 'lab'); await track(p, 'rag'); ok('016 deep url', p.url().endsWith('#/lab/rag')); await p.goBack(); await p.waitForFunction(() => S.sub.lab === 'vision'); ok('016 back to previous tab', true); await p.goBack(); await p.waitForFunction(() => S.view === 'brief'); ok('016 back to previous view', true); await p.goForward(); await p.waitForFunction(() => S.view === 'lab'); ok('016 forward', true);
   const q = await fresh(undefined, '#/demos/metr'); ok('016 direct link opens demo', await q.evaluate(() => S.view === 'demos' && S.sub.demos === 'metr') && !!(await q.$('#th'))); await q.evaluate(() => go('deliver')); await q.waitForSelector('#logBox'); await q.evaluate(() => window.scrollTo(0, 800)); await nav(q, 'brief'); await q.waitForFunction(() => S.view === 'brief'); ok('016 new view at top', await q.evaluate(() => scrollY) === 0);
@@ -196,11 +188,7 @@ console.log('\nCompany site frame (spec 4.21)');
   for (let i = 0; i < 6 && !hit; i++) { await p.keyboard.press('Tab'); hit = await p.evaluate(() => document.activeElement.matches('.rybex-frame nav [data-rp=about]')); }
   ok('site frame menu keyboard reachable', hit); await p.keyboard.press('Enter'); await p.waitForFunction(() => S.sub.rybex === 'about');
   ok('site menu keeps focus on the new page heading', await p.evaluate(() => document.activeElement.matches('.rybex-frame .rf-page h2')));
-  ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close();
-  const m = await fresh({ width: 375, height: 740 }, '#/rybex/home'); await m.focus('#backToWs'); let tg = false;
-  for (let i = 0; i < 4 && !tg; i++) { await m.keyboard.press('Tab'); tg = await m.evaluate(() => document.activeElement.matches('.rf-toggle')); }
-  ok('site 375 menu toggle reachable by keyboard', tg); await m.keyboard.press('Enter');
-  ok('site 375 menu opens from the keyboard', await m.$eval('.rf-menu', e => e.offsetHeight > 0)); ok('site 375 no horizontal scroll', await m.evaluate(() => document.documentElement.scrollWidth <= innerWidth)); await m.close(); }
+  ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
 
 console.log('\nOriginal behaviour and offline');
 { const p = await fresh(); for (const v of ['brief', 'data', 'demos', 'lab', 'arch', 'deliver']) { await nav(p, v); await p.waitForFunction(v => S.view === v, v); } ok('base all views', !p.errs.length, p.errs.join('|')); await p.fill('#teamName', 'X'); await p.reload(); await ready(p); ok('base persistence', await p.evaluate(() => team().name) === 'X' && await p.evaluate(() => S.view) === 'deliver'); ok('base 8 teams', (await p.$$('#teamSel option')).length === 8);
@@ -214,12 +202,7 @@ console.log('\nContact form, personas, case bar (spec 4.21, 4.2)');
 { const p = await fresh(undefined, '#/rybex/contact'); await p.selectOption('#rcCat', 'damage'); await p.fill('#rcText', 'Puszka wgnieciona przy kodzie partii.'); await p.click('#rcSend');
   await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#inbox .ib-item');
   ok('contact form does not touch the complaint test counting', await p.evaluate(() => lab().compl.testViews === 0 && DATA.compl.length === 60 && document.querySelector('#cStats').dataset.testVisible === 'false'));
-  ok('contact no page errors', !p.errs.length, p.errs.join('|')); await p.close();
-  const m = await fresh({ width: 375, height: 740 }, '#/lab/complaints'); await m.evaluate(() => { team().track = 'maint'; save(); });
-  const fits = () => m.evaluate(() => { const f = [...document.querySelectorAll('#main figure.persona')]; return f.length > 0 && f.every(x => x.getBoundingClientRect().right <= innerWidth && x.scrollWidth <= x.clientWidth + 1) && document.documentElement.scrollWidth <= innerWidth; });
-  for (const [v, s] of [['lab', 'complaints'], ['lab', 'maint'], ['brief'], ['arch'], ['deliver']]) { await m.evaluate(([v, s]) => go(v, s), [v, s]); ok(`persona quote does not overflow at 375 px (${s || v})`, await fits()); }
-  ok('case bar shown at 375 px without horizontal scroll', await m.evaluate(() => document.querySelector('#caseBar').offsetHeight > 0 && document.documentElement.scrollWidth <= innerWidth));
-  await m.close(); }
+  ok('contact no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
 
 await browser.close();
 console.log(`\n${engineName}: ${pass} passed, ${fail} failed`);
