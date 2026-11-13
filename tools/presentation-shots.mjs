@@ -1,7 +1,8 @@
 // Screenshots for the workshop presentation (assets/presentation/*.webp + manifest.json).
 // Usage (from the repo root): node tools/presentation-shots.mjs [base|ai|all] [id...]   (default: base)
 //   base = the shots that need no model (served against the mock Worker, they show no model output at all)
-//   ai   = the shots that show real model output (added in a later step; they need a class code and cost money)
+//   ai   = the shots that show real model output: needs the class code in the environment variable CC (never logged or stored);
+//          opens the app against the real class Worker, makes ONE dev-set run on team slot 8 (costs a few cents)
 // Runs write only the shots they take: the manifest is merged by id, so a base run keeps the ai entries.
 import { chromium } from '../tests/node_modules/playwright/index.mjs';
 import { spawn, execFileSync } from 'node:child_process';
@@ -105,17 +106,94 @@ const SHOTS = [
     alt: 'Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu.' },
 ];
 
+// The two AI shots share one model run, so they are taken together by aiShots() rather than by the per-shot loop.
+SHOTS.push(
+  { id: 'ai-run', ai: true, el: null,
+    alt: 'Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas.' },
+  { id: 'ai-bar', ai: true, el: '#aiBar',
+    alt: 'Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi.' });
+
 const args = process.argv.slice(2);
+const AI_IDS = ['ai-run', 'ai-bar'];
 const mode = ['base', 'ai', 'all'].includes(args[0]) ? args.shift() : 'base';
 const ids = args;
 const todo = SHOTS.filter(s => (mode === 'all' || (mode === 'ai') === s.ai) && (!ids.length || ids.includes(s.id)));
 const unknown = ids.filter(i => !SHOTS.some(s => s.id === i));
 if (unknown.length) { console.error('Unknown shot id(s): ' + unknown.join(', ')); process.exit(1); }
+const aiTodo = todo.filter(s => s.ai), baseTodo = todo.filter(s => !s.ai);
+const CC = process.env.CC || '';
+if (aiTodo.length && !CC) { console.error('AI shots need the class code in the environment variable CC (not set).'); process.exit(1); }
 if (!todo.length) { console.log(`No shots to take in mode "${mode}".`); process.exit(0); }
+
+// One real model run against the class Worker (no ?ai: the app uses its default server). Nothing is written unless everything worked.
+async function aiShots(wanted) {
+  const REAL = `${BASE}/rybex-ai-workshop.html`;
+  const ctx = await browser.newContext({ viewport: VP, deviceScaleFactor: 2 });
+  try {
+    const p = await ctx.newPage(); const errs = [];
+    p.on('pageerror', e => errs.push(e.message));
+    await p.goto(REAL + '#/lab/complaints');
+    await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 10000 });
+    await p.waitForLoadState('networkidle');
+    await p.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}' });
+    // Team slot 8, complaints track, model method (shows the AI card), default model (left as the app has it).
+    await p.evaluate(([o]) => {
+      S.lang = 'pl'; S.team = 8;
+      const t = normTeam({ name: 'Zespół Szprot', onboardedAt: '2026-11-13T08:00:00.000Z', ...o });
+      t.lab.compl.method = 'llm';
+      S.teams[8] = t; S.ai.code = ''; save(); render(); go('lab', 'complaints');
+    }, [{ track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }]);
+    await p.waitForSelector('#aiBar', { timeout: 10000 });
+    await p.fill('#aiCode', CC);
+    await p.click('#aiConnect');
+    const state = await p.waitForFunction(() => { const s = document.querySelector('#aiBar').dataset.aiState; return s === 'ready' || s === 'error' || s === 'offline' ? s : false; }, null, { timeout: 30000 }).then(h => h.jsonValue());
+    const err = await p.$eval('#aiBar', e => e.dataset.aiError);
+    if (state !== 'ready') throw new Error(err === 'bad_code' ? 'class server refused the code' : `AI card is "${state}" (${err || 'no detail'})`);
+    const guard = async () => {
+      const txt = await p.$eval('#aiBar', e => e.innerText + ' ' + e.dataset.aiError);
+      if (/nagrane odpowiedzi|recorded answer|nagrana odpowied/i.test(await p.evaluate(() => document.body.innerText))) throw new Error('recorded answers are shown, not real model output');
+      if (/budżet|budget/i.test(txt) && !/Gotowe/.test(txt)) throw new Error('budget message on the AI card');
+    };
+    await guard();
+    // The class server caches identical requests (a cached run shows no time). A fixed extra sentence gives this run its own cache key.
+    await p.fill('#cPrompt', (await p.inputValue('#cPrompt')).trimEnd() + '\nOdpowiadaj wyłącznie poprawnym JSON-em, bez komentarza.');
+    await p.click('#cRun');
+    await p.waitForSelector('#cRes[data-ai-run=running]', { timeout: 15000 }).catch(() => {});
+    await p.waitForFunction(() => { const r = document.querySelector('#cRes'); return r && r.dataset.aiRun === 'done' && r.dataset.calls || document.querySelector('#aiBar').dataset.aiState === 'error'; }, null, { timeout: 240000 });
+    await settle(p);
+    if ((await p.$eval('#aiBar', e => e.dataset.aiState)) !== 'ready') throw new Error('AI card left the ready state: ' + await p.$eval('#aiBar', e => e.dataset.aiError));
+    await guard();
+    if (/z pamięci podręcznej|from cache/.test(await p.$eval('#cRes', e => e.closest('.card').innerText + ' ' + (document.querySelector('.ai-cost.mt') || e).innerText))) throw new Error('the run came from the server cache (no real time shown): change the prompt sentence in aiShots');
+    const res = await p.$eval('#cRes', e => ({ calls: +e.dataset.calls, failed: +e.dataset.failed, cost: +e.dataset.cost, model: e.dataset.model }));
+    if (!(res.calls > 0) || res.failed) throw new Error(`run incomplete: ${JSON.stringify(res)}`);
+    // The class code must never reach a committed image: mask the field (type=password) and check it before any shot.
+    await p.evaluate(() => { document.querySelector('#aiCode').type = 'password'; const t = document.querySelector('#toast'); if (t) { t.hidden = true; t.textContent = ''; } });
+    if ((await p.$eval('#aiCode', e => e.type)) !== 'password') throw new Error('class code field is not masked');
+    await settle(p);
+    if (errs.length) throw new Error('page errors: ' + errs.join(' | '));
+    const spend = await p.$eval('#aiSpend', e => e.textContent);
+    console.log(`run: ${res.calls} calls, ${res.model}; panel: ${spend}`);
+    const out = [];
+    for (const s of wanted) {
+      // ai-run: the result card with accuracy, cost and time; ai-bar: the page top, away from the sticky bars.
+      if (s.id === 'ai-run') await p.evaluate(() => { document.querySelector('#cRes').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -330); });
+      else await p.evaluate(() => scrollTo(0, 0));
+      await settle(p);
+      if (s.el) await p.addStyleTag({ content: '.edu-header,.pathbar,.casebar,.teambar,.subnav,.tabs,[class*=sticky]{position:static!important}' });
+      const png = s.el ? await p.locator(s.el).screenshot() : await p.screenshot();
+      out.push({ s, ...(await toWebp(png)) });
+    }
+    return out.map(({ s, b64, w, h }) => {
+      const file = s.id + '.webp'; fs.writeFileSync(path.join(OUT, file), Buffer.from(b64, 'base64'));
+      console.log(`ok ${s.id} ${w}x${h}`);
+      return { id: s.id, file, w, h, ai: true, full: s.el === null, alt: s.alt };
+    });
+  } finally { await ctx.close(); }
+}
 
 fs.mkdirSync(OUT, { recursive: true });
 const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
-let browser;
+let browser, toWebp;
 const manifestPath = path.join(OUT, 'manifest.json');
 const taken = [];
 try {
@@ -123,7 +201,7 @@ try {
   browser = await chromium.launch();
   // PNG -> WebP inside the browser (no image converter is installed).
   const conv = await (await browser.newContext()).newPage();
-  const toWebp = async png => conv.evaluate(async b64 => {
+  toWebp = async png => conv.evaluate(async b64 => {
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
     const cv = document.createElement('canvas'); cv.width = bmp.width; cv.height = bmp.height; cv.getContext('2d').drawImage(bmp, 0, 0);
@@ -132,7 +210,7 @@ try {
     return { b64: url.split(',')[1], w: bmp.width, h: bmp.height };
   }, png.toString('base64'));
 
-  for (const s of todo) {
+  for (const s of baseTodo) {
     const ctx = await browser.newContext({ viewport: VP, deviceScaleFactor: 2 });
     try {
       const p = await ctx.newPage(); const errs = [];
@@ -156,6 +234,8 @@ try {
       console.log(`ok ${s.id} ${w}x${h} ${(fs.statSync(path.join(OUT, file)).size / 1024).toFixed(0)} kB`);
     } finally { await ctx.close(); }
   }
+
+  if (aiTodo.length) taken.push(...await aiShots(aiTodo));
 
   // Merge by id into the manifest, keeping entries (such as the ai shots) this run did not take.
   let old = { shots: [] };

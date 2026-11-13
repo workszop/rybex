@@ -153,6 +153,24 @@
    "ai": false,
    "full": false,
    "alt": "Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu."
+  },
+  {
+   "id": "ai-run",
+   "file": "ai-run.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": true,
+   "full": true,
+   "alt": "Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas."
+  },
+  {
+   "id": "ai-bar",
+   "file": "ai-bar.webp",
+   "w": 2652,
+   "h": 568,
+   "ai": true,
+   "full": false,
+   "alt": "Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi."
   }
  ]
 }
