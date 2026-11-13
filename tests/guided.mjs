@@ -1756,6 +1756,20 @@ try {
       ok('final r6 vision: the bar follows picks in the run history', a === 'Uruchomcie model na zbiorze testowym' && b === 'Zapiszcie wynik testu' && c === 'Uruchomcie model na zbiorze testowym', JSON.stringify([a, b, c]));
       ok('final r6 cleanSum keeps replayed only as a positive number', await p.evaluate(() => { const s = x => cleanSum({ model: 'm', calls: 1, cached: 2, replayed: x }); return !('replayed' in s('yes')) && !('replayed' in s(0)) && !('replayed' in s(NaN)) && s(2).replayed === 2; }));
       ok('final r6 vision no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    // R7. A bar redraw keeps keyboard focus where it was (mock Worker run ending under the participant's focus).
+    await B(async () => { const p = await fresh('#/lab/complaints'); await at7(p, 'complaints');
+      await p.evaluate(() => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; const L = lab().compl, ids = Array.from({ length: 16 }, (_, i) => 21 + i);
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.runs = [{ id: 'rd', ts: '', ver: 'v1', model: 'deepseek', shots: 0, set: 'dev16', n: 16, failed: 0, acc: .5, macro: .5, safety: .5, safetyFalse: 0, ruleAcc: .4, sum: { model: 'deepseek', calls: 16, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, ids, preds: ids.map(() => ({ c: 'other', h: false, r: '', bad: false })) }]; L.rsel = 'rd'; save(); render(); });
+      const runEnds = n => p.waitForFunction(n => lab().compl.runs.length === n && !AIS.run && document.querySelector('#cRes').dataset.aiRun !== 'running', n, { timeout: 30000 });
+      await p.focus('#pathNext'); await p.evaluate(() => document.querySelector('#cRun').click()); await runEnds(2);
+      const a = await p.evaluate(() => ({ id: document.activeElement.id, lbl: document.querySelector('#pathNext .pb-lbl').textContent }));
+      ok('final r7 focus on Next during a run stays on Next when the run ends', a.id === 'pathNext' && a.lbl === 'Zapiszcie wynik testu', JSON.stringify(a));
+      await tap(p, '#main [data-run=rd]'); await p.focus('#expNote'); await p.evaluate(() => document.querySelector('#cRun').click()); await runEnds(3);
+      ok('final r7 focus on the note during a run stays on the note', await p.evaluate(() => document.activeElement.id) === 'expNote');
+      await tap(p, '#pathNext'); ok('final r7 Next in the save state still ends on the save button', await p.evaluate(() => document.activeElement.id) === 'sv');
+      await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+      ok('final r7 saving with focus on the save button does not move focus to the bar', await p.evaluate(() => expCount('complaints') === 4 && !document.querySelector('#pathBar').contains(document.activeElement)), await p.evaluate(() => document.activeElement.id + ' ' + expCount('complaints')));
+      ok('final r7 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
