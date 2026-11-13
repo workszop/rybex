@@ -1735,6 +1735,27 @@ try {
       await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
       ok('final r5 after a reload the answer is still labelled as recorded', await p.evaluate(() => /nagrana odpowiedź/.test(document.querySelector('#proto').textContent) && !/z pamięci podręcznej/.test(document.querySelector('#proto').textContent)));
       await p.close(); });
+    // R6. The bar follows model runs and run picks without a full redraw (mock Worker, class code test-code).
+    await B(async () => { const p = await fresh('#/lab/complaints'); await at7(p, 'complaints');
+      await p.evaluate(() => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; const L = lab().compl, ids = Array.from({ length: 16 }, (_, i) => 21 + i);
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.runs = [{ id: 'rd', ts: '', ver: 'v1', model: 'deepseek', shots: 0, set: 'dev16', n: 16, failed: 0, acc: .5, macro: .5, safety: .5, safetyFalse: 0, ruleAcc: .4, sum: { model: 'deepseek', calls: 16, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, ids, preds: ids.map(() => ({ c: 'other', h: false, r: '', bad: false })) }]; L.rsel = 'rd'; save(); render(); });
+      const lbl = () => p.$eval('#pathNext .pb-lbl', e => e.textContent);
+      const a = await lbl(); await tap(p, '#cRun');
+      await p.waitForFunction(() => lab().compl.runs.length === 2 && document.querySelector('#cRes').dataset.aiRun !== 'running' && !AIS.run, null, { timeout: 30000 });
+      const b = await lbl(), tid = await p.evaluate(() => lab().compl.runs[1].id);
+      await tap(p, '#main [data-run=rd]'); const c = await lbl(); await tap(p, `#main [data-run="${tid}"]`); const d = await lbl();
+      ok('final r6 complaints: the bar follows the test run, the dev pick and the test pick', a === 'Uruchomcie model na zbiorze testowym' && b === 'Zapiszcie wynik testu' && c === 'Uruchomcie model na zbiorze testowym' && d === 'Zapiszcie wynik testu', JSON.stringify([a, b, c, d]));
+      ok('final r6 complaints no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+    await B(async () => { const p = await fresh('#/lab/vision'); await p.waitForFunction(() => !VIS.loading); await at7(p, 'vision');
+      await p.evaluate(() => { S.ai.code = 'test-code'; const L = lab().vision, run = (id, set) => ({ id, ts: '', model: 'deepseek', datasetKey: VIS.datasetKey, shots: 0, set, failed: 0, n: 60, m: { tp: 5, fp: 2, fn: 3, tn: 50, p: .7, r: .6, f1: .65, acc: .9 }, types: [], ruleF1: .5, sum: { model: 'deepseek', calls: 60, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, preds: Array.from({ length: 60 }, () => ({ d: 'ok', r: '', bad: false })) });
+        L.method = 'llm'; L.revealed = true; L.testViews = 1; L.mruns = [run('vv', 'val'), run('vt', 'test')]; L.vsel = 'vv'; save(); render(); });
+      const lbl = () => p.$eval('#pathNext .pb-lbl', e => e.textContent);
+      const a = await lbl(); await tap(p, '#main [data-run=vt]'); const b = await lbl(); await tap(p, '#main [data-run=vv]'); const c = await lbl();
+      await tap(p, '#visMethod button[data-m=rules]'); const r = await lbl(); await tap(p, '#visMethod button[data-m=llm]'); const m = await lbl();
+      ok('final r6 vision: the method switch refreshes the bar', r === 'Zapiszcie wynik testu' && m === 'Uruchomcie model na zbiorze testowym', JSON.stringify([r, m]));
+      ok('final r6 vision: the bar follows picks in the run history', a === 'Uruchomcie model na zbiorze testowym' && b === 'Zapiszcie wynik testu' && c === 'Uruchomcie model na zbiorze testowym', JSON.stringify([a, b, c]));
+      ok('final r6 cleanSum keeps replayed only as a positive number', await p.evaluate(() => { const s = x => cleanSum({ model: 'm', calls: 1, cached: 2, replayed: x }); return !('replayed' in s('yes')) && !('replayed' in s(0)) && !('replayed' in s(NaN)) && s(2).replayed === 2; }));
+      ok('final r6 vision no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
