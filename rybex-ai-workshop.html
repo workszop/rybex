@@ -1081,9 +1081,16 @@ function announce(t){if(!liveTick){liveBuf=[];liveTick=true;queueMicrotask(()=>{
 function toast(msg,opt={}){clearTimeout(toastTimer);toastEl.innerHTML=`<span>${esc(msg)}</span>`;toastEl.dataset.reason=opt.reason||'';toastEl.dataset.ms=opt.ms||(opt.action?TOAST_ACTION_MS:TOAST_MS);toastEl.dataset.paused='false';
  if(opt.action){const b=document.createElement('button');b.type='button';b.className='toast-act';b.textContent=opt.action[0];b.onclick=()=>{hideToast();opt.action[1]()};toastEl.append(b)}
  const x=document.createElement('button');x.type='button';x.className='toast-x';x.setAttribute('aria-label',T('Zamknij powiadomienie','Close notification'));x.innerHTML=ic('x');x.onclick=hideToast;toastEl.append(x);icons(toastEl);
- toastEl.hidden=false;document.body.classList.add('has-toast');armToast()}
+ toastEl.hidden=false;document.body.classList.add('has-toast');armToast();placeToast()}
 function armToast(){clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,+toastEl.dataset.ms||TOAST_MS)}
 function hideToast(){clearTimeout(toastTimer);toastEl.hidden=true;document.body.classList.remove('has-toast')}
+// From 1024 px the toast sits bottom right; if it would cover a save, note or reveal control or the lab jump bar, it moves to the nearest free height (lifted above them, below them, or top right under the sticky bars).
+const TOAST_AVOID='#sv,#expNote,#saveBase,[data-reveal],#labJump';let toastRaf=0;
+function placeToast(){toastRaf=0;const st=toastEl.style;st.top='';st.bottom='';if(toastEl.hidden||innerWidth<1024)return;const t=toastEl.getBoundingClientRect(),h=t.height,vh=innerHeight,top=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h'))||0)+8;
+ const obs=[...document.querySelectorAll(TOAST_AVOID)].map(e=>e.getBoundingClientRect()).filter(r=>r.width&&r.height&&r.bottom>0&&r.top<vh&&r.right>t.left&&r.left<t.right);
+ const free=y=>y>=top&&y+h<=vh-8&&obs.every(r=>r.bottom<=y||r.top>=y+h);if(free(t.top))return;
+ const ys=[...obs.map(r=>r.top-12-h).sort((a,b)=>b-a),top+4,...obs.map(r=>r.bottom+12).sort((a,b)=>a-b)],y=ys.find(free);if(y!==undefined){st.top=y+'px';st.bottom='auto'}}
+const queueToastPlace=()=>{if(!toastRaf&&!toastEl.hidden)toastRaf=requestAnimationFrame(placeToast)};
 // Polish plural forms [1, 2–4, 5+] and English [1, other].
 function plural(n,pl,en){const a=Math.abs(Math.round(+n||0));if(S.lang==='en')return a===1?en[0]:en[1];return a===1?pl[0]:(a%10>=2&&a%10<=4&&(a%100<12||a%100>14))?pl[1]:pl[2]}
 const PLW={call:[['wywołanie','wywołania','wywołań'],['call','calls']],token:[['token','tokeny','tokenów'],['token','tokens']],example:[['przykład','przykłady','przykładów'],['example','examples']],answer:[['odpowiedź','odpowiedzi','odpowiedzi'],['answer','answers']],grade:[['ocena','oceny','ocen'],['grade','grades']],complaint:[['zgłoszenie','zgłoszenia','zgłoszeń'],['complaint','complaints']],falseAlarm:[['fałszywy alarm','fałszywe alarmy','fałszywych alarmów'],['false alarm','false alarms']]};
@@ -1212,9 +1219,9 @@ function publishVisionContract(){
  document.documentElement.dataset.visionFeatures=VIS.featureSource;
  const el=$('#visionAssetStatus');if(el)el.innerHTML=visionStatusInner();
 }
-function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){const fid=document.activeElement&&document.activeElement.id;labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true);
+function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){const fa=document.activeElement,had=!!fa&&fa!==document.body,fid=had?fa.id:null;labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true);
   // The photos arrived and the lab was redrawn: keep the keyboard focus where it was, never on BODY.
-  if(!document.activeElement||document.activeElement===document.body)(fid&&document.getElementById(fid)||mainEl).focus({preventScroll:true})}}
+  if(had&&(!document.activeElement||document.activeElement===document.body))(fid&&document.getElementById(fid)||mainEl).focus({preventScroll:true})}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
 // Draw an image at the 320×400 working size and return it as a data URL of the given type.
 function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;c.getContext('2d').drawImage(im,0,0,320,400);resolve(c.toDataURL(type,q))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
@@ -1436,7 +1443,9 @@ function siteVisit(){if(S.view!=='rybex')return;const s=team().site,k={news:'new
 // Where the company site was entered from (transient, never saved): "Back to the workshop" returns there. Null after a
 // deep link or reload, and when the path bar led to the site: then Back goes to the path's next step.
 let siteFrom=null,pathNav=false;
-function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;if(changed&&r.v==='rybex')siteFrom=pathNav||S.example?null:{v:S.view,sub:S.sub[S.view]};S.view=r.v;routeSub(r);siteVisit();normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}else if(!document.activeElement||document.activeElement===document.body)mainEl.focus({preventScroll:true})}
+function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;if(changed&&r.v==='rybex')siteFrom=pathNav||S.example?null:{v:S.view,sub:S.sub[S.view]};const f0=document.activeElement,sub0=JSON.stringify(S.sub[r.v]);S.view=r.v;routeSub(r);siteVisit();normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}
+ // Same view: move focus only when the sub view changed or the focused element was redrawn away, never when it simply sat on BODY.
+ else if((!document.activeElement||document.activeElement===document.body)&&(JSON.stringify(S.sub[r.v])!==sub0||(f0&&f0!==document.body&&!f0.isConnected)))mainEl.focus({preventScroll:true})}
 function go(v,sub){if(AIS.run)return guardRun(()=>go(v,sub));clearInterval(X.ragTimer);aiAbort();if(sub)S.sub[v]=sub;const h=hashFor(v);if(location.hash!==h){try{history.pushState(null,'',h)}catch(e){location.hash=h;return}}applyRoute()}
 // ─── Path ───
 const TEST_TRACKS={vision:'vision',rag:'rag',complaints:'compl'};
@@ -1963,7 +1972,7 @@ function baseRun(k){
   return{set:'test',html:kpis(b,{kind:'maint',recap:plainRecap('maint',b,{set:'test',n:300})}),cfg:{base:true,from:300,to:600},res:{f1:f0(b.f1),p:f0(b.p),r:f0(b.r),base:f0(b.f1)},primary:{m:'F1',v:f0(b.f1),base:f0(b.f1),hi:true,test:false}}}
  return null}
 // The shown baseline is already in the log when an entry with the same settings and result exists (logAdd's duplicate rule).
-const baseSaved=(k,b)=>{const sg=logSig(b.cfg,{...b.res,primary:b.primary});return team().log.some(l=>l.track===k&&l.base&&l.cfg&&l.res&&logSig(l.cfg,l.res)===sg)};
+const baseSaved=(k,b)=>{const sg=logSig(b.cfg,{...b.res,primary:b.primary});return team().log.some(l=>l.track===k&&l.base&&l.cfg&&l.res&&(logSig(l.cfg,l.res)===sg||k==='vision'))};
 function showBase(k,quiet){const o=$('#baseOut'),b=baseRun(k);if(!o||!b)return;const sv=baseSaved(k,b);Object.assign(o.dataset,{track:k,v:b.primary.v,set:b.set,saved:sv});o.hidden=false;
  o.innerHTML=card('flag',`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(k)}`,b.html+`<div class="row mt"><button type="button" class="btn-ghost" id="saveBase"${sv?' aria-disabled="true"':''}>${ic(sv?'check':'save')}${sv?T('Metoda odniesienia jest zapisana w dzienniku','The baseline is saved in the log'):T('Zapisz metodę odniesienia w dzienniku','Save the baseline to the log')}</button></div>`,{tone:TONE[k],h:2});icons(o);
  $('#saveBase').onclick=()=>{if(sv)return;logAdd(k,b.cfg,b.res,b.primary,{base:true});if(baseSaved(k,b)){showBase(k,true);const s=$('#saveBase');if(s)s.focus()}};
@@ -2782,7 +2791,7 @@ $('#skip').onclick=e=>{e.preventDefault();mainEl.focus()};
 addEventListener('hashchange',onHashChange);
 addEventListener('load',()=>icons());
 addEventListener('storage',e=>{if(e.key!==STORE_KEY||!e.newValue)return;if(AIS.run){X.storagePending=X.renderPending=true;return}try{const x=JSON.parse(e.newValue);S.teams=normTeams(x.teams)}catch(err){return}if(!isTyping()&&!inspEl.open)softRender();else renderProg()});
-addEventListener('resize',setHdrH);
+addEventListener('resize',setHdrH);addEventListener('resize',queueToastPlace);addEventListener('scroll',queueToastPlace,{passive:true});if(window.ResizeObserver)new ResizeObserver(queueToastPlace).observe(toastEl);
 // The sticky bars change height without a resize (wrapping text, fonts, the case bar appearing): keep the offsets exact.
 if(window.ResizeObserver){const ro=new ResizeObserver(()=>setHdrH());['.edu-header','#pathBar','#caseBar'].forEach(s=>{const e=$(s);if(e)ro.observe(e)})}
 addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||inspEl.open)return;const a=e.target,tag=a.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return;const i=+e.key;if(i>=1&&i<=NAV.length){e.preventDefault();go(NAV[i-1][0])}});
