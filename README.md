@@ -40,7 +40,7 @@ The start page's main button and agenda follow the same nine steps. A path bar u
 6. Laboratorium, runda 1 (Build lab, round 1) – run and save the baseline.
 7. Rundy 2–3 i test (Rounds 2–3 and the test) – save at least three experiments; on the tracks with a hidden test set, reveal the test once ("Odsłońcie zbiór testowy", in the knowledge assistant "Odsłońcie pytania testowe") and save the result while it is visible. The step is done only when that final result is in the log; a reveal alone does not complete it. Team files from before this rule keep the step done if an entry was saved after a test view.
 8. Ryzyka i wdrożenie (Risks and go-live) – answer at least four risk cards and take the four go-live decisions.
-9. Raport i wystąpienie (Report and presentation) – complete the checklist and export the report.
+9. Raport i wystąpienie (Report and presentation) – complete the checklist and export the report. Above the export buttons the page lists what the report would still show as empty (team name, method, diagram, unanswered risk cards, unticked checklist items), each with a link to its place; the export is never blocked. Checklist items the team's work already shows can be ticked with one button.
 
 What participants meet along the way:
 
@@ -48,7 +48,7 @@ What participants meet along the way:
 - Glossary terms underlined in the text, with a tooltip on hover or keyboard focus.
 - A plain-language recap of each result with two headline numbers; the other metrics (F1, accuracy, the confusion matrix and so on) are folded under "Więcej miar" (More metrics).
 - Two-question quizzes after the demos (lifecycle, tokens, RAG, data split, metrics).
-- In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a short written justification of the method choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
+- In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline, a ticked method in the method table and a short written justification of that choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównajcie dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
@@ -84,7 +84,7 @@ node worker.mjs            # Worker contract against a mock OpenRouter
 node guided.mjs [section]  # guided path probes; run one or more sections by name
 ```
 
-`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
+`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
 
 `worker.mjs` starts `wrangler dev` on port 8787 (and a mock OpenRouter on 8799). An aborted run can leave port 8787 taken; free it before the next run.
 

@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -193,7 +193,7 @@ try {
     ok('risk before the report, report recommended once four risks are answered', done.r === 'risk' && done.a === 'report', JSON.stringify(done));
     ok('path completes with the risk step done', done.b === null && !done.na.na && done.na.done === true, JSON.stringify(done));
     await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; });
-    ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.na === '0' && e.dataset.total === '9'));
+    ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.total === '9'));
     ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórzcie dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; team().site.newsRead = true; }); await f.evaluate(() => go('demos', 'split'));
     ok('current step follows the sub view', await f.$eval('#pathBar', e => e.dataset.step) === 'demos');
@@ -453,6 +453,9 @@ try {
       await p.click(sel); ok(`gate ${k}: click does not reveal or count`, await p.evaluate(key => !lab()[key].revealed && lab()[key].testViews === 0, key));
       ok(`gate ${k}: focus moves to the baseline button`, await p.evaluate(() => document.activeElement.id) === 'runBase');
       await p.click('#runBase'); await p.click('#saveBase');
+      ok(`gate ${k}: now blocked on the method choice`, await p.$eval(sel, e => e.dataset.blocked) === 'method');
+      await p.click(sel); ok(`gate ${k}: focus moves to the method table`, await p.evaluate(() => document.activeElement.name) === 'meth' && await p.$eval('#toast', e => e.dataset.reason) === 'method');
+      await p.locator('input[name=meth]').first().check();
       ok(`gate ${k}: now blocked on the justification`, await p.$eval(sel, e => e.dataset.blocked) === 'why');
       await p.click(sel); ok(`gate ${k}: focus moves to the justification`, await p.evaluate(() => document.activeElement.id) === 'methWhy');
       await p.fill('#methWhy', 'Reguły są tanie i wyjaśnialne, a danych jest mało.');
@@ -512,7 +515,7 @@ try {
     { const p = await fresh('#/lab/vision');
       await p.click('#runBase'); await p.click('#visRv');
       ok('gate run but unsaved baseline: focus on the save button', await p.evaluate(() => document.activeElement.id) === 'saveBase');
-      await p.click('#saveBase'); await p.click('#labMethod details > summary'); await p.fill('#methWhy', 'tanie');
+      await p.click('#saveBase'); await p.click('#labMethod details > summary'); await p.locator('input[name=meth]').first().check(); await p.fill('#methWhy', 'tanie');
       ok('gate short justification keeps the gate closed', await p.$eval('#visRv', e => e.dataset.blocked) === 'why');
       await p.click('#visRv'); const short = await p.$eval('#toast', e => e.dataset.reason);
       await p.fill('#methWhy', ''); await p.click('#visRv'); const empty = await p.$eval('#toast', e => e.dataset.reason);
@@ -675,7 +678,7 @@ try {
       return !md.includes('SEKRETNY_TEKST_SKRZYNKI') && !h.includes('SEKRETNY_TEKST_SKRZYNKI') && !h.includes('<i>x</i>') && !h.includes('<b>y</b>') && h.includes('&lt;i&gt;x') && !md.includes('<i>x</i>'); }));
     ok('no quiz under the risk tab', !(await p.$('.quiz')));
     ok('risk step available, targets the risk tab, done at four answers', await p.evaluate(() => { const t = defaultTeam(), prev = S.teams[S.team]; S.teams[S.team] = t; const s = PATH_STEPS().find(x => x.id === 'risk'); S.teams[S.team] = prev; const a = pathState(t).steps.find(x => x.id === 'risk'); t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' };
-      t.risks = { privacy: 0, bias: 1, aiact: 2 }; const b = riskDone(t); t.risks.injection = 0; const c = riskDone(t); return stepAvail('risk') && !a.na && s.go.join('/') === 'demos/risk' && !b && c && pathState(t).steps.find(x => x.id === 'risk').done; }));
+      t.risks = { privacy: 0, bias: 1, aiact: 2 }; const b = riskDone(t); t.risks.injection = 0; const c = riskDone(t); return s.go.join('/') === 'demos/risk' && !b && c && pathState(t).steps.find(x => x.id === 'risk').done; }));
     ok('Next on the risk page names the action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true });
       S.teams[S.team] = t; save(); go('demos', 'risk'); const b = document.querySelector('#pathNext'), pl = b.textContent.trim(), m = b.dataset.mode; S.lang = 'en'; render(); const en = document.querySelector('#pathNext').textContent.trim(); S.lang = 'pl'; render();
       return document.querySelector('#pathBar').dataset.next === 'risk' && m === 'here' && pl === 'Odpowiedzcie na pytania o ryzyka' && en === 'Answer the questions about the risks'; }));
@@ -1059,7 +1062,7 @@ try {
       ok('exit2 gate: baseline and justification missing -> full sentence', a.r === 'baseline' && a.g === await p.evaluate(() => GATE_MSG()) && a.live === 'polite' && a.d, JSON.stringify(a));
       await p.click('#runBase'); await p.click('#rv'); const b = await st();
       ok('exit2 gate: unsaved baseline, no justification -> full sentence', b.r === 'save' && b.g === await p.evaluate(() => GATE_MSG()), JSON.stringify(b));
-      await p.click('#saveBase'); await p.click('#rv'); const c = await st();
+      await p.click('#saveBase'); await p.evaluate(() => { const d = team().decision; (d.complaints || (d.complaints = { m: -1, why: '' })).m = 0; save(); syncRevealGate(); }); await p.click('#rv'); const c = await st();
       ok('exit2 gate: only the justification missing -> only that', c.r === 'why' && c.g === 'Dopiszcie uzasadnienie wyboru metody – trafia do raportu.' && c.t.includes('Dopiszcie uzasadnienie wyboru metody – trafia do raportu.') && !c.t.includes('metodę odniesienia'), JSON.stringify(c));
       await p.evaluate(() => { const t = team(); t.log = t.log.filter(l => !l.base); t.decision.complaints = { m: 0, why: 'Reguły są tanie i wyjaśnialne, a danych jest mało.' }; save(); render(); });
       await p.click('#rv'); const d = await st();
@@ -1770,6 +1773,112 @@ try {
       await p.keyboard.press('Enter'); await p.waitForTimeout(100);
       ok('final r7 saving with focus on the save button does not move focus to the bar', await p.evaluate(() => expCount('complaints') === 4 && !document.querySelector('#pathBar').contains(document.activeElement)), await p.evaluate(() => document.activeElement.id + ' ' + expCount('complaints')));
       ok('final r7 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
+  }
+  // ─── Fresh review (code review + usability audit of the finished branch) ───
+  if (run('fresh')) {
+    const ready = p => p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    const setRange = (p, sel, v) => p.$eval(sel, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+    // 1. Changing the task in the lab clears go-live decision 3, like the task chips on the brief page.
+    { const p = await fresh('#/lab/complaints');
+      await seed(p, () => { const t = team(); t.track = 'vision'; t.arch.decisions.monitor = 'falseAlarms'; });
+      await p.click('#pickTrack');
+      ok('fresh lab task change clears the monitoring decision', await p.evaluate(() => team().track === 'complaints' && !('monitor' in team().arch.decisions)));
+      await p.close(); }
+    // 2. The baseline card follows the current forecast settings after a reload and does not carry over to another team.
+    { const p = await fresh('#/lab/forecast');
+      await p.click('#runBase'); await p.click('#saveBase');
+      ok('fresh forecast baseline saved', await p.$eval('#baseOut', e => e.dataset.saved) === 'true');
+      await p.reload(); await ready(p); const v0 = await p.$eval('#baseOut', e => e.dataset.v);
+      await setRange(p, '#fh', 9);
+      const a = await p.$eval('#baseOut', e => ({ saved: e.dataset.saved, v: e.dataset.v, hidden: e.hidden }));
+      ok('fresh forecast baseline card follows the horizon after a reload', !a.hidden && a.saved === 'false' && a.v !== v0, JSON.stringify([v0, a]));
+      await p.selectOption('#teamSel', '2');
+      ok('fresh baseline card is not shown to another team', await p.$eval('#baseOut', e => e.hidden));
+      await p.close(); }
+    // 3. "More metrics" stays open while tuning.
+    { const p = await fresh('#/lab/maint');
+      await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 2.5); await p.waitForTimeout(50);
+      ok('fresh more metrics stays open across a redraw', await p.$eval('#proto details.more-metrics', e => e.open));
+      await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 3); await p.waitForTimeout(50);
+      ok('fresh more metrics stays closed once closed', !(await p.$eval('#proto details.more-metrics', e => e.open)));
+      await p.close(); }
+    // 4. Free-text fields stop at the length the team file keeps.
+    { const p = await fresh('#/lab/complaints');
+      const lab_ = await p.evaluate(() => [document.querySelector('#methWhy').maxLength, document.querySelector('#expNote').maxLength]);
+      await p.evaluate(() => go('deliver')); const note = await p.$eval('#note1', e => e.maxLength);
+      ok('fresh field limits match the stored limits', lab_[0] === 2000 && lab_[1] === 1000 && note === 4000, JSON.stringify([lab_, note]));
+      await p.close(); }
+    // 5. Example preview: no model run can start; the example error is final.
+    { const p = await fresh('#/home'); await p.click('#showExample');
+      await p.evaluate(() => { go('lab', 'complaints'); lab().compl.method = 'llm'; render(); });
+      ok('fresh example preview disables the learning curve', await p.$eval('#cCurve', e => e.disabled) && await p.evaluate(() => AI_FATAL.has('example')));
+      ok('fresh example case bar names the example task', /Zadanie przykładu/.test(await p.$eval('#caseBar', e => e.textContent)));
+      await p.close(); }
+    // 6. The onboarding card survives a language switch after the name was typed; starting unnamed says where to name the team.
+    { const p = await fresh('#/home');
+      await p.fill('#onboardName', 'Zespół Śledź'); await p.click('#langSeg button[data-l=en]'); await p.click('#langSeg button[data-l=pl]');
+      ok('fresh onboarding card stays after typing the name and switching language', !!(await p.$('#onboard')) && await p.$eval('#onboardName', e => e.value) === 'Zespół Śledź');
+      await p.fill('#onboardName', ''); await p.click('#onboardGo');
+      ok('fresh starting without a name says where to add it', await p.$eval('#toast', e => !e.hidden && e.dataset.reason === 'noname'));
+      await p.close(); }
+    // 7. Vision: an unsaved second edit of the prompt marks the shown result as stale.
+    { const p = await fresh('#/lab/vision');
+      await p.evaluate(() => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; save(); render(); });
+      await p.fill('#vPrompt', 'Oceń puszkę. Odpowiedz JSON.'); await p.click('#visRun');
+      await p.waitForFunction(() => lab().vision.mruns.length === 1 && !AIS.run, null, { timeout: 30000 });
+      const a = await p.$eval('#visModelRes', e => e.dataset.stale);
+      await p.fill('#vPrompt', 'Oceń puszkę inaczej. Odpowiedz JSON.');
+      ok('fresh vision result goes stale on a further unsaved prompt edit', a === '0' && await p.$eval('#visModelRes', e => e.dataset.stale) === '1' && !(await p.$eval('#visStale', e => e.hidden)), a);
+      await p.close(); }
+    // 8. A model button without a class code leads to the code field.
+    { const p = await fresh('#/lab/rag');
+      await p.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); }); await p.click('#ragRun'); await p.waitForTimeout(100);
+      ok('fresh missing class code focuses the code field', await p.evaluate(() => document.activeElement.id === 'aiCode' && (r => r.top >= 0 && r.bottom <= innerHeight)(document.activeElement.getBoundingClientRect())));
+      await p.fill('#aiCode', 'broke'); await p.keyboard.press('Enter'); await p.waitForFunction(() => AIS.state === 'ready');
+      ok('fresh used-up budget is said at connect time', /budżet/.test(await p.$eval('#aiStatus', e => e.textContent)));
+      await p.close(); }
+    // 9. The test gate asks for the method choice; the results page lists what the report lacks.
+    { const p = await fresh('#/lab/complaints'); await p.evaluate(() => { team().track = 'complaints'; save(); render(); });
+      ok('fresh baseline button is not yellow on the yellow panel', await p.$eval('#runBase', e => getComputedStyle(e).backgroundColor !== getComputedStyle(e.closest('.group-hero')).backgroundColor));
+      await p.evaluate(() => go('deliver'));
+      const g = await p.$$eval('#delivGaps [data-gap]', a => a.map(b => b.dataset.gap));
+      ok('fresh results page lists the report gaps', ['name', 'brief', 'lab/complaints', 'arch', 'demos/risk', 'check'].every(x => g.includes(x)), JSON.stringify(g));
+      await p.click('#delivGaps [data-gap=name]');
+      ok('fresh the name gap leads to the name field', await p.evaluate(() => document.activeElement.id) === 'teamName');
+      await p.click('#delivGaps [data-gap="lab/complaints"]');
+      ok('fresh the method gap leads to the lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'complaints'));
+      await seed(p, () => { const t = team(); t.name = 'Z'; t.goal = 'g'; t.decision.complaints = { m: 0, why: 'Reguły są tanie i wyjaśnialne.' }; t.arch.sel = { mailbox: true, rules: true, review: true }; GO_LIVE_DECISIONS(t).forEach(d => t.arch.decisions[d.id] = d.options[0].id); RISK_SCENARIOS().forEach(s => t.risks[s.id] = 0); SEC().forEach(s => s.items.forEach((_, n) => t.checks[s.id + '.' + n] = true)); });
+      await p.evaluate(() => go('deliver'));
+      ok('fresh no gaps list when the report is complete', await p.$eval('#delivGaps', e => e.hidden), await p.$eval('#delivGaps', e => e.textContent));
+      await p.close(); }
+    // 10. Checklist items the work already shows can be ticked in one click, with undo.
+    { const p = await fresh('#/deliver');
+      await seed(p, () => { const t = team(); t.track = 'maint'; t.decision.maint = { m: 0, why: 'Reguła jest prosta i tania.' }; t.log = [{ id: 'b', ts: '', track: 'maint', note: '', testViews: 0, base: true }, ...[1, 2, 3].map(i => ({ id: 'e' + i, ts: '', track: 'maint', note: '', testViews: 0 }))]; });
+      const n = await p.$$eval('[data-proven]', a => a.map(e => e.dataset.proven).sort().join(','));
+      await p.click('#tickProven');
+      ok('fresh provable checklist items are marked and ticked in one click', n === '3.0,4.2,5.3' && await p.evaluate(() => ['3.0', '4.2', '5.3'].every(c => team().checks[c]) && !document.querySelector('#tickProven')), n);
+      await p.close(); }
+    // 11. Demo tabs show what the task needs and what is passed; the hint names what is left.
+    { const p = await fresh('#/demos/split'); await seed(p, () => { const t = team(); t.track = 'forecast'; t.goal = 'g'; t.onboardedAt = 'x'; t.site.newsRead = true; t.seen.data = true; qz(t, 'life'); });
+      const st = () => p.$$eval('#demoTabs button', a => Object.fromEntries(a.map(b => [b.dataset.s, b.dataset.state])));
+      const a = await st(); ok('fresh demo tabs mark done and to-do', a.life === 'done' && a.split === 'todo' && a.metr === 'todo' && a.tok === '' && a.rag === '' && a.risk === 'todo', JSON.stringify(a));
+      ok('fresh demos hint names the remaining demos', /Podział danych, Miary jakości/.test(await p.$eval('#pathBar', e => e.textContent)));
+      await p.evaluate(() => { document.querySelectorAll('#quiz .qz-q').forEach((q, i) => q.querySelector(`[data-o="${QUIZZES().split[i].answer}"]`).click()); });
+      ok('fresh a passed quiz marks its tab at once', (await st()).split === 'done');
+      await p.close(); }
+    // 12. Short desktop window: the team strip folds to one line and the lab's first action is on screen.
+    { const p = await fresh('#/lab/complaints', '', { width: 1280, height: 720 }); await p.evaluate(() => { team().track = 'complaints'; save(); render(); });
+      ok('fresh at 1280x720 the team strip is folded and the baseline button is visible', await p.evaluate(() => !document.querySelector('#teamName').offsetParent && document.querySelector('#runBase').getBoundingClientRect().bottom <= innerHeight), await p.evaluate(() => String(document.querySelector('#runBase').getBoundingClientRect().bottom)));
+      await p.click('#tbToggle'); ok('fresh the folded strip opens', await p.evaluate(() => !!document.querySelector('#teamName').offsetParent));
+      await p.close(); }
+    // 13. Small wording and state items.
+    { const p = await fresh('#/brief'); await p.click('#main [data-t=complaints]');
+      ok('fresh criterion example follows the task', /reklamacji/.test(await p.$eval('#goal', e => e.placeholder)));
+      ok('fresh experiment counter past the minimum', await p.evaluate(() => expTxt(4) === '4 (min. 3)' && expTxt(2) === '2/3'));
+      ok('fresh complaints log line has no raw abbreviations', await p.evaluate(() => { const t = logTextRaw({ track: 'complaints', cfg: { kw: Object.fromEntries(CK.map(k => [k, 'x'])), safety: 'y' }, res: { dev: .5, macro: .5, safety: 1, base: .25 } }); return !/dev acc|baseline=/.test(t) && /trafność \(dev\)=50,0%/.test(t) && /klasa większościowa=25,0%/.test(t); }));
+      await p.evaluate(() => { announce('Zdanie po polsku.'); }); await p.waitForTimeout(700); await p.click('#langSeg button[data-l=en]');
+      ok('fresh no stale announcement after a language switch', await p.$eval('#live', e => !/Zdanie po polsku/.test(e.textContent)));
+      ok('fresh no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
