@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -1293,6 +1293,53 @@ try {
       ok('exit2r2 packshot pages fit at 375 px', sw.every(Boolean), JSON.stringify(sw));
       await m.close(); }
   }
+  if (run('trainer')) { const u = await fresh('#/lab/rag');
+    await u.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); });
+    ok('trainer aiBar present for the participant', !!(await u.$('#aiBar')));
+    ok('participant view has no replay download', !(await u.$('#aiBar #aiRecord, #aiBar [data-replay]')));
+    ok('participant header has no trainer chip', await u.$eval('#trChip', e => e.hidden && getComputedStyle(e).display === 'none'));
+    await u.goto(u.url().replace(/#.*/, '#/trainer')); await u.waitForTimeout(150);
+    ok('trainer route closed without the flag', await u.evaluate(() => S.view !== 'trainer' && !document.querySelector('#trSlots')));
+    await u.close();
+    const p = await fresh('#/trainer', '&trainer=1');
+    ok('trainer view with eight slots', await p.$$eval('#trSlots tbody tr', e => e.length) === 8 && await p.evaluate(() => document.body.dataset.trainer === 'true' && S.view === 'trainer'));
+    ok('trainer intro text verbatim', await p.$eval('#trIntro', e => e.textContent.trim()) === 'Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, kto zrobił baseline, ile razy oglądano test i czy uzupełniono uzasadnienie. Nie porównujemy surowego F1 na teście na forum grupy.');
+    ok('trainer chip links to the view', await p.$eval('#trChip', e => !e.hidden && getComputedStyle(e).display !== 'none' && e.getAttribute('href') === '#/trainer'));
+    ok('trainer view is no menu item', await p.$$eval('#nav [data-v]', e => e.every(b => b.dataset.v !== 'trainer')));
+    // Slot 3 seeded with a baseline beaten on the tuning set; the current team stays slot 1.
+    await seed(p, () => { S.teams[3] = normTeam({ name: 'Dorsz', track: 'forecast', goal: 'x', decision: { forecast: { m: 1, why: 'bo sezonowość jest silna' } }, log: [{ track: 'forecast', base: true, res: { primary: { v: 20, hi: false } } }, { track: 'forecast', note: 'lepiej', res: { primary: { v: 12, hi: false, base: 20 } } }] }); });
+    ok('trainer slot row reflects the seeded slot', await p.$eval('#trSlots tbody tr[data-slot="3"]', r => /Dorsz/.test(r.textContent) && r.querySelector('[data-col=baseline]').dataset.v === 'true' && r.querySelector('[data-col=why]').dataset.v === 'true' && r.querySelector('[data-col=experiments]').textContent.trim() === '1' && r.querySelector('[data-col=noteCount]').textContent.trim() === '1'));
+    ok('teamSummary is pure (not the current team)', await p.evaluate(() => { const a = teamSummary(S.teams[3]), b = teamSummary(defaultTeam()); return S.team === 1 && a.name === 'Dorsz' && a.baseline === true && a.beaten === true && b.baseline === false && b.steps === 0 && b.beaten === null; }));
+    ok('pathState of another team uses that team', await p.evaluate(() => { const t = normTeam({ track: 'rag', onboardedAt: 'x', site: { newsRead: true }, goal: 'g' }); team().track = null; return pathState(t).steps.find(s => s.id === 'task').done === true && pathState(t).doneCount === teamSummary(t).steps; }));
+    ok('PATH_STEPS of another team uses that team', await p.evaluate(() => { const t = normTeam({ track: 'rag' }); team().track = null; S.sub.lab = 'vision'; return PATH_STEPS(t).find(s => s.id === 'base').go[1] === 'rag' && PATH_STEPS().find(s => s.id === 'base').go[1] === 'vision'; }));
+    const file = (t, name = t.name + '.json') => ({ name, mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ app: 'rybex-ai-workshop', version: 3, team: 2, data: t })) });
+    const slot0 = await p.evaluate(() => JSON.stringify(S.teams)), store0 = await p.evaluate(() => localStorage.getItem(STORE_KEY));
+    await p.setInputFiles('#trImport', [file({ name: 'Szprot', track: 'vision', log: [{ track: 'vision', base: true }], lab: { vision: { testViews: 4 } } }), file({ name: 'Makrela', track: 'rag' }), { name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{nope') }, { name: 'other.json', mimeType: 'application/json', buffer: Buffer.from('{"app":"x","data":{}}') }]);
+    await p.waitForFunction(() => document.querySelectorAll('#trFiles tbody tr').length === 2);
+    ok('two valid files listed, bad one reported, slots untouched', slot0 === await p.evaluate(() => JSON.stringify(S.teams)) && store0 === await p.evaluate(() => localStorage.getItem(STORE_KEY)));
+    ok('bad files named in the status line', await p.$eval('#trStatus', e => e.getAttribute('aria-live') === 'polite' && /bad\.json/.test(e.textContent) && /other\.json/.test(e.textContent) && !/Szprot\.json/.test(e.textContent)));
+    ok('summary shows baseline and test views, not test scores', await p.$eval('#trFiles', e => /Szprot/.test(e.textContent) && e.querySelector('[data-col=testViews]').textContent.trim() === '4' && !e.querySelector('[data-col=testScore], [data-col=f1], [data-col=acc]')));
+    ok('summary fields', await p.evaluate(() => { const s = teamSummary(defaultTeam()); return ['name', 'track', 'steps', 'baseline', 'why', 'experiments', 'testViews', 'quizFirst', 'quizDone', 'risks', 'decisions', 'noteCount', 'newsRead'].every(k => k in s); }));
+    await p.setInputFiles('#trImport', [file({ name: 'Szprot2', track: 'vision' }, 'Szprot.json')]);
+    await p.waitForFunction(() => /Szprot2/.test(document.querySelector('#trFiles').textContent));
+    ok('same file name replaces its row', await p.$$eval('#trFiles tbody tr', e => e.length) === 2 && await p.evaluate(() => X.trFiles.length === 2));
+    await p.evaluate(() => { S.ai.code = 'SECRET-CODE-123'; save(); team().track = 'rag'; render(); });
+    const [d] = await Promise.all([p.waitForEvent('download'), p.click('#trCsv')]);
+    const csv = (await (await import('node:fs')).promises.readFile(await d.path())).toString('utf8');
+    ok('csv has BOM, semicolons, both tables, tak/nie, no code', csv.charCodeAt(0) === 0xFEFF && /Zespół;/.test(csv) && /Dorsz/.test(csv) && /Makrela/.test(csv) && /;tak;/.test(csv) && /;nie;/.test(csv) && !csv.includes('SECRET-CODE-123') && !/lepiej/.test(csv), csv.slice(0, 300));
+    ok('class code never in trainer view', await p.evaluate(() => !document.querySelector('#main').innerHTML.includes('SECRET-CODE-123')));
+    ok('class code never in exports', await p.evaluate(() => ![reportMD(), reportHTML(), JSON.stringify({ data: team() })].some(x => x.includes('SECRET-CODE-123'))));
+    ok('flag not persisted', await p.evaluate(() => !localStorage.getItem(STORE_KEY).includes('trainer')));
+    await p.click('#trClear'); ok('clear empties the list', await p.$$eval('#trFiles tbody tr', e => e.length) === 0 && await p.evaluate(() => X.trFiles.length === 0));
+    await p.evaluate(() => go('lab', 'rag')); await p.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); });
+    ok('trainer sees the replay download', !!(await p.$('#aiBar #aiRecord')));
+    await p.evaluate(() => enterExample()); await p.waitForTimeout(100);
+    await p.evaluate(() => { location.hash = '#/trainer'; }); await p.waitForTimeout(150);
+    ok('trainer view not reachable from the example', await p.evaluate(() => S.example && S.view !== 'trainer') && await p.$eval('#trChip', e => getComputedStyle(e).display === 'none'));
+    await p.evaluate(() => exitExample()); await p.evaluate(() => go('trainer')); await p.waitForTimeout(100);
+    ok('example copy never listed as a slot', await p.$$eval('#trSlots tbody tr', e => e.length === 8 && !e.some(r => /przykład|example/i.test(r.dataset.slot || ''))));
+    ok('trainer no page errors', p.errs.length === 0, p.errs.join('|'));
+    await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();

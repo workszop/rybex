@@ -24,6 +24,10 @@ Model calls go through the Cloudflare Worker in `worker/`, which holds the API k
 CC='class-code' node tools/record-replay.mjs
 ```
 
+### Trainer mode
+
+Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes and news read, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
+
 ## Tests
 
 ```bash
