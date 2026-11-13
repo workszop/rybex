@@ -1,0 +1,158 @@
+{
+ "commit": "32f3ba5",
+ "shots": [
+  {
+   "id": "site-home",
+   "file": "site-home.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Strona główna fikcyjnej firmy Rybex, producenta konserw rybnych, w ramce przeglądarki."
+  },
+  {
+   "id": "site-news",
+   "file": "site-news.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Strona firmy Rybex z aktualnością o partii konserw zwróconej przez sieć handlową."
+  },
+  {
+   "id": "start",
+   "file": "start.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu."
+  },
+  {
+   "id": "path-bar",
+   "file": "path-bar.webp",
+   "w": 2880,
+   "h": 92,
+   "ai": false,
+   "full": false,
+   "alt": "Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”."
+  },
+  {
+   "id": "cycle",
+   "file": "cycle.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Demonstracja cyklu projektu AI: etapy od problemu biznesowego do wdrożenia i monitoringu."
+  },
+  {
+   "id": "brief-memo",
+   "file": "brief-memo.webp",
+   "w": 1722,
+   "h": 936,
+   "ai": false,
+   "full": false,
+   "alt": "Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy."
+  },
+  {
+   "id": "data",
+   "file": "data.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Strona danych zadania „Analiza reklamacji”: lista plików i podgląd pliku z reklamacjami klientów."
+  },
+  {
+   "id": "demos",
+   "file": "demos.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek."
+  },
+  {
+   "id": "baseline",
+   "file": "baseline.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Laboratorium prognozy popytu: wynik metody odniesienia z dwiema głównymi liczbami i krótkim podsumowaniem."
+  },
+  {
+   "id": "test-reveal",
+   "file": "test-reveal.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody."
+  },
+  {
+   "id": "risk",
+   "file": "risk.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Karty ryzyk projektu AI (dane osobowe, halucynacje) z wybraną odpowiedzią i widocznym uzasadnieniem."
+  },
+  {
+   "id": "golive",
+   "file": "golive.webp",
+   "w": 2652,
+   "h": 2336,
+   "ai": false,
+   "full": false,
+   "alt": "Cztery decyzje przed uruchomieniem na linii; przy wybranych odpowiedziach widać ich konsekwencje i koszt."
+  },
+  {
+   "id": "arch",
+   "file": "arch.webp",
+   "w": 2568,
+   "h": 596,
+   "ai": false,
+   "full": false,
+   "alt": "Schemat blokowy architektury rozwiązania złożony z wybranych komponentów."
+  },
+  {
+   "id": "report-gaps",
+   "file": "report-gaps.webp",
+   "w": 2652,
+   "h": 522,
+   "ai": false,
+   "full": false,
+   "alt": "Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem."
+  },
+  {
+   "id": "badges",
+   "file": "badges.webp",
+   "w": 2652,
+   "h": 868,
+   "ai": false,
+   "full": false,
+   "alt": "Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić."
+  },
+  {
+   "id": "example",
+   "file": "example.webp",
+   "w": 2880,
+   "h": 1800,
+   "ai": false,
+   "full": true,
+   "alt": "Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem."
+  },
+  {
+   "id": "team-file",
+   "file": "team-file.webp",
+   "w": 2880,
+   "h": 278,
+   "ai": false,
+   "full": false,
+   "alt": "Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu."
+  }
+ ]
+}
