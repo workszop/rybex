@@ -3,6 +3,7 @@
 // Needs Playwright importable from the current directory.
 import { chromium, firefox } from 'playwright';
 import fs from 'fs';
+import { lowContrast as contrastWalker } from '../tests/contrast.mjs';
 const ROOT = process.env.APP_URL || 'http://localhost:8794/rybex-ai-workshop.html';
 const engineName = process.argv[2] || 'chromium';
 const ffPath = (process.argv.find(a => a.startsWith('--firefox-path=')) || '').split('=')[1];
@@ -174,12 +175,8 @@ console.log('\nUX-018 and UX-019 polish');
 
 console.log('\nCompany site frame (spec 4.21)');
 { const p = await fresh(undefined, '#/rybex/home');
-  // WCAG contrast of every text node's element inside the frame against its first opaque background up the tree.
-  const lowContrast = () => p.evaluate(() => { const rgb = s => (s.match(/[\d.]+/g) || []).map(Number), lum = c => { const [r, g, b] = c.slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
-    const bg = e => { for (; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length === 3 || c[3] > .9) return c; } return [255, 255, 255]; };
-    const bad = []; const w = document.createTreeWalker(document.querySelector('.rybex-frame'), NodeFilter.SHOW_TEXT); let n;
-    while ((n = w.nextNode())) { const e = n.parentElement; if (!n.textContent.trim() || !e.offsetHeight || e.closest('[aria-hidden=true]')) continue; const a = lum(rgb(getComputedStyle(e).color)), b = lum(bg(e)), r = (Math.max(a, b) + .05) / (Math.min(a, b) + .05); if (r < 4.5) bad.push(n.textContent.trim().slice(0, 30) + ' ' + r.toFixed(2)); }
-    return bad; });
+  // WCAG contrast of every text node's element inside the frame against its first opaque background up the tree (4.5:1 for all text).
+  const lowContrast = () => p.evaluate(contrastWalker, { root: '.rybex-frame', strict: true });
   for (const pg of ['home', 'about', 'products', 'quality', 'news', 'contact', 'career', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg);
     ok(`site ${pg}: fiction banner present`, await p.$eval('.rybex-frame .fiction-banner', e => /fikcyjn/.test(e.textContent) && e.offsetHeight > 0));
     ok(`site ${pg}: one h1, frame headings from h2`, await p.evaluate(() => document.querySelectorAll('h1').length === 1 && !document.querySelector('.rybex-frame h1')));

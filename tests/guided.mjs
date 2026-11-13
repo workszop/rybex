@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lowContrast } from './contrast.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8797, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
@@ -21,8 +22,8 @@ const browser = await chromium.launch().catch(e => { srv.kill(); throw e; });
 let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
 
-async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 }) {
-  const ctx = await browser.newContext({ viewport: vp });
+async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 }, opt = {}) {
+  const ctx = await browser.newContext({ viewport: vp, ...opt });
   const p = await ctx.newPage(); p.errs = [];
   // qz(t, ...demoKeys): marks those demo quizzes as answered correctly (a demo counts as done only after its quiz).
   await p.addInitScript(() => { window.qz = (t, ...ks) => ks.forEach(k => { t.quizzes[k] = { answers: Object.fromEntries(QUIZZES()[k].map(q => [q.id, q.answer])), first: {}, doneAt: 'x' }; }); });
@@ -1312,6 +1313,143 @@ try {
     ok('example copy never listed as a slot', !!exName && await p.$$eval('#trSlots tbody tr', (e, n) => e.length === 8 && !e.some(r => r.cells[0].textContent.includes(n)), exName), exName);
     ok('trainer no page errors', p.errs.length === 0, p.errs.join('|'));
     await p.close(); }
+  if (run('a11y')) {
+    // Desktop accessibility and visual cleanup (Task 21). All at desktop widths; the mobile version is out of scope.
+    const RM = { reducedMotion: 'reduce' };
+    // Walks the main views with state that shows results, feedback and warnings; calls fn(tag) on each.
+    const tour = async (p, fn) => {
+      await fn('home first visit'); await seed(p, () => { const t = team(); t.onboardedAt = 'x'; t.track = 'complaints'; t.goal = 'g'; });
+      for (const v of ['home', 'brief', 'data', 'deliver', 'trainer']) { await p.evaluate(v => go(v), v); await fn(v); }
+      for (const d of ['life', 'tok', 'rag', 'split', 'metr']) { await p.evaluate(d => go('demos', d), d); const o = await p.$$('.quiz [data-o]'); if (o[0]) await o[0].click(); if (o[3]) await o[3].click(); await fn('demo ' + d); }
+      await p.evaluate(() => go('demos', 'risk')); for (const [id, o] of [['privacy', 1], ['hallucination', 0], ['aiact', 1], ['bias', 2]]) await p.click(`#riskDemo [data-r="${id}"] [data-o="${o}"]`); await fn('risk tab with feedback');
+      for (const k of ['vision', 'rag', 'complaints', 'forecast', 'maint']) { await p.evaluate(k => go('lab', k), k); await p.click('#runBase'); await p.click('#saveBase'); await p.waitForTimeout(50); await fn('lab ' + k + ' with a result'); }
+      await seed(p, () => { const t = team(), a = t.arch; PRESET.complaints.forEach(k => a.sel[k] = true); a.sel.hitl = false; a.infra = 'cloud'; a.decisions = { runWhere: 'cloud', stopAuthority: 'system', monitor: 'nothing', reviewEvery: 'quarterly' }; });
+      await p.evaluate(() => go('arch')); await fn('arch with warnings'); await p.evaluate(() => go('deliver')); await fn('report view');
+      for (const pg of ['home', 'about', 'products', 'quality', 'news', 'contact', 'career', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg); await fn('site ' + pg); }
+      await p.fill('#main #rcText', 'Puszka wgnieciona.').catch(() => {}); };
+    // 1. Full contours: no left border wider than the right one or coloured unlike the top one.
+    { const p = await fresh('#/home', '&trainer=1', { width: 1280, height: 800 }, RM); const bad = [];
+      await tour(p, async tag => { for (const x of await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => !e.matches('input,select,textarea,button,option,td,th') && e.getClientRects().length).flatMap(e => { const c = getComputedStyle(e), l = parseFloat(c.borderLeftWidth); return l > 0 && c.borderLeftStyle !== 'none' && (l > parseFloat(c.borderRightWidth) || c.borderLeftColor !== c.borderTopColor) ? [e.tagName + '.' + [...e.classList].join('.')] : []; }))) bad.push(tag + ': ' + x); });
+      await p.evaluate(() => go('rybex', 'contact')); await p.fill('#rcText', 'Puszka wgnieciona przy kodzie partii.'); await p.click('#rcSend');
+      for (const x of await p.evaluate(() => [...document.querySelectorAll('.rc-done')].flatMap(e => { const c = getComputedStyle(e); return c.borderLeftWidth !== c.borderRightWidth || c.borderLeftColor !== c.borderTopColor ? ['rc-done'] : []; }))) bad.push('contact sent: ' + x);
+      ok('a11y no left-stripe accents in any view (full contours)', !bad.length, [...new Set(bad)].join(' | '));
+      const tr = await p.evaluate(() => { const tone = (sel, v) => { const e = document.querySelector(sel); if (!e) return 'missing ' + sel; const c = getComputedStyle(e), x = document.createElement('i'); x.style.color = `var(${v})`; e.parentElement.append(x); const want = getComputedStyle(x).color; x.remove(); return ['Top', 'Right', 'Bottom', 'Left'].every(s => c[`border${s}Color`] === want && parseFloat(c[`border${s}Width`]) > 0) || sel; };
+        go('lab', 'complaints'); const r = [tone('figure.persona', '--yellow'), tone('.recap', '--ink')]; go('rybex', 'news'); go('rybex', 'home'); r.push(tone('.rf-teaser', '--red-600')); go('rybex', 'career'); r.push(tone('.rf-job', '--rf-sea')); go('rybex', 'intranet'); r.push(tone('.ri-queue li', '--rf-sea'), tone('.persona-card blockquote', '--yellow'));
+        go('demos', 'risk'); r.push(tone('#riskDemo [data-state=good] .fb', '--green-600'), tone('#riskDemo [data-state=other] .fb', '--yellow')); go('demos', 'life'); r.push(tone('.quiz [data-state=right] .qz-fb, .quiz [data-state=wrong] .qz-fb', document.querySelector('.quiz [data-state=right]') ? '--green-600' : '--red-600'));
+        return r.every(x => x === true) || r.filter(x => x !== true).join(); }); ok('a11y converted boxes keep their accent colour on the whole contour', tr === true, String(tr));
+      ok('a11y no page errors (contours)', !p.errs.length, p.errs.join('|')); await p.close(); }
+    // 2. Sticky chrome: header, path bar, case bar and the lab jump bar sit flush.
+    for (const w of [1280, 1440]) { const p = await fresh('#/brief', '', { width: w, height: 800 }); await p.click('#main [data-t=maint]'); const bad = [];
+      for (const h of ['#/lab/maint', '#/arch']) { await p.evaluate(h => { location.hash = h; }, h); await p.waitForTimeout(200);
+        const jy = await p.evaluate(() => { const j = document.querySelector('#labJump'); return j ? j.getBoundingClientRect().top + scrollY : 0; }); await p.evaluate(y => scrollTo(0, y), jy + 600); await p.waitForTimeout(100);
+        const r = await p.evaluate(() => { const g = s => document.querySelector(s)?.getBoundingClientRect(), pb = g('#pathBar'), cb = g('#caseBar'), j = g('#labJump'); return { pb: pb.bottom, cbT: cb.top, cbB: cb.bottom, cbH: cb.height, j: j ? j.top : null }; });
+        if (!(r.cbH > 0 && Math.abs(r.cbT - r.pb) <= 1 && (r.j === null || Math.abs(r.j - r.cbB) <= 1))) bad.push(h + ' ' + JSON.stringify(r)); }
+      ok(`a11y sticky chrome flush at ${w}: case bar under the path bar, jump bar under the case bar`, !bad.length, bad.join(' | '));
+      // The path bar grows or shrinks with its text (no resize event): the bars below follow.
+      await p.evaluate(() => { document.querySelector('#pathBar .pb-hint').textContent += ' Dodatkowy tekst, który zawija pasek ścieżki na kolejny wiersz. '.repeat(4); }); await p.waitForTimeout(150);
+      const g = await p.evaluate(() => { const pb = document.querySelector('#pathBar').getBoundingClientRect(), cb = document.querySelector('#caseBar').getBoundingClientRect(), j = document.querySelector('#labJump'); return [pb.bottom, cb.top, cb.bottom, j ? j.getBoundingClientRect().top : null]; });
+      ok(`a11y sticky chrome follows a path bar height change at ${w}`, Math.abs(g[0] - g[1]) <= 1, JSON.stringify(g)); await p.close(); }
+    // 3. Toast position: bottom right at 1024 px and wider, never over the controls needed next.
+    { const p = await fresh('#/lab/maint', '', { width: 1280, height: 720 }); await p.click('#runBase'); await p.click('#saveBase'); await p.waitForTimeout(100);
+      const hit = async () => p.evaluate(() => { const t = toastEl.getBoundingClientRect(); if (toastEl.hidden || !t.width) return 'no toast'; return ['#saveBase', '#sv', '#expNote', '#visRv', '#ragRv', '#rv'].filter(s => { const e = document.querySelector(s); if (!e) return false; const r = e.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight || !r.width) return false; return !(r.right <= t.left || r.left >= t.right || r.bottom <= t.top || r.top >= t.bottom); }).join(); });
+      ok('a11y toast after saving the baseline covers none of #saveBase, #sv, #expNote (1280x720)', await hit() === '', await hit());
+      for (const y of [300, 700, 1100]) { await p.evaluate(y => { scrollTo(0, y); toast('x'.repeat(200)); }, y); ok(`a11y long toast covers no save control at scroll ${y}`, await hit() === '', await hit()); }
+      ok('a11y toast sits bottom right with a bounded width at 1280', await p.evaluate(() => { const t = toastEl.getBoundingClientRect(); return innerWidth - t.right >= 16 && innerWidth - t.right <= 32 && t.width <= 420 && innerHeight - t.bottom <= 40 && toastEl.getAttribute('role') === 'status'; }));
+      await p.setViewportSize({ width: 1000, height: 720 }); ok('a11y toast below 1024 px stays centred', await p.evaluate(() => { const t = toastEl.getBoundingClientRect(); return Math.abs((t.left + t.right) / 2 - document.documentElement.clientWidth / 2) <= 2; }));
+      ok('a11y no page errors (toast)', !p.errs.length, p.errs.join('|')); await p.close(); }
+    // 4a. One h1 per view, heading levels not skipped inside the main content.
+    { const p = await fresh('#/home', '&trainer=1', { width: 1280, height: 800 }, RM); const bad = [];
+      await tour(p, async tag => { const r = await p.evaluate(() => { const hs = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(h => h.getClientRects().length || h.closest('.sr-only')); const m = hs.filter(h => h.closest('#main')); let prev = 1, sk = []; for (const h of m) { const l = +h.tagName[1]; if (l > prev + 1) sk.push(prev + '->' + l + ' ' + h.textContent.trim().slice(0, 20)); prev = l; } return { h1: document.querySelectorAll('h1').length, h1main: !!document.querySelector('#main h1'), sk }; }); if (r.h1 !== 1 || !r.h1main || r.sk.length) bad.push(tag + ' ' + JSON.stringify(r)); });
+      ok('a11y one h1 per view and no skipped heading levels in main', !bad.length, bad.join(' | ')); await p.close(); }
+    // 4b. Every form field on the new screens has a label; option sets are labelled groups.
+    { const p = await fresh('#/home', '', { width: 1280, height: 800 }); const name = sel => p.evaluate(sel => { const e = document.querySelector(sel); if (!e) return 'missing'; const lb = e.labels && e.labels[0] ? e.labels[0].textContent : e.getAttribute('aria-label') || (e.getAttribute('aria-labelledby') || '').split(' ').map(i => document.getElementById(i)?.textContent || '').join(' '); return lb.trim(); }, sel); const miss = [];
+      const chk = async (...sels) => { for (const s of sels) { const n = await name(s); if (!n || n === 'missing') miss.push(s + ':' + n); } };
+      await chk('#onboardName'); await p.evaluate(() => go('brief')); await chk('#goal'); await p.evaluate(() => go('rybex', 'contact')); await chk('#rcProduct', '#rcCat', '#rcText');
+      await seed(p, () => { team().track = 'complaints'; }); await p.evaluate(() => go('lab', 'complaints')); await chk('#methWhy', '#expNote');
+      await p.evaluate(() => { go('lab', 'vision'); lab().vision.method = 'llm'; save(); render(); }); await chk('#vPrompt', '#vPromptVer');
+      await p.evaluate(() => go('demos', 'risk')); const rg = await p.$$eval('#riskDemo .rk-opts', e => e.length > 0 && e.every(g => g.getAttribute('role') === 'group' && (document.getElementById(g.getAttribute('aria-labelledby'))?.textContent || '').trim().length > 3));
+      await p.evaluate(() => go('arch')); const gg = await p.$$eval('#goLive .gl-opts', e => e.length === 4 && e.every(g => g.getAttribute('role') === 'group' && (g.getAttribute('aria-label') || '').length > 3));
+      ok('a11y form fields on the new screens are labelled', !miss.length, miss.join(' | ')); ok('a11y risk and go-live options are labelled groups', rg && gg, JSON.stringify([rg, gg]));
+      // 4c. Quiz, risk and go-live feedback are polite live regions.
+      await p.evaluate(() => go('demos', 'split')); const q = await p.$$eval('.quiz .qz-fb', e => e.length > 0 && e.every(x => x.getAttribute('aria-live') === 'polite'));
+      await p.evaluate(() => go('demos', 'risk')); const r = await p.$$eval('#riskDemo .fb', e => e.length === 5 && e.every(x => x.getAttribute('aria-live') === 'polite'));
+      await p.evaluate(() => go('arch')); const g = await p.$$eval('#goLive .fb', e => e.length === 4 && e.every(x => x.getAttribute('aria-live') === 'polite'));
+      ok('a11y quiz, risk and go-live feedback are aria-live polite', q && r && g, JSON.stringify([q, r, g]));
+      // 4d. Disabled controls in the worked example point at their reason.
+      await p.evaluate(() => go('home')); await p.click('#showExample'); await p.waitForFunction(() => S.example && S.view === 'deliver');
+      const ex = await p.evaluate(() => [['#teamSel', 'exLock'], ['#teamExport', 'exLock'], ['#teamImport', 'exLock'], ['#exp', 'exNoExport'], ['#expH', 'exNoExport']].map(([s, id]) => { const e = document.querySelector(s), r = document.getElementById(id); return e.disabled && (e.getAttribute('aria-describedby') || '').split(' ').includes(id) && !!r && !r.hidden && r.textContent.trim().length > 20; }));
+      ok('a11y disabled example controls are described by their reason', ex.every(Boolean), JSON.stringify(ex));
+      await p.click('#exampleExit'); ok('a11y the reasons are unlinked once back to own work', await p.evaluate(() => ['#teamSel', '#teamExport', '#teamImport'].every(s => !document.querySelector(s).disabled && !document.querySelector(s).hasAttribute('aria-describedby'))));
+      ok('a11y no page errors (labels)', !p.errs.length, p.errs.join('|')); await p.close(); }
+    // 4e. Reduced motion: nothing animates or transitions on the new components.
+    { const p = await fresh('#/home', '', { width: 1280, height: 800 }, RM); await p.click('#onboardGo'); const moving = [];
+      const still = async tag => { const r = await p.evaluate(() => { const sel = '#pathBar, #pathBar *, #toast, #toast *, #badges, #badges *, .challenge, .challenge *, .rybex-frame, .rybex-frame *, #exampleBar, #exampleBar *, #caseBar, #caseBar *'; const bad = [...document.querySelectorAll(sel)].filter(e => { const c = getComputedStyle(e); return c.transitionDuration.split(',').some(d => parseFloat(d) > 0) || c.animationName !== 'none'; }).map(e => e.tagName + '.' + e.className); return { bad: bad.slice(0, 5), anim: document.getAnimations().length }; }); if (r.bad.length || r.anim) moving.push(tag + ' ' + JSON.stringify(r)); };
+      await still('home'); await p.evaluate(() => go('rybex', 'news')); await still('site'); await p.click('#backToWs'); await seed(p, () => { team().track = 'rag'; team().site.newsRead = true; }); await p.evaluate(() => go('lab', 'rag'));
+      await p.click('.challenge summary'); await p.click('#runBase'); await p.click('#saveBase'); await still('lab with toast and badge'); await p.evaluate(() => go('home')); await p.click('#showExample'); await still('example');
+      ok('a11y reduced motion: no animation or transition on the new components', !moving.length, moving.join(' | ')); ok('a11y no page errors (motion)', !p.errs.length, p.errs.join('|')); await p.close(); }
+    // 4f. Vision result thumbnails carry a text label, not colour alone.
+    { const p = await fresh('#/lab/vision', '', { width: 1280, height: 800 });
+      ok('a11y vision thumbnails carry a visible text label', await p.$$eval('#visRes .thumb', e => e.length > 10 && e.every(t => { const s = t.querySelector('span'); return s && s.offsetHeight > 0 && s.textContent.trim() === t.dataset.cls.toUpperCase() && (t.getAttribute('aria-label') || '').endsWith(t.dataset.cls.toUpperCase()); })));
+      await p.close(); }
+    // 4g. Focus is never left on BODY after the listed actions.
+    { const p = await fresh('#/home', '', { width: 1280, height: 800 }); const lost = []; const at = async tag => { const a = await p.evaluate(() => { const a = document.activeElement; return !a || a === document.body ? 'BODY' : a.tagName + '#' + a.id; }); if (a === 'BODY') lost.push(tag); };
+      const done = { join: t => { t.onboardedAt = 'x'; t.site.newsRead = true; }, cycle: t => qz(t, 'life'), task: t => { t.track = 'maint'; t.goal = 'g'; }, data: t => { t.seen.data = true; }, demos: t => qz(t, 'split', 'metr'),
+        base: t => { t.log.push({ id: 'b', ts: '', track: 'maint', note: '', testViews: 0, base: true }); }, iterate: t => { for (const i of [1, 2, 3]) t.log.push({ id: 'e' + i, ts: '', track: 'maint', note: 'n', testViews: 0 }); } };
+      for (let i = 0; i < 9; i++) { const nx = await p.$eval('#pathBar', e => e.dataset.next); if (!done[nx]) break;
+        await p.click('#pathNext'); await p.waitForTimeout(80); await at('Dalej to ' + nx); if (await p.$('#pathNext[data-mode=here]')) { await p.click('#pathNext'); await p.waitForTimeout(80); await at('Dalej on ' + nx); }
+        await seed(p, `() => (${done[nx]})(team())`); }
+      for (const d of ['tok', 'rag', 'split']) { await p.evaluate(() => go('demos', 'life')); await p.click(`#demoTabs button[data-s=${d}]`); await at('demo tab ' + d); }
+      await p.click('#trackTabs button[data-k=rag]').catch(() => {}); await p.evaluate(() => go('lab', 'maint')); await p.click('#trackTabs button[data-k=rag]'); await at('track tab');
+      await p.evaluate(() => go('home')); await p.click('#memo [href^="#/rybex"], #memoSite').catch(async () => { await p.evaluate(() => go('rybex', 'news')); }); await at('open the site');
+      await p.click('.rybex-frame nav [data-rp=about]'); await at('site menu'); await p.click('#backToWs'); await at('close the site');
+      await p.evaluate(() => go('home')); await p.click('#showExample'); await at('enter the example'); await p.click('#exampleExit'); await at('leave the example');
+      await p.click('#langSeg button[data-l=en]'); await at('language switch'); await p.click('#langSeg button[data-l=pl]');
+      await p.evaluate(() => { const t = team(); t.log = []; save(); go('lab', 'maint'); }); await p.click('#runBase'); await p.click('#saveBase'); await at('save baseline');
+      for (const thr of [3, 3.5, 4]) { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await p.click('#sv'); } await at('held save');
+      ok('a11y the last save was held (setup)', await p.evaluate(() => expCount('maint') === 2 && document.querySelector('#expNote').getAttribute('aria-invalid') === 'true'), await p.evaluate(() => expCount('maint')));
+      ok('a11y focus never left on BODY after Dalej, tabs, site, example, language, held save', !lost.length, lost.join(' | ')); await p.close();
+      const v = await fresh('#/lab/vision', '', { width: 1280, height: 800 }); await v.click('#visRv'); ok('a11y focus not on BODY after a blocked reveal', await v.evaluate(() => document.activeElement !== document.body && toastEl.dataset.reason === 'baseline'));
+      await v.click('#runBase'); await v.focus('#saveBase'); await v.keyboard.press('Enter'); await v.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 30000 }); await v.waitForTimeout(800);
+      ok('a11y vision: focus stays on the baseline save button after the photos load', await v.evaluate(() => document.activeElement && document.activeElement.id === 'saveBase'), await v.evaluate(() => document.activeElement.tagName + '#' + document.activeElement.id)); await v.close(); }
+    // 4h. Visible focus ring (3:1 against the background) on the interactive elements of the new components.
+    { const ring = sels => { const rgb = s => (s.match(/[\d.]+/g) || []).map(Number), lum = c => { const [r, g, b] = c.slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; }, cr = (x, y) => { const a = lum(x), b = lum(y); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); };
+        const bgOf = e => { for (e = e.parentElement; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length === 3 || c[3] > .9) return c; } return [255, 255, 255]; };
+        const look = e => { const s = getComputedStyle(e); return s.boxShadow + '|' + s.outlineStyle + s.outlineWidth + s.outlineColor; };
+        const bad = []; let n = 0; for (const e of document.querySelectorAll(sels)) { if (!e.getClientRects().length || e.disabled) continue; e.blur(); const before = look(e); e.focus(); if (document.activeElement !== e) continue; n++;
+          const s = getComputedStyle(e), cols = []; if (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) cols.push(rgb(s.outlineColor)); for (const m of s.boxShadow.matchAll(/rgba?\([^)]*\)/g)) cols.push(rgb(m[0]));
+          const best = Math.max(0, ...cols.filter(c => c.length === 3 || c[3] > .5).map(c => cr(c, bgOf(e)))); if (best < 3 || look(e) === before) bad.push((e.id || e.className || e.tagName) + ' ' + best.toFixed(2)); }
+        document.activeElement.blur(); return { n, bad }; };
+      const NEW = '#pathBar button, #caseBar a, #teamBar button, #teamBar select, #teamBar input, #toast button, .quiz button, #riskDemo button, #riskDemo a, #goLive button, .challenge summary, .challenge button, #cmp button, #badges button, .rybex-frame a, .rybex-frame button, .rybex-frame input, .rybex-frame select, .rybex-frame textarea, #exampleBar button, #onboard button, #onboard input, #inbox button, #runBase, #saveBase, #methWhy, #expNote, #goal, #langSeg button, #nav button';
+      const p = await fresh('#/home', '', { width: 1280, height: 800 }); const bad = []; let n = 0; const chk = async tag => { await p.keyboard.press('Tab'); const r = await p.evaluate(ring, NEW); n += r.n; r.bad.forEach(b => bad.push(tag + ': ' + b)); };
+      await chk('home'); await seed(p, () => { team().onboardedAt = 'x'; team().track = 'complaints'; });
+      await p.evaluate(() => go('demos', 'split')); await p.click('.quiz [data-o="1"]'); await chk('quiz');
+      await p.evaluate(() => go('demos', 'risk')); await p.click('#riskDemo [data-r="bias"] [data-o="1"]'); await chk('risk');
+      await p.evaluate(() => go('arch')); await p.click('#goLive [data-d=runWhere] [data-o]'); await chk('go-live');
+      await p.evaluate(() => go('lab', 'complaints')); await p.click('#runBase'); await p.click('#saveBase'); await chk('lab and toast');
+      for (const pg of ['home', 'news', 'contact', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg); await chk('site ' + pg); }
+      await p.evaluate(() => go('home')); await p.click('#showExample'); await chk('example');
+      ok('a11y visible focus ring with 3:1 contrast on the new components', n > 100 && !bad.length, n + ' ' + bad.join(' | ')); await p.close(); }
+    // 4i. Header tab order: skip link, menu, language, path bar button, team bar, then main.
+    { const p = await fresh('#/home', '', { width: 1280, height: 800 }); await seed(p, () => { team().onboardedAt = 'x'; }); await p.evaluate(() => { document.activeElement.blur(); scrollTo(0, 0); });
+      const order = ['skip', 'menu', 'lang', 'path', 'team', 'main'], seq = [];
+      for (let i = 0; i < 40; i++) { await p.keyboard.press('Tab'); const g = await p.evaluate(() => { const a = document.activeElement; return a.id === 'skip' ? 'skip' : a.closest('#langSeg') ? 'lang' : a.closest('.edu-header') ? 'menu' : a.closest('#pathBar, #caseBar') ? 'path' : a.closest('#teamBar') ? 'team' : a.closest('#main') ? 'main' : '?' + a.tagName; }); if (seq.at(-1) !== g) seq.push(g); if (g === 'main') break; }
+      ok('a11y header tab order: skip, menu, language, path bar, team bar, main', JSON.stringify(seq) === JSON.stringify(order), seq.join(' > ')); await p.close(); }
+    // 5. Contrast of all text in every view, Polish and English, at 1280 px.
+    for (const lang of ['pl', 'en']) { const p = await fresh('#/home', '&trainer=1', { width: 1280, height: 800 }, RM); if (lang === 'en') await p.click('#langSeg button[data-l=en]'); const bad = [];
+      await tour(p, async tag => { for (const x of await p.evaluate(lowContrast, { root: 'body' })) bad.push(tag + ': ' + x); });
+      await p.evaluate(() => toast('Zapisano', { action: ['Cofnij', () => {}] })); for (const x of await p.evaluate(lowContrast, { root: '#toast' })) bad.push('toast: ' + x);
+      ok(`a11y text contrast at least 4.5:1 (3:1 large) in every view (${lang})`, !bad.length, bad.slice(0, 12).join(' | ')); await p.close(); }
+    // 6. Team selector shows the whole label; the path bar position and next step do not contradict.
+    { const p = await fresh('#/home', '', { width: 1280, height: 800 }); await p.fill('#teamName', 'Zespół 1');
+      const fit = await p.$eval('#teamSel', e => { const c = document.createElement('canvas').getContext('2d'), s = getComputedStyle(e); c.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`; const w = c.measureText(e.selectedOptions[0].textContent).width; return { w: Math.round(w), box: e.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) }; });
+      ok('a11y team selector shows "Zespół 1 – Zespół 1" uncut', fit.w <= fit.box, JSON.stringify(fit));
+      await p.evaluate(() => go('arch')); const t = await p.$eval('#pathBar .pb-txt', e => e.textContent);
+      ok('a11y path bar on #/arch for a team at step 1: position and the earlier open step agree', /krok 8 z 9/.test(t) && /Najpierw wróćcie do kroku 1 z 9: /.test(t) && !/Następny krok/.test(t), t);
+      await p.click('#langSeg button[data-l=en]'); const e = await p.$eval('#pathBar .pb-txt', e => e.textContent); ok('a11y the same in English', /step 8 of 9/.test(e) && /First go back to step 1 of 9: /.test(e), e);
+      await seed(p, () => { const t = team(); t.onboardedAt = 'x'; t.site.newsRead = true; }); await p.evaluate(() => go('home'));
+      ok('a11y a forward next step keeps "Next step"', /Next step: /.test(await p.$eval('#pathBar .pb-txt', e => e.textContent)));
+      ok('a11y no page errors (cleanup)', !p.errs.length, p.errs.join('|')); await p.close(); }
+  }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();

@@ -206,7 +206,7 @@ p{margin:6px 0}
 .input{width:100%;padding:8px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--ink)}
 .input[aria-invalid=true]{border-color:var(--red-600)}
 .input:disabled{background:var(--paper-3);color:var(--ink-2);cursor:not-allowed}
-.teambar .f-team{width:150px}.teambar .f-name{flex:1 1 220px;max-width:420px}
+.teambar .f-team{width:auto;min-width:150px;max-width:340px}.teambar .f-name{flex:1 1 220px;max-width:420px}
 .tb-actions{display:flex;gap:8px;flex-wrap:wrap}
 .tb-prog{flex:1 1 220px;min-width:200px;max-width:360px}
 .bd-strip{display:flex;flex-wrap:wrap;gap:4px;list-style:none;margin:0;padding:0}
@@ -331,7 +331,7 @@ tr[data-i]{cursor:pointer}
 .conf{width:auto;margin-top:10px}
 .headline>.grid2{gap:12px}
 .cmp-list{list-style:none;margin:0;padding:0}.cmp-list li{padding:6px 0;border-bottom:1px solid var(--line)}.cmp-list label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}.cmp-list input{margin-top:4px;flex:none}.cmp{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;overflow-wrap:anywhere;background:var(--paper)}.cmp-col h4{margin:0 0 4px}.cmp .recap{border:1px solid var(--ink);border-radius:var(--r-sm)}.cmp-m{margin:4px 0 0;padding-left:18px}.cmp-v{margin:8px 0 0}
-.recap{margin:10px 0 0;padding:8px 12px;border-left:3px solid var(--ink);background:var(--paper-3);border-radius:0 var(--r-sm) var(--r-sm) 0;line-height:1.5}
+.recap{margin:10px 0 0;padding:8px 12px;border:1px solid var(--ink);background:var(--paper-3);border-radius:var(--r-sm);line-height:1.5}
 details.more-metrics{margin-top:10px}
 details.more-metrics>summary{cursor:pointer;font-weight:600;font-size:var(--caption)}
 details.more-metrics>.grid3,details.more-metrics>.grid4{margin-top:8px}
@@ -420,9 +420,9 @@ dialog::backdrop{background:color-mix(in srgb,var(--ink) 55%,transparent)}
 .quiz .qz-q{margin:0 0 18px}.quiz .qz-q:last-of-type{margin-bottom:6px}.quiz .qz-t{font-weight:600;margin:0 0 8px}
 .quiz .qz-opts{display:grid;gap:8px}.quiz .qz-o{justify-content:flex-start;text-align:left;border-radius:var(--r-md);font-family:inherit;font-weight:500;font-size:15px}
 .quiz .qz-o.sel.ok{background:var(--green-soft);border-color:var(--green-ink);color:var(--green-ink)}.quiz .qz-o.sel.no{background:var(--red-soft);border-color:var(--red-ink);color:var(--red-ink)}.quiz .qz-o[aria-disabled=true]{cursor:default}
-.quiz .qz-fb{margin:10px 0 0;padding:8px 12px;border-left:4px solid var(--line-strong);background:var(--paper-2);border-radius:0 var(--r-md) var(--r-md) 0}.quiz .qz-fb:empty{display:none}.quiz [data-state=right] .qz-fb{border-left-color:var(--green-600)}.quiz [data-state=wrong] .qz-fb{border-left-color:var(--red-600)}
-#riskDemo .persona{margin:0 0 14px}#riskDemo .rk-q{font-weight:600;margin:0 0 8px}#riskDemo .rk-opts{display:grid;gap:8px}#riskDemo .rk-o{justify-content:flex-start;text-align:left;border-radius:var(--r-md);font-family:inherit;font-weight:500;font-size:15px;white-space:normal;height:auto}#riskDemo .rk-o.sel{background:var(--paper-2);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-#goLive .persona{margin:0 0 12px}#goLive .gl-lead{margin:0 0 4px}#goLive .gl-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}#goLive .gl-d>.card{height:100%}#goLive .gl-note{margin:0 0 10px}#goLive .gl-note .hint{margin:0}#goLive .gl-note .gl-fix{margin-top:8px}#goLive .gl-opts{display:grid;gap:8px}#goLive .gl-o{justify-content:flex-start;text-align:left;border-radius:var(--r-md);font-family:inherit;font-weight:500;font-size:15px;white-space:normal;height:auto}#goLive .gl-o.sel{background:var(--paper-2);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.quiz .qz-fb{margin:10px 0 0;padding:8px 12px;border:2px solid var(--line-strong);background:var(--paper-2);border-radius:var(--r-md)}.quiz .qz-fb:empty{display:none}.quiz [data-state=right] .qz-fb{border-color:var(--green-600)}.quiz [data-state=wrong] .qz-fb{border-color:var(--red-600)}
+#riskDemo .persona{margin:0 0 14px}#riskDemo .rk-q{font-weight:600;margin:0 0 8px}#riskDemo .rk-opts{display:grid;gap:8px}#riskDemo .rk-o{justify-content:flex-start;text-align:left;border-radius:var(--r-md);font-family:inherit;font-weight:500;font-size:15px;white-space:normal;height:auto}#riskDemo .rk-o.sel{background:var(--paper-2);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}#riskDemo .rk-o.sel:focus-visible{box-shadow:inset 0 0 0 1px var(--ink),var(--focus-ring)}
+#goLive .persona{margin:0 0 12px}#goLive .gl-lead{margin:0 0 4px}#goLive .gl-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}#goLive .gl-d>.card{height:100%}#goLive .gl-note{margin:0 0 10px}#goLive .gl-note .hint{margin:0}#goLive .gl-note .gl-fix{margin-top:8px}#goLive .gl-opts{display:grid;gap:8px}#goLive .gl-o{justify-content:flex-start;text-align:left;border-radius:var(--r-md);font-family:inherit;font-weight:500;font-size:15px;white-space:normal;height:auto}#goLive .gl-o.sel{background:var(--paper-2);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}#goLive .gl-o.sel:focus-visible{box-shadow:inset 0 0 0 1px var(--ink),var(--focus-ring)}
 #goLive .fb{margin:10px 0 0;padding:8px 12px;border:1px solid var(--line-strong);background:var(--paper-2);border-radius:var(--r-md)}#goLive .fb:empty{display:none}#goLive .gl-warn:empty{display:none}#goLive .gl-warn{margin:10px 0 0}#goLive .gl-w{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px;padding:8px 12px;border:1px solid var(--red-600);background:var(--paper);border-radius:var(--r-md);font-weight:500}#goLive .gl-fix{gap:8px}#goLive .gl-w .ic{flex:none;margin-top:3px;color:var(--red-600)}#goLive [data-fix]{white-space:normal;height:auto;text-align:left}
 @media (max-width:900px){#goLive .gl-list{grid-template-columns:1fr}}
 /* Challenge under the prototype ("find the system's limits"): folded, full contour in the accent colour; its title on a line of its own */
@@ -430,7 +430,7 @@ dialog::backdrop{background:color-mix(in srgb,var(--ink) 55%,transparent)}
 .challenge>details>summary{cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:14px 18px;font-weight:600;font-size:17px}.challenge .ch-k{color:var(--ink-2)}.challenge .ch-chip{margin-left:auto}.challenge .ch-t{order:3;flex:1 0 100%;padding-left:26px;font-weight:500}
 .challenge .ch-body{padding:0 18px 16px}.challenge .ch-task{margin:0 0 12px}.challenge .status{margin:0;padding:8px 12px;border:1px solid var(--line-strong);background:var(--paper-2);border-radius:var(--r-md);font-weight:500}
 .challenge .result{margin:10px 0 0;padding:8px 12px;border:1px solid var(--green-600);border-radius:var(--r-md)}.challenge .result:empty{display:none}
-#riskDemo .fb{margin:10px 0 0;padding:8px 12px;border-left:4px solid var(--line-strong);background:var(--paper-2);border-radius:0 var(--r-md) var(--r-md) 0}#riskDemo .fb:empty{display:none}#riskDemo [data-state=good] .fb{border-left-color:var(--green-600)}#riskDemo [data-state=other] .fb{border-left-color:var(--yellow)}#riskDemo .rk-note{margin:10px 0 0}#riskDemo .rk-link{margin:12px 0 0}#riskDemo .rk-link a{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:600;text-underline-offset:3px}
+#riskDemo .fb{margin:10px 0 0;padding:8px 12px;border:2px solid var(--line-strong);background:var(--paper-2);border-radius:var(--r-md)}#riskDemo .fb:empty{display:none}#riskDemo [data-state=good] .fb{border-color:var(--green-600)}#riskDemo [data-state=other] .fb{border-color:var(--yellow)}#riskDemo .rk-note{margin:10px 0 0}#riskDemo .rk-link{margin:12px 0 0}#riskDemo .rk-link a{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:600;text-underline-offset:3px}
 .chain{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 26px}
 .link{position:relative;background:var(--surface);color:var(--ink);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:9px 12px;font-size:14px;line-height:1.35;transition:background-color .2s,color .2s,border-color .2s}
 .link:not(:last-child)::after{content:"→";position:absolute;left:100%;top:50%;transform:translateY(-50%);width:26px;text-align:center;font-family:var(--font-mono);color:var(--ink-2)}
@@ -446,6 +446,7 @@ dialog::backdrop{background:color-mix(in srgb,var(--ink) 55%,transparent)}
 .toast button{background:none;border:0;color:var(--yellow);font-weight:600;text-decoration:underline;cursor:pointer;padding:0}
 .toast .toast-bd{display:block;margin-top:4px}.toast .toast-x{color:var(--paper);text-decoration:none;display:inline-flex;align-items:center}
 body.has-toast #main{padding-bottom:96px}
+@media (min-width:1024px){.toast{left:auto;right:24px;transform:none;max-width:min(420px,calc(100vw - 48px))}}
 /* ─── Jump links and glossary ─── */
 .jump{position:sticky;top:var(--hdr-h,0px);z-index:40;background:var(--paper);border-bottom:1px solid var(--line)}
 .jump .wrap{display:flex;flex-wrap:wrap;gap:8px;padding-top:8px;padding-bottom:8px}
@@ -490,7 +491,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .casebar[hidden]{display:none}
 .cb-in{margin:0;padding:5px var(--gutter);display:flex;align-items:center;gap:8px;font-size:var(--caption);color:var(--ink-2)}
 .cb-in .ic{width:16px;height:16px;flex:none}.cb-txt{min-width:0}.cb-task{font-weight:600;color:var(--ink)}
-.persona{display:flex;gap:14px;align-items:flex-start;margin:0;padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--yellow);border-radius:var(--r-md);max-width:860px}
+.persona{display:flex;gap:14px;align-items:flex-start;margin:0;padding:14px 18px;background:var(--surface);border:2px solid var(--yellow);border-radius:var(--r-md);max-width:860px}
 .ps-av{width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:15px;flex:none}
 .persona>div{min-width:0}.persona blockquote{margin:0}.persona blockquote p{margin:0;font-size:16px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
 .persona figcaption{margin-top:6px;font-size:var(--caption);color:var(--ink-2)}
@@ -502,7 +503,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rc-form{max-width:66ch}.rc-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .rc-form .field{margin-bottom:14px}.rc-form .hint{margin-top:6px}
 .rc-err{color:var(--red-ink);font-weight:600;margin:0 0 10px}.rc-err:empty{display:none}
-.rc-done{border:1px solid var(--line);border-left:6px solid var(--green);border-radius:12px;padding:14px 18px;max-width:66ch}
+.rc-done{border:2px solid var(--green);border-radius:12px;padding:14px 18px;max-width:66ch}
 .rc-done p{margin:0 0 8px}.rc-done p:last-child{margin:0}
 .rf-foot-act{display:flex;flex-wrap:wrap;gap:10px}
 .rf-foot .btn.rf-staff{background:transparent;color:var(--paper);border-color:var(--paper)}.rf-foot .btn.rf-staff:hover{background:rgba(255,255,255,.12)}
@@ -510,7 +511,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .ri-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;padding:10px 28px 28px}
 .rf-page .ri-grid h3{margin:12px 0 12px}
 .ri-queue{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.ri-queue li{border:1px solid var(--line);border-left:5px solid var(--rf-sea);border-radius:12px;padding:12px 16px}
+.ri-queue li{border:1px solid var(--rf-sea);border-radius:12px;padding:12px 16px}
 .ri-queue p{margin:0 0 6px;color:var(--ink-2);font-size:15.5px;line-height:1.55}
 .ri-queue .ri-who{font-weight:600;color:var(--rf-sea-2)}.ri-who span{font-weight:400;color:var(--ink-2)}
 .ri-side{display:grid;gap:18px;align-content:start}
@@ -523,7 +524,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .pc-role{margin:0;color:var(--ink-2);font-size:14px}
 .pc-av{width:44px;height:44px;border-radius:50%;background:var(--rf-sea);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;flex:none}
 .pc-bio{font-size:15px;color:var(--ink-2);margin:0}
-.persona-card blockquote{margin:12px 0 0;padding:10px 14px;border-left:4px solid var(--yellow);background:var(--paper-2);border-radius:0 8px 8px 0}
+.persona-card blockquote{margin:12px 0 0;padding:10px 14px;border:2px solid var(--yellow);background:var(--paper-2);border-radius:8px}
 .persona-card blockquote p{margin:0;font-style:italic;color:var(--ink)}
 .rybex-frame{--rf-sea:#0F5E86;--rf-sea-2:#0B4A6B;--rf-foam:#EAF4F9;border:1px solid var(--line-2);border-radius:var(--r-md);box-shadow:var(--shadow-lg);overflow:hidden;background:var(--surface);max-width:1120px;margin:0 auto;color:var(--ink);font-family:var(--font-sans)}
 .rybex-frame .ic{width:18px;height:18px;flex:none}
@@ -550,7 +551,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rf-menu{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px}
 .rf-menu button{display:block;width:100%;text-align:left;padding:7px 11px;border:0;border-radius:8px;background:none;color:var(--ink-2);font:inherit;font-size:14.5px;font-weight:500;cursor:pointer}
 .rf-menu button:hover{background:var(--rf-foam);color:var(--rf-sea-2)}
-.rf-menu button.on{color:var(--rf-sea-2);background:var(--rf-foam);box-shadow:inset 0 -2px 0 var(--rf-sea)}
+.rf-menu button.on{color:var(--rf-sea-2);background:var(--rf-foam);box-shadow:inset 0 -2px 0 var(--rf-sea)}.rf-menu button.on:focus-visible{box-shadow:inset 0 -2px 0 var(--rf-sea),var(--focus-ring)}
 .rf-menu button[data-rp=intranet]{border:1px solid var(--line-2);margin-left:6px}
 .rf-toggle{display:none}
 .rf-page h2{font-family:var(--font-display);font-weight:700;font-size:1.65rem;letter-spacing:-.015em;margin:0 0 16px;color:var(--ink)}
@@ -565,7 +566,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rf-hero-pic img{width:44%;height:auto;border-radius:12px;box-shadow:var(--shadow-sm);aspect-ratio:4/5;object-fit:cover;background:var(--paper-2)}
 .rf-hero-pic img:nth-child(2),.rf-hero-pic .rf-ph:nth-child(2){margin-top:28px}
 .rf-ph{display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;aspect-ratio:4/5;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-2);font-weight:600;border-radius:12px}.rf-hero-pic .rf-ph{width:44%}.rf-prod .rf-ph{width:100%;border-radius:0;border-width:0 0 1px}
-.rf-teaser{display:flex;gap:14px;align-items:center;margin:-28px 28px 28px;position:relative;background:var(--surface);border:1px solid var(--line-2);border-left:6px solid var(--red-600);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow-sm)}
+.rf-teaser{display:flex;gap:14px;align-items:center;margin:-28px 28px 28px;position:relative;background:var(--surface);border:2px solid var(--red-600);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow-sm)}
 .rf-teaser p{margin:0;font-size:16px}
 .rf-blk{padding:28px 28px 34px}
 .rf-hero+.rf-teaser+.rf-blk{padding-top:6px}
@@ -588,7 +589,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rf-facts{align-self:start;background:var(--rf-foam);border-radius:12px;padding:16px 18px}
 .rf-page .rf-facts h3{margin:0 0 8px}
 .rf-facts dl{margin:0}.rf-facts dt{font-size:13px;color:var(--ink-2);margin-top:8px}.rf-facts dd{margin:0;font-weight:600;color:var(--rf-sea-2)}
-.rf-job{border:1px solid var(--line);border-left:6px solid var(--rf-sea);border-radius:12px;padding:16px 20px;max-width:70ch}
+.rf-job{border:1px solid var(--rf-sea);border-radius:12px;padding:16px 20px;max-width:70ch}
 .rf-page .rf-job h3{margin:0 0 8px}
 .rf-tag{margin:0;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--rf-sea)}
 .rf-foot{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;background:var(--rf-sea-2);color:var(--paper);padding:18px 28px;font-size:14px}
@@ -618,7 +619,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
  .ri-top{padding:20px 16px 4px}.ri-grid{padding:8px 16px 22px;gap:18px}.rc-row{grid-template-columns:minmax(0,1fr);gap:0}
  .cb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.persona{padding:12px 14px;gap:10px}.ps-av{width:34px;height:34px;font-size:13px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}body *,body *::before,body *::after{animation:none!important}}
 </style>
 </head>
 <body class="edu">
@@ -1171,7 +1172,7 @@ const swatch=(c,d,w=2.4)=>`<svg class="sw" width="30" height="10" viewBox="0 0 3
 const legend=a=>`<div class="legend">${a.map(([c,l,d])=>`<span>${swatch(c,d)}${esc(l)}</span>`).join('')}</div>`;
 function slider(id,label,min,max,step,val,show){return`<div class="ctl"><label for="${id}">${label}: <output id="${id}V" for="${id}">${show}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`}
 function sectionBand(icon,title,body,tone='ink'){return`<section class="sec"><div class="wrap"><div class="sec-head">${badge(icon,tone,1)}<h2>${title}</h2></div>${body}</div></section>`}
-function card(icon,title,body,o={}){return`<div class="card ${o.cls||''}"><div class="card-head"><span class="tile-h">${badge(icon,o.tone||'ink')}<h3>${title}</h3></span>${o.meta||''}</div><div class="card-body ${o.flush?'flush':''}">${body}</div>${o.foot?`<div class="card-foot">${o.foot}</div>`:''}</div>`}
+function card(icon,title,body,o={}){return`<div class="card ${o.cls||''}"><div class="card-head"><span class="tile-h">${badge(icon,o.tone||'ink')}<h${o.h||3}>${title}</h${o.h||3}></span>${o.meta||''}</div><div class="card-body ${o.flush?'flush':''}">${body}</div>${o.foot?`<div class="card-foot">${o.foot}</div>`:''}</div>`}
 const pageHead=(title,lead,extra='')=>`<header class="page-head"><h1 class="app-title">${title}</h1>${lead?`<p class="edu-lead">${lead}</p>`:''}${extra}</header>`;
 
 // ─── ZIP (store-only, no dependency) ───
@@ -1211,7 +1212,9 @@ function publishVisionContract(){
  document.documentElement.dataset.visionFeatures=VIS.featureSource;
  const el=$('#visionAssetStatus');if(el)el.innerHTML=visionStatusInner();
 }
-function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true)}}
+function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){const fid=document.activeElement&&document.activeElement.id;labVision();icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true);
+  // The photos arrived and the lab was redrawn: keep the keyboard focus where it was, never on BODY.
+  if(!document.activeElement||document.activeElement===document.body)(fid&&document.getElementById(fid)||mainEl).focus({preventScroll:true})}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
 // Draw an image at the 320×400 working size and return it as a data URL of the given type.
 function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=320;c.height=400;c.getContext('2d').drawImage(im,0,0,320,400);resolve(c.toDataURL(type,q))}catch(e){reject(e)}};im.onerror=()=>reject(new Error('image_decode'));im.src=url})}
@@ -1433,7 +1436,7 @@ function siteVisit(){if(S.view!=='rybex')return;const s=team().site,k={news:'new
 // Where the company site was entered from (transient, never saved): "Back to the workshop" returns there. Null after a
 // deep link or reload, and when the path bar led to the site: then Back goes to the path's next step.
 let siteFrom=null,pathNav=false;
-function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;if(changed&&r.v==='rybex')siteFrom=pathNav||S.example?null:{v:S.view,sub:S.sub[S.view]};S.view=r.v;routeSub(r);siteVisit();normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}}
+function applyRoute(){const r=parseHash();if(!r){normHash();return}const changed=r.v!==S.view;if(changed&&r.v==='rybex')siteFrom=pathNav||S.example?null:{v:S.view,sub:S.sub[S.view]};S.view=r.v;routeSub(r);siteVisit();normHash();save();render();if(changed){window.scrollTo(0,0);mainEl.focus({preventScroll:true})}else if(!document.activeElement||document.activeElement===document.body)mainEl.focus({preventScroll:true})}
 function go(v,sub){if(AIS.run)return guardRun(()=>go(v,sub));clearInterval(X.ragTimer);aiAbort();if(sub)S.sub[v]=sub;const h=hashFor(v);if(location.hash!==h){try{history.pushState(null,'',h)}catch(e){location.hash=h;return}}applyRoute()}
 // ─── Path ───
 const TEST_TRACKS={vision:'vision',rag:'rag',complaints:'compl'};
@@ -1489,7 +1492,7 @@ function pathFocus(id){const t=team();if(id==='data'&&t.track&&!trackFileOk(t.tr
 const baseUnsaved=()=>{const o=$('#baseOut');return o&&!o.hidden&&o.dataset.saved==='false'?$('#saveBase'):null};
 // The reveal button, or what the closed gate needs first (save or run the baseline, write the justification).
 function revealTarget(k){const g=revealGate(k);if(!g)return $(`[data-reveal="${k}"]`);if(g==='baseline')return baseUnsaved()||$('#runBase');const det=$('#labMethod details');if(det)det.open=true;return $('#methWhy')}
-function setHdrH(){const hd=$('.edu-header'),pb=$('#pathBar'),cb=$('#caseBar'),h=hd&&getComputedStyle(hd).position==='sticky'?hd.offsetHeight:0,p=h+(pb?pb.offsetHeight:0),r=document.documentElement.style;r.setProperty('--hdr-top',h+'px');r.setProperty('--cb-top',p+'px');r.setProperty('--hdr-h',p+(cb?cb.offsetHeight:0)+'px')}
+function setHdrH(){const hd=$('.edu-header'),pb=$('#pathBar'),cb=$('#caseBar'),hh=e=>e?e.getBoundingClientRect().height:0,h=hd&&getComputedStyle(hd).position==='sticky'?hh(hd):0,p=h+hh(pb),r=document.documentElement.style;r.setProperty('--hdr-top',h+'px');r.setProperty('--cb-top',p+'px');r.setProperty('--hdr-h',p+(cb&&!cb.hidden?hh(cb):0)+'px')}
 // Case bar (spec 4.2): the incident stays in view on the working screens once the team has a task.
 const CASE_VIEWS=['data','lab','arch','deliver'];
 const caseLine=()=>{const s=STORY();return T(`Sprawa: partia ${s.lot}, ${PRODUCTS[s.product][0]} – zwrot z sieci i kontrola jakości na linii.`,`Case: lot ${s.lot}, ${PRODUCTS[s.product][1]} – returned by a retail chain, quality checks on the line.`)};
@@ -1501,9 +1504,9 @@ const NEXT_HERE=id=>{const t=team();return({join:()=>S.view==='rybex'?T('Przeczy
  task:()=>t.track?T('Wpiszcie kryterium sukcesu','Write the success criterion'):T('Wybierzcie zadanie','Choose a task'),data:()=>T('Otwórzcie dane swojego zadania','Open your task’s data'),base:()=>baseUnsaved()?T('Zapiszcie metodę odniesienia','Save the baseline'):T('Uruchomcie metodę odniesienia','Run the baseline'),
  iterate:()=>revealDue(t)?T('Odsłońcie zbiór testowy','Reveal the test set'):T('Zapiszcie eksperyment','Save an experiment'),risk:()=>S.view==='arch'?T('Podejmijcie cztery decyzje wdrożeniowe','Take the four go-live decisions'):T('Odpowiedzcie na pytania o ryzyka','Answer the questions about the risks'),report:()=>T('Wyeksportujcie raport','Export the report')})[id]?.()||T('Dalej','Next')};
 const NEXT_WHERE=s=>({join:s.go[0]==='rybex'?T('strona firmy Rybex','the Rybex company site'):'',risk:s.go[0]==='arch'?T('decyzje wdrożeniowe','go-live decisions'):'',demos:T('następna demonstracja','the next demo')})[s.id]||s.label;
-function renderPathBar(){if(S.example)return renderExampleBar();const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id),here=!!nx&&atTarget(nx);
+function renderPathBar(){if(S.example)return renderExampleBar();const el=$('#pathBar'),t=team(),st=pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id),ni=all.indexOf(nx)+1,here=!!nx&&atTarget(nx);
  Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:'',na:st.steps.filter(s=>s.na).length});el.setAttribute('aria-label',T('Ścieżka warsztatu','Workshop path'));
- el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''}${s.na?' na':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${T(`krok ${ci} z ${all.length}`,`step ${ci} of ${all.length}`)}, ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}" data-mode="${here?'here':'go'}"><span class="pb-lbl">${here?NEXT_HERE(nx.id):`${T('Dalej','Next')}: ${nx.id===st.cur?NEXT_WHERE(nx):nx.label}`}</span>${ic(here?'arrow-down':'arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="" data-mode="done">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
+ el.innerHTML=`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''}${s.na?' na':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${T(`krok ${ci} z ${all.length}`,`step ${ci} of ${all.length}`)}, ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${ni<ci?T(`Najpierw wróćcie do kroku ${ni} z ${all.length}`,`First go back to step ${ni} of ${all.length}`):T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${nx.go.join('/')}" data-mode="${here?'here':'go'}"><span class="pb-lbl">${here?NEXT_HERE(nx.id):`${T('Dalej','Next')}: ${nx.id===st.cur?NEXT_WHERE(nx):nx.label}`}</span>${ic(here?'arrow-down':'arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="" data-mode="done">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`;
  $('#pathNext').onclick=()=>{const s=pathState(team()).next;if(!s)return;const p=PATH_STEPS().find(x=>x.id===s.id);if(atTarget(p)&&!AIS.run)pathFocus(p.id);else{if(p.id==='data'&&team().track&&!AIS.run)FSEL=TRACK_FILE[team().track];pathNav=true;try{go(...p.go)}finally{pathNav=false}
   // Same view, new sub view (one demo to the next): the button was redrawn, so focus would fall to BODY.
   if(!document.activeElement||document.activeElement===document.body)mainEl.focus({preventScroll:true})}};icons(el);setHdrH()}
@@ -1585,7 +1588,7 @@ function renderProg(){syncBadges();const t=team(),{done,tot}=checkProgress(t),nb
 function renderShell(){
  $('#nav').innerHTML=NAV.map((n,i)=>`<button type="button" data-v="${n[0]}" class="${S.view===n[0]?'on':''}" ${S.view===n[0]?'aria-current="page"':''} aria-keyshortcuts="${i+1}">${ic(n[1])}${nm(n[0])}</button>`).join('');
  $('#skip').textContent=T('Przejdź do treści','Skip to content');$('#lblTeam').textContent=T('Zespół','Team');$('#lblName').innerHTML=T('Nazwa zespołu / projektu','Team / project name')+(S.example?` <span class="edu-chip tone-yellow" id="exChip">${T('przykład','example')}</span>`:'');
- renderTeamOptions();['#teamSel','#teamExport','#teamImport'].forEach(s=>$(s).disabled=S.example);const xl=$('#exLock');xl.hidden=!S.example;xl.textContent=S.example?T('W podglądzie przykładu nie można zmienić zespołu ani wczytać lub pobrać pliku zespołu. Wróćcie do swojej pracy przyciskiem na górze.','In the example preview you cannot switch teams or load or download a team file. Go back to your work with the button at the top.'):'';const tn=$('#teamName');tn.value=team().name;tn.placeholder=T('Np. Zespół Szprot','E.g. Team Sprat');
+ renderTeamOptions();['#teamSel','#teamExport','#teamImport'].forEach(s=>{const e=$(s);e.disabled=S.example;if(S.example)e.setAttribute('aria-describedby','exLock');else e.removeAttribute('aria-describedby')});const xl=$('#exLock');xl.hidden=!S.example;xl.textContent=S.example?T('W podglądzie przykładu nie można zmienić zespołu ani wczytać lub pobrać pliku zespołu. Wróćcie do swojej pracy przyciskiem na górze.','In the example preview you cannot switch teams or load or download a team file. Go back to your work with the button at the top.'):'';const tn=$('#teamName');tn.value=team().name;tn.placeholder=T('Np. Zespół Szprot','E.g. Team Sprat');
  $('#teamExport').innerHTML=ic('download')+T('Pobierz plik zespołu','Download team file');$('#teamImport').innerHTML=ic('upload')+T('Wczytaj plik zespołu','Load team file');
  const tc=$('#trChip');tc.hidden=!S.trainer||S.example;tc.textContent=T('Tryb prowadzącego','Trainer mode');if(S.view==='trainer')tc.setAttribute('aria-current','page');else tc.removeAttribute('aria-current');
  $('#langSeg').setAttribute('aria-label',T('Język','Language'));$$('#langSeg button').forEach(b=>{const on=b.dataset.l===S.lang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
@@ -1604,7 +1607,7 @@ function onboardHTML(){return`<div class="card" id="onboard"><div class="card-he
  <ol class="edu-small"><li>${T('Poranna sprawa zakładu: notatka poniżej i wybór zadania.','The plant’s morning case: the memo below and choosing a task.')}</li><li>${T('Dane, prototyp i pomiary w laboratorium.','Data, prototype and measurements in the lab.')}</li><li>${T('Architektura, plan wdrożenia i prezentacja wyników.','Architecture, deployment plan and presenting the results.')}</li></ol></div></div>
  <div class="card-foot"><button type="button" class="btn" id="onboardGo">${T('Zaczynamy','Let’s start')} ${ic('arrow-down')}</button></div></div>`}
 function bindOnboard(){const n=$('#onboardName');if(!n)return;n.oninput=e=>{team().name=e.target.value;$('#teamName').value=e.target.value;save();renderTeamOptions();renderProg()};
- $('#onboardGo').onclick=()=>{team().onboardedAt=new Date().toISOString();save();$('#onboard').remove();renderPathBar();const m=$('#memo');if(m){m.scrollIntoView({block:'start',behavior:'smooth'});m.setAttribute('tabindex','-1');m.focus({preventScroll:true})}}}
+ $('#onboardGo').onclick=()=>{team().onboardedAt=new Date().toISOString();save();$('#onboard').remove();renderPathBar();const m=$('#memo');if(m){m.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});m.setAttribute('tabindex','-1');m.focus({preventScroll:true})}}}
 function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dla firmy Rybex.','The task and requirements of the Rybex final project.'),
  data:T('Syntetyczne dane Rybex: zdjęcia puszek, sprzedaż, czujniki, reklamacje, opisy procesów.','Synthetic Rybex data: can images, sales, sensors, complaints, process documents.'),
  demos:T('Animowane wyjaśnienia: cykl projektu, tokeny, RAG, podział danych, miary jakości.','Animated explainers: project lifecycle, tokens, RAG, data split, quality metrics.'),
@@ -1787,7 +1790,7 @@ function openInspector(set,idx,hideLabel){visInit();const it=VIS[set][idx],th=vi
 // ─── View: demos ───
 function vDemos(){const subs=[['life',T('Cykl projektu','Project lifecycle')],['tok',T('Tokeny i koszt','Tokens and cost')],['rag',T('Jak działa RAG','How RAG works')],['split',T('Podział danych','Data split')],['metr',T('Miary jakości','Quality metrics')],['risk',T('Ryzyka','Risks')]];
  mainEl.innerHTML=pageHead(nm('demos'),T('Pięć krótkich pokazów kluczowych procesów i karty ryzyk projektu. Zmieniaj parametry i obserwuj skutki.','Five short demos of key processes, plus the project risk cards. Change the parameters and watch the effects.'),`<div class="tabs mt" id="demoTabs" role="navigation" aria-label="${T('Pokazy','Demos')}">${subs.map(s=>`<button type="button" data-s="${s[0]}" class="${S.sub.demos===s[0]?'on':''}" ${S.sub.demos===s[0]?'aria-current="true"':''}>${s[1]}</button>`).join('')}</div>`)+`<section class="sec"><h2 class="sr-only">${subs.find(s=>s[0]===S.sub.demos)[1]}</h2><div class="wrap" id="demo"></div><div class="wrap mt" id="quiz"></div></section>`;
- $$('#demoTabs button').forEach(b=>b.onclick=()=>go('demos',b.dataset.s));
+ $$('#demoTabs button').forEach(b=>b.onclick=()=>{go('demos',b.dataset.s);const t=$(`#demoTabs button[data-s="${b.dataset.s}"]`);if(t&&S.view==='demos')t.focus()});
  ({life:dLife,tok:dTok,rag:dRag,split:dSplit,metr:dMetr,risk:dRisk})[S.sub.demos]();renderQuiz(S.sub.demos)}
 // ─── Risk cards (spec 4.11): five short decisions, answers in team().risks = {id: option}; no quiz, no score ───
 function RISK_SCENARIOS(){return[
@@ -1928,7 +1931,7 @@ function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=
  +`<section class="sec" id="labProto"><div class="wrap"><div class="sec-head">${badge(m.ic,tone,1)}<h2>${T('Prototyp i eksperymenty','Prototype and experiments')}</h2></div><div id="aiSlot"></div><div id="proto"></div><div id="challengeSlot"></div></div></section>`
  +`<section class="sec" id="labExp"><div class="wrap">${card('columns-2',T('Porównaj dwa przebiegi','Compare two runs'),`<p class="hint" style="margin-top:0">${T('Zaznaczcie dwa zapisane wyniki, żeby zobaczyć obok siebie, co się zmieniło i o ile.','Tick two saved results to see side by side what changed and by how much.')}</p><div id="cmpList"></div>`,{tone})}</div></section>`;
  renderHeroProg(k);bindJump();
- $$('#trackTabs button').forEach(b=>b.onclick=()=>go('lab',b.dataset.k));
+ $$('#trackTabs button').forEach(b=>b.onclick=()=>{go('lab',b.dataset.k);const t=$(`#trackTabs button[data-k="${b.dataset.k}"]`);if(t&&S.view==='lab')t.focus()});
  $('#pickTrack').onclick=()=>guardRun(()=>{const tt=team();tt.track=tt.track===k?null:k;save();render();const b=$('#pickTrack');if(b)b.focus()});
  $('#tod').onclick=()=>{FSEL=TRACK_FILE[k];go('data')};
  const dset=()=>{const tt=team();return tt.decision[k]||(tt.decision[k]={m:-1,why:''})};
@@ -1962,7 +1965,7 @@ function baseRun(k){
 // The shown baseline is already in the log when an entry with the same settings and result exists (logAdd's duplicate rule).
 const baseSaved=(k,b)=>{const sg=logSig(b.cfg,{...b.res,primary:b.primary});return team().log.some(l=>l.track===k&&l.base&&l.cfg&&l.res&&logSig(l.cfg,l.res)===sg)};
 function showBase(k,quiet){const o=$('#baseOut'),b=baseRun(k);if(!o||!b)return;const sv=baseSaved(k,b);Object.assign(o.dataset,{track:k,v:b.primary.v,set:b.set,saved:sv});o.hidden=false;
- o.innerHTML=card('flag',`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(k)}`,b.html+`<div class="row mt"><button type="button" class="btn-ghost" id="saveBase"${sv?' aria-disabled="true"':''}>${ic(sv?'check':'save')}${sv?T('Metoda odniesienia jest zapisana w dzienniku','The baseline is saved in the log'):T('Zapisz metodę odniesienia w dzienniku','Save the baseline to the log')}</button></div>`,{tone:TONE[k]});icons(o);
+ o.innerHTML=card('flag',`${T('Metoda odniesienia','Baseline')}: ${BASE_NAME(k)}`,b.html+`<div class="row mt"><button type="button" class="btn-ghost" id="saveBase"${sv?' aria-disabled="true"':''}>${ic(sv?'check':'save')}${sv?T('Metoda odniesienia jest zapisana w dzienniku','The baseline is saved in the log'):T('Zapisz metodę odniesienia w dzienniku','Save the baseline to the log')}</button></div>`,{tone:TONE[k],h:2});icons(o);
  $('#saveBase').onclick=()=>{if(sv)return;logAdd(k,b.cfg,b.res,b.primary,{base:true});if(baseSaved(k,b)){showBase(k,true);const s=$('#saveBase');if(s)s.focus()}};
  const rc=$('.recap',o);if(rc&&!quiet)announce(rc.textContent);renderPathBar()}
 
@@ -2694,7 +2697,7 @@ function restoreRun(l){if(!l||!l.cfg||l.base)return;const L=lab(),c=l.cfg,r=l.re
  else if(l.track==='vision'){L.vision.th={...c.th};L.vision.revealed=false}else if(l.track==='rag'){L.rag.k=c.k;L.rag.chunk=c.chunk;L.rag.min=c.min;L.rag.revealed=false;if(c.lang==='pl'||c.lang==='en')S.lang=c.lang}else if(l.track==='complaints'){L.compl.kw={...c.kw};L.compl.safety=c.safety;L.compl.revealed=false}else if(l.track==='forecast'){L.fc.p=c.p;L.fc.h=c.h;L.fc.w=c.w}else if(l.track==='maint'){L.mt.f={...c.f};L.mt.thr=c.thr;L.mt.win=c.win}else return}catch(e){toast(T('Nie można przywrócić tego wpisu.','This entry cannot be restored.'));return}setTeam(normTeam(team()));save();go('lab',l.track);toast(T('Przywrócono ustawienia eksperymentu.','Experiment settings restored.'))}
 function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts();
  mainEl.innerHTML=pageHead(nm('deliver'),T('Odhaczaj wymagania, zapisuj wnioski i wyeksportuj raport z diagramem i najlepszym wynikiem.','Tick off requirements, record conclusions and export a report with the diagram and best result.'))
- +`<section class="sec"><h2 class="sr-only">${T('Podsumowanie','Summary')}</h2><div class="wrap"><div id="delivStats"></div><div class="row mt"><button type="button" class="btn" id="expH"${S.example?' disabled':''}>${ic('download')}${T('Eksportuj raport (HTML)','Export report (HTML)')}</button><button type="button" class="btn-ghost" id="exp"${S.example?' disabled':''}>${ic('download')}Markdown</button>${S.example?'':exampleBtn()}</div>${S.example?`<p class="hint" id="exNoExport">${T('W podglądzie przykładu eksport raportu jest wyłączony: przykład ilustruje formę skończonego projektu, to nie praca do oddania.','Report export is off in the example preview: the example illustrates the form of a finished project, it is not work to hand in.')}</p>`:''}<div class="mt">${card('file-check',T('Podsumowanie projektu','Project summary'),`<dl style="margin:0" id="delivSummary"></dl>`,{tone:'grape'})}</div><div class="mt">${personaQuote('hanna','report')}</div></div></section>`
+ +`<section class="sec"><h2 class="sr-only">${T('Podsumowanie','Summary')}</h2><div class="wrap"><div id="delivStats"></div><div class="row mt"><button type="button" class="btn" id="expH"${S.example?' disabled aria-describedby="exNoExport"':''}>${ic('download')}${T('Eksportuj raport (HTML)','Export report (HTML)')}</button><button type="button" class="btn-ghost" id="exp"${S.example?' disabled aria-describedby="exNoExport"':''}>${ic('download')}Markdown</button>${S.example?'':exampleBtn()}</div>${S.example?`<p class="hint" id="exNoExport">${T('W podglądzie przykładu eksport raportu jest wyłączony: przykład ilustruje formę skończonego projektu, to nie praca do oddania.','Report export is off in the example preview: the example illustrates the form of a finished project, it is not work to hand in.')}</p>`:''}<div class="mt">${card('file-check',T('Podsumowanie projektu','Project summary'),`<dl style="margin:0" id="delivSummary"></dl>`,{tone:'grape'})}</div><div class="mt">${personaQuote('hanna','report')}</div></div></section>`
  +sectionBand('list-checks',T('Lista kontrolna i notatki','Checklist and notes'),`<div class="grid2">${SEC().map((s,i)=>card(SEC_ICONS[i],s.t,s.items.map((x,n)=>`<label style="display:flex;gap:9px;margin:5px 0;align-items:flex-start;cursor:pointer"><input type="checkbox" data-c="${s.id}.${n}" ${t.checks[s.id+'.'+n]?'checked':''}><span>${x}</span></label>`).join('')+`<div class="field mt"><label for="note${s.id}">${T('Notatki zespołu','Team notes')}</label><textarea id="note${s.id}" class="input" data-n="${s.id}" rows="3" placeholder="${esc(P[s.id])}">${esc(t.notes[s.id]||'')}</textarea></div>`,{tone:SEC_TONES[i]})).join('')}</div>`)
  +sectionBand('award',T('Odznaki','Badges'),`<p style="margin-top:0">${T('Kamienie milowe waszego projektu, wyliczane z tego, co już zrobiliście. Przy brakujących opisano, co trzeba zrobić.','Milestones of your project, worked out from what you have already done. The missing ones say what is left to do.')}</p><ul class="bd-list mt" id="badgeList"></ul>`)
  +sectionBand('notebook-pen',T('Dziennik eksperymentów','Experiment log'),`<div id="logBox"></div>`);
@@ -2780,6 +2783,8 @@ addEventListener('hashchange',onHashChange);
 addEventListener('load',()=>icons());
 addEventListener('storage',e=>{if(e.key!==STORE_KEY||!e.newValue)return;if(AIS.run){X.storagePending=X.renderPending=true;return}try{const x=JSON.parse(e.newValue);S.teams=normTeams(x.teams)}catch(err){return}if(!isTyping()&&!inspEl.open)softRender();else renderProg()});
 addEventListener('resize',setHdrH);
+// The sticky bars change height without a resize (wrapping text, fonts, the case bar appearing): keep the offsets exact.
+if(window.ResizeObserver){const ro=new ResizeObserver(()=>setHdrH());['.edu-header','#pathBar','#caseBar'].forEach(s=>{const e=$(s);if(e)ro.observe(e)})}
 addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||inspEl.open)return;const a=e.target,tag=a.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||a.isContentEditable)return;const i=+e.key;if(i>=1&&i<=NAV.length){e.preventDefault();go(NAV[i-1][0])}});
 
 // ─── Init ───
