@@ -268,7 +268,7 @@ try {
     ok('saved forecast baseline equals the shown one after a horizon change', String(saved) === shown && shown !== v0, JSON.stringify([v0, shown, saved]));
     await p.click('#langSeg button[data-l=en]'); await p.click('#runBase');
     ok('forecast baseline recap in English', /^Over a horizon of \d+ months the baseline \(historical mean\) has an error of/.test(await p.$eval('#baseOut .recap', e => e.textContent.trim())));
-    ok('normal forecast result keeps the 4.5 template', /wybrana metoda|chosen method/.test(await p.$eval('#proto .recap', e => e.textContent)));
+    ok('normal forecast result keeps the 4.5 template', /najlepsza metoda|best method/.test(await p.$eval('#proto .recap', e => e.textContent)));
     await p.close(); }
   const p = await fresh('#/lab/forecast'); ok('forecast limits callout', /promocj/i.test(await p.$eval('#fcLimits', e => e.textContent)) && !(await p.$('#fcLimits button')));
   await p.evaluate(() => go('lab', 'maint')); ok('maint limits callout', !!(await p.$('#mtLimits')));
@@ -903,7 +903,7 @@ try {
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     ok('badges survive reload and are in the team file', await p.evaluate(() => team().badges.includes('news') && JSON.stringify(team()).includes('"badges"')));
     ok('names are sober', await p.evaluate(() => BADGES().every(b => !/[!🏆🎉]/u.test(b.name + b.desc) && !/\p{Extended_Pictographic}/u.test(b.name + b.desc))));
-    ok('the two spec texts are verbatim', await p.evaluate(() => { const B = Object.fromEntries(BADGES().map(b => [b.id, b])); return B.fairTest.name === 'Uczciwy test' && B.fairTest.desc === 'odsłoniliście zbiór testowy dopiero po baseline i uzasadnieniu, jeden raz.' && B.noGuess.name === 'Linia nie zgaduje' && B.noGuess.desc === 'asystent wiedzy poprawnie odmówił odpowiedzi poza dokumentami.'; }));
+    ok('the two spec texts are verbatim', await p.evaluate(() => { const B = Object.fromEntries(BADGES().map(b => [b.id, b])); return B.fairTest.name === 'Uczciwy test' && B.fairTest.desc === 'odsłoniliście zbiór testowy jeden raz, dopiero po zapisaniu metody odniesienia i uzasadnienia.' && B.noGuess.name === 'Linia nie zgaduje' && B.noGuess.desc === 'asystent wiedzy poprawnie odmówił odpowiedzi poza dokumentami.'; }));
     ok('every badge icon exists in the loaded icon set', await p.evaluate(() => BADGES().every(b => { const n = b.icon.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join(''); return !!window.lucide.icons[n]; })));
     const conds = await p.evaluate(() => { const T0 = () => defaultTeam(), e = t => earnedBadges(t), out = {};
       const base = (k, tv = 0) => ({ id: 'b', ts: '', track: k, cfg: { base: true }, res: { primary: { m: 'x', v: .3, base: .3, hi: true } }, note: '', testViews: tv, base: true });
@@ -982,7 +982,7 @@ try {
     ok('example opens on the report view', await p.evaluate(() => S.view === 'deliver' && location.hash === '#/deliver'));
     ok('example has a baseline, three experiments with notes, a goal, a justification and notes 1-3', await p.evaluate(() => { const t = team(), e = t.log.filter(l => !l.base); return t.log.filter(l => l.base).length === 1 && e.length === 3 && e.every(l => l.note.length > 10) && !!t.goal && t.decision.forecast.why.startsWith('Wybraliśmy prognozowanie popytu') && [1, 2, 3].every(i => t.notes[i]) && !t.notes[4] && !t.notes[5]; }));
     ok('example: two of four go-live decisions, three of five risks, about half the checklist', await p.evaluate(() => { const t = team(), { done, tot } = checkProgress(t); return Object.keys(t.arch.decisions).length === 2 && Object.keys(t.risks).length === 3 && done >= tot * .4 && done <= tot * .6; }));
-    ok('banner names the participant\'s team slot', await p.evaluate(() => { const b = $('#exampleBar'); return !!b && !!b.closest('#pathBar') && b.textContent.includes('To podgląd; wasza praca jest w slocie zespołu 1.') && !!$('#exampleExit') && !$('#pathNext'); }));
+    ok('banner names the participant\'s team slot', await p.evaluate(() => { const b = $('#exampleBar'); return !!b && !!b.closest('#pathBar') && b.textContent.includes('To podgląd. Wasza praca jest zapisana w zespole 1.') && !!$('#exampleExit') && !$('#pathNext'); }));
     ok('example chip next to the team name', await p.evaluate(() => { const c = $('#exChip'); return !!c && !c.hidden && /przykład/i.test(c.textContent); }));
     ok('team selector, import, export and report export are disabled with a reason', await p.evaluate(() => ['#teamSel', '#teamExport', '#teamImport', '#exp', '#expH'].every(s => $(s).disabled) && /przykład/i.test($('#exLock').textContent) && !$('#exLock').hidden && /przykład/i.test($('#exNoExport').textContent)));
     ok('example log renders the baseline and three experiments, comparison works', await p.evaluate(() => { const es = team().log.filter(l => !l.base); return $$('#logBox tr[data-log]').length === 4 && /MAPE|błąd/i.test(renderCompare(es[0], es[2], 'forecast')); }));
@@ -1109,7 +1109,7 @@ try {
       ok('exit2 note without the component says it is missing', !n0.includes('macie już') && /nie ma jeszcze/.test(n0) && !!(await p.$('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]')), n0);
       await p.click('#goLive [data-d=stopAuthority] .gl-note [data-fix=hitl]');
       const n1 = await note();
-      ok('exit2 note with the component', n1.includes('W schemacie macie już komponent «Weryfikacja przez człowieka».'), n1);
+      ok('exit2 note with the component', n1.includes('W schemacie macie już komponent „Weryfikacja przez człowieka”.'), n1);
       const en = await p.evaluate(() => { S.lang = 'en'; render(); const a = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; team().arch.sel.hitl = false; render(); const b = document.querySelector('#goLive [data-d=stopAuthority] .gl-note').textContent; S.lang = 'pl'; render(); return [a, b]; });
       ok('exit2 English note matches the Polish one', /already has the «Human-in-the-loop» component/.test(en[0]) && !/already/.test(en[1]) && /does not have/.test(en[1]), JSON.stringify(en));
       const q = await p.evaluate(() => { const g = k => { team().track = k; return GO_LIVE_DECISIONS().find(d => d.id === 'stopAuthority'); }; const c = g('complaints'), v = g('vision'), r = g('rag'), f = g('forecast'), m = g('maint'); team().track = 'complaints'; return { c: c.q, v: v.q, qs: new Set([c.q, v.q, r.q, f.q, m.q]).size, ids: [c, v, r, f, m].every(d => d.options.map(o => o.id).join() === 'system,operator,quality'), lab: c.options.map(o => o.t).join('|') !== v.options.map(o => o.t).join('|') }; });
