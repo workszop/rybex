@@ -550,7 +550,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.evaluate(() => Promise.all([...document.querySelectorAll('.rf-prod img')].map(img => img.decode().catch(() => {}))));
     ok('site product packshots load', await p.$$eval('.rf-prod img', imgs => imgs.every(img => img.complete && img.naturalWidth > 0)));
     await p.evaluate(() => { go('rybex', 'home'); visionRefresh(); });
-    ok('site hero uses the generated fishing boat', await p.$$eval('.rf-hero-pic img', imgs => imgs.length === 1 && imgs[0].getAttribute('src') === 'assets/images/rybex-hero-fishing-boat.png'));
+    ok('site hero uses the generated fishing boat', await p.$$eval('.rf-hero-pic img', imgs => imgs.length === 1 && imgs[0].getAttribute('src') === 'assets/images/rybex-hero-fishing-boat-square.png'));
     ok('site vision refresh leaves product packshots unchanged', await p.$$eval('.rf-prod img', (imgs, expected) => imgs.length === 4 && imgs.every((img, i) => img.getAttribute('src') === expected[i] && !img.hasAttribute('data-vi')), packshots));
     await p.evaluate(() => go('rybex', 'products'));
     await p.click('.rybex-frame [data-lab=vision]'); ok('site product links to the vision lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'vision'));
@@ -1253,7 +1253,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const fb = await p.evaluate(() => [...document.querySelectorAll('.rf-prod .rf-ph')].map(e => ({ t: e.textContent, l: e.getAttribute('aria-label'), r: e.getAttribute('role'), h: e.getBoundingClientRect().height })));
       ok('exit2r2 blocked packshot: a visible tile with the product name', fb.length === 4 && fb.every((x, i) => x.r === 'img' && /^Puszka Rybex: /.test(x.l) && x.h > 50) && fb.map(x => x.t).join() === (await p.evaluate(() => PRODUCTS.map(x => x[0]).join())), JSON.stringify(fb));
       await p.evaluate(() => go('rybex', 'home')); await p.locator('.rf-hero-pic img').evaluate(i => i.decode());
-      ok('exit2r2 boat hero independent of blocked packshots', await p.$$eval('.rf-hero-pic img', e => e.length === 1 && e[0].naturalWidth === 1942));
+      ok('exit2r2 boat hero independent of blocked packshots', await p.$$eval('.rf-hero-pic img', e => e.length === 1 && e[0].naturalWidth === 1254 && e[0].naturalHeight === 1254));
       ok('exit2r2 no page errors (blocked packshots)', !errs.length, errs.join('|'));
       await ctx.close(); }
     { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage();

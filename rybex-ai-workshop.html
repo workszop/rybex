@@ -566,7 +566,7 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 .rf-lead{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--rf-sea);margin:0 0 14px}
 .rf-hero p:not(.rf-lead){color:var(--ink-2);font-size:16.5px;margin:6px 0}
 .rf-hero-pic{display:flex;gap:12px;justify-content:center}
-.rf-hero-pic img{width:100%;height:auto;border-radius:12px;box-shadow:var(--shadow-sm);aspect-ratio:1942/809;object-fit:cover;background:var(--paper-2)}
+.rf-hero-pic img{width:100%;height:auto;border-radius:12px;box-shadow:var(--shadow-sm);aspect-ratio:1;object-fit:cover;background:var(--paper-2)}
 .rf-hero-pic img:nth-child(2),.rf-hero-pic .rf-ph:nth-child(2){margin-top:28px}
 .rf-ph{display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;aspect-ratio:4/5;background:var(--paper-2);border:1px solid var(--line);color:var(--ink-2);font-weight:600;border-radius:12px}.rf-hero-pic .rf-ph{width:44%}.rf-prod .rf-ph{width:100%;border-radius:0;border-width:0 0 1px}
 .rf-teaser{display:flex;gap:14px;align-items:center;margin:-28px 28px 28px;position:relative;background:var(--surface);border:2px solid var(--red-600);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow-sm)}
@@ -1757,7 +1757,7 @@ function RYBEX_SITE(){const s=STORY(),lot=s.lot;return{town:'Mirszyce',
 const RYBEX_FISH='<svg class="rf-fish" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#FFD500"/><path d="M13 7.5c2-2.5 5.5-3 8-2-1.5 1.2-2.4 2.8-2.6 4.6z" fill="#1C1917"/><path d="M2.5 16.5C4.5 7.5 15.5 5 22 12.5l6.5-5.5c-.9 3-1.4 6-1.4 9.5s.5 6.5 1.4 9.5L22 20.5C15.5 28 4.5 25.5 2.5 16.5z" fill="#1C1917"/><circle cx="9.5" cy="14.5" r="2.8" fill="#FFD500"/></svg>';
 // Generated catalogue packshots are independent of the vision-lab training images.
 const RYBEX_PACKSHOTS=['szprot-w-oleju','makrela-w-pomidorach','sledz-po-kaszubsku','tunczyk-w-sosie-wlasnym'];
-function rybexHeroImg(){return`<img data-slot="hero" src="assets/images/rybex-hero-fishing-boat.png" alt="${esc(T('Kuter rybacki na Morzu Bałtyckim','Fishing boat on the Baltic Sea'))}" width="1942" height="809">`}
+function rybexHeroImg(){return`<img data-slot="hero" src="assets/images/rybex-hero-fishing-boat-square.png" alt="${esc(T('Kuter rybacki na Morzu Bałtyckim','Fishing boat on the Baltic Sea'))}" width="1254" height="1254">`}
 function rybexImg(slot,pi){const nm2=PRODUCTS[pi];return`<img data-slot="${slot}" data-product="${pi}" src="assets/products/${RYBEX_PACKSHOTS[pi]}.webp" alt="${esc(T(`Puszka Rybex: ${nm2[0]}`,`Rybex can: ${nm2[1]}`))}" width="1122" height="1402"${slot[0]==='p'?' loading="lazy"':''}>`}
 // A packshot that fails to load becomes a neutral tile with the product name (same slot, size and accessible name).
 addEventListener('error',e=>{const i=e.target;if(!(i instanceof HTMLImageElement)||!i.matches('.rybex-frame img[data-product]'))return;const pi=+i.dataset.product,f=document.createElement('span');
