@@ -767,19 +767,19 @@ try {
     ok('panel sits under the prototype, folded', await p.evaluate(() => { const c = document.querySelector('.challenge'), d = c.querySelector('details'); return !!c.closest('#labProto') && !c.closest('#proto') && !!d && !d.open && !!c.querySelector('.status').textContent.trim(); }));
     await p.evaluate(() => { visInit(); });
     await p.waitForFunction(() => !VIS.loading, null, { timeout: 30000 });
-    const fr = await p.evaluate(() => Object.fromEntries(LAB_KEYS.map(k => [CHALLENGES()[k].id, challengeCheck(CHALLENGES()[k].id)])));
+    const fr = await p.evaluate(() => Object.fromEntries(LAB_KEYS.map(k => [CHALLENGES()[k].id, chFacts(CHALLENGES()[k].id).pass])));
     ok('fresh team: every challenge open on the workshop data', Object.values(fr).every(v => v === false), JSON.stringify(fr));
-    ok('rag at default settings still answers the out-of-scope question', await p.evaluate(() => challengeCheck('rag_oos', { simulate: true })) === false);
+    ok('rag at default settings still answers the out-of-scope question', await p.evaluate(() => chFacts('rag_oos', { simulate: true }).pass) === false);
     const reachable = await p.evaluate(() => { const out = {}; const L = lab();
-      L.rag.min = .6; out.rag_oos_strict = (() => { try { return challengeCheck('rag_oos', { simulate: true }); } catch (e) { return String(e); } })();
-      out.rag_needs_question = challengeCheck('rag_oos'); L.rag.min = .12;
-      L.mt.f.temp_c = 1; let best = false; for (let thr = 1.5; thr <= 10 && !best; thr += .5) for (let w = 1; w <= 8 && !best; w++) { L.mt.thr = thr; L.mt.win = w; best = challengeCheck('maint_retort'); } out.maint = best;
-      const th = visTh(), R = VIS.rng; out.vision = false; for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200 && !out.vision; i++) { L.vision.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; out.vision = challengeCheck('vision_borderline'); }
+      L.rag.min = .6; out.rag_oos_strict = (() => { try { return chFacts('rag_oos', { simulate: true }).pass; } catch (e) { return String(e); } })();
+      out.rag_needs_question = chFacts('rag_oos').pass; L.rag.min = .12;
+      L.mt.f.temp_c = 1; let best = false; for (let thr = 1.5; thr <= 10 && !best; thr += .5) for (let w = 1; w <= 8 && !best; w++) { L.mt.thr = thr; L.mt.win = w; best = chFacts('maint_retort').pass; } out.maint = best;
+      const th = visTh(), R = VIS.rng; out.vision = false; for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200 && !out.vision; i++) { L.vision.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; out.vision = chFacts('vision_borderline').pass; }
       L.vision.th = null;
-      L.compl.kw = { ...KW, damage: KW.damage + ', wypukł, napuch, poszarp', quality: KW.quality + ', tward', smell: KW.smell + ', smród, pachni', delivery: KW.delivery + ', karton' }; out.compl = challengeCheck('compl_mixed');
-      L.compl.safety = 'zapach'; out.compl_needs_safety = challengeCheck('compl_mixed'); L.compl.kw = { ...KW }; L.compl.safety = SAFETY_KW;
-      out.fc = false; L.fc.h = 9; Object.keys(L.fc.show).forEach(k => L.fc.show[k] = 1); for (let pp = 0; pp < 4 && !out.fc; pp++) for (let w = 2; w <= 12 && !out.fc; w++) { L.fc.p = pp; L.fc.w = w; out.fc = challengeCheck('fc_horizon'); }
-      L.fc.h = 6; out.fc_needs_h9 = challengeCheck('fc_horizon'); Object.assign(L.fc, defaultLab().fc);
+      L.compl.kw = { ...KW, damage: KW.damage + ', wypukł, napuch, poszarp', quality: KW.quality + ', tward', smell: KW.smell + ', smród, pachni', delivery: KW.delivery + ', karton' }; out.compl = chFacts('compl_mixed').pass;
+      L.compl.safety = 'zapach'; out.compl_needs_safety = chFacts('compl_mixed').pass; L.compl.kw = { ...KW }; L.compl.safety = SAFETY_KW;
+      out.fc = false; L.fc.h = 9; Object.keys(L.fc.show).forEach(k => L.fc.show[k] = 1); for (let pp = 0; pp < 4 && !out.fc; pp++) for (let w = 2; w <= 12 && !out.fc; w++) { L.fc.p = pp; L.fc.w = w; out.fc = chFacts('fc_horizon').pass; }
+      L.fc.h = 6; out.fc_needs_h9 = chFacts('fc_horizon').pass; Object.assign(L.fc, defaultLab().fc);
       return out; });
     ok('maint challenge is reachable on the workshop data', reachable.maint === true, JSON.stringify(reachable));
     ok('rag challenge is reachable at a strict threshold', reachable.rag_oos_strict === true, JSON.stringify(reachable));
@@ -816,8 +816,8 @@ try {
     await np.goto(APP() + '#/lab/vision'); await np.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     await np.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 30000 });
     const na = await np.evaluate(() => { const c = document.querySelector('.challenge'), L = lab().vision, th = visTh(), R = VIS.rng; let any = false;
-      for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200; i++) { L.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; any = any || challengeCheck('vision_borderline'); }
-      L.th = { d: R.dent[1], s: R.shift[1], c: R.code[1], fk: VIS.featureSource }; any = any || challengeCheck('vision_borderline'); L.th = null; renderChallenge('vision');
+      for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200; i++) { L.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; any = any || chFacts('vision_borderline').pass; }
+      L.th = { d: R.dent[1], s: R.shift[1], c: R.code[1], fk: VIS.featureSource }; any = any || chFacts('vision_borderline').pass; L.th = null; renderChallenge('vision');
       return { src: VIS.featureSource, state: c.dataset.state, status: c.querySelector('.status').textContent, any, rec: Object.hasOwn(team().challenges, 'vision_borderline'), notice: !!document.querySelector('#visionAssetStatus') }; });
     ok('vision challenge unavailable without the photos', na.src === 'synthetic' && na.state === 'na' && /zdję/i.test(na.status) && na.notice && !na.any && !na.rec, JSON.stringify(na));
     await nc.close();
