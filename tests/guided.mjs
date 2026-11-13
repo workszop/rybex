@@ -91,28 +91,29 @@ try {
     ok('recap no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
   if (run('story')) { const p = await fresh('#/home');
-    ok('story memo visible without scrolling past one screen', (await p.$eval('#memo', e => e.getBoundingClientRect().top)) < 900);
-    ok('story memo comes before the home cards and agenda', await p.$eval('#main', e => { const all = [...e.querySelectorAll('#memo, .card')]; return all[0].id === 'memo' || all[0].closest('#onboard, #memo') !== null; }));
-    ok('story lot from one source', await p.evaluate(() => STORY().lot === 'RYB-261031-L2' && document.querySelector('#memo').textContent.includes(STORY().lot) && VIS_SYS().includes(STORY().lot)));
+    ok('story site preview visible without scrolling past one screen', (await p.$eval('#sitePreview', e => e.getBoundingClientRect().top)) < 900);
+    ok('story site preview comes before the home cards and agenda', await p.$eval('#main', e => { const all = [...e.querySelectorAll('#sitePreview, .card')]; return all[0].id === 'sitePreview' || all[0].closest('#onboard, #sitePreview') !== null; }));
+ok('story site preview is a still picture with one working button', await p.$eval('#sitePreview', e => { const f = e.querySelector('.sp-frame'), b = e.querySelector('#siteOpen'); return f.inert && f.getAttribute('aria-hidden') === 'true' && !f.contains(b) && b.getAttribute('href') === '#/rybex/news' && /Otwórzcie stronę firmową/.test(b.textContent) && e.querySelectorAll('.sp-frame img').length === 1 && !document.querySelector('#main #memo'); }));
+    ok('story lot from one source', await p.evaluate(() => STORY().lot === 'RYB-261031-L2' && document.querySelector('#sitePreview').textContent.includes(STORY().lot) && VIS_SYS().includes(STORY().lot)));
     ok('onboarding shown on first visit', !!(await p.$('#onboard')));
     await p.fill('#onboardName', 'Zespół Szprot');
     ok('onboarding name mirrors the team name field', await p.$eval('#teamName', e => e.value) === 'Zespół Szprot');
     await p.click('#onboardGo');
     ok('onboarding sets name and timestamp', await p.evaluate(() => team().name === 'Zespół Szprot' && !!team().onboardedAt));
-    ok('onboarding closes, memo stays', !(await p.$('#onboard')) && !!(await p.$('#memo')));
+    ok('onboarding closes, site preview stays', !(await p.$('#onboard')) && !!(await p.$('#sitePreview')));
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
-    ok('onboarding gone after reload', !(await p.$('#onboard')) && !!(await p.$('#memo')));
-    await p.evaluate(() => go('brief')); ok('brief shows the incident and keeps requirements', await p.$eval('#main', e => e.textContent.includes('RYB-261031-L2') && e.querySelectorAll('#briefReq .card').length === SEC().length));
-    ok('brief memo before task choice, requirements open on desktop', await p.evaluate(() => { const m = document.querySelector('#main #memo'), t = document.querySelector('#main [data-t]'), r = document.querySelector('#briefReq'); return !!m && !!t && !!(m.compareDocumentPosition(t) & 4) && !!(t.compareDocumentPosition(r) & 4) && r.open; }));
+    ok('onboarding gone after reload', !(await p.$('#onboard')) && !!(await p.$('#sitePreview')));
+    await p.evaluate(() => go('brief')); ok('brief waits for a task before the memo and keeps requirements', await p.$eval('#main', e => !!e.querySelector('#memoWait') && !e.querySelector('#memo') && e.querySelectorAll('#briefReq .card').length === SEC().length));
+    ok('brief task choice before the memo slot, requirements open on desktop', await p.evaluate(() => { const m = document.querySelector('#main #memoWait'), t = document.querySelector('#main [data-t]'), g = document.querySelector('#goal'), r = document.querySelector('#briefReq'); return !!m && !!t && !!(t.compareDocumentPosition(m) & 4) && !!(m.compareDocumentPosition(g) & 4) && !!(g.compareDocumentPosition(r) & 4) && r.open; }));
     ok('brief file starts with the story', await p.evaluate(() => BRIEF_PL.startsWith('>') && BRIEF_PL.includes(STORY().lot) && BRIEF_PL.includes('Celem projektu') && BRIEF_EN.includes(STORY().lot) && BRIEF_EN.includes('# Final project')));
-    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('home')); ok('memo in English', /plant director/i.test(await p.$eval('#memo', e => e.textContent)));
-    // One memo per task: same lot, its own sender, subject and request; no task shows the general memo.
-    const memos = await p.evaluate(() => { const out = {}, keep = team().track; for (const lang of ['pl', 'en']) { S.lang = lang; for (const k of ['', ...LAB_KEYS]) { team().track = k; render(); const m = document.querySelector('#memo'), dd = [...m.querySelectorAll('.memo-meta dd')].map(e => e.textContent); out[lang + '|' + k] = { task: m.dataset.task, from: dd[0], subject: dd[3], body: [...m.querySelectorAll('.card-body > p')].map(e => e.textContent).join(' '), chip: (m.querySelector('.card-head .edu-chip') || {}).textContent || '' }; } } team().track = keep; S.lang = 'en'; render(); return out; });
-    for (const lang of ['pl', 'en']) { const v = ['', 'vision', 'rag', 'complaints', 'forecast', 'maint'].map(k => memos[lang + '|' + k]);
-      ok(`memo per task (${lang}): six different subjects and bodies`, new Set(v.map(x => x.subject)).size === 6 && new Set(v.map(x => x.body)).size === 6);
-      ok(`memo per task (${lang}): every memo names the lot and marks its task`, v.every((x, i) => x.subject.includes('RYB-261031-L2') && x.body.includes('RYB-261031-L2') && (i === 0 ? x.task === '' && !x.chip : x.task && x.chip.length > 8))); }
-    ok('memo per task: the owner of the problem signs it', /Piotr Zielak/.test(memos['pl|rag'].from) && /Magda Kruk/.test(memos['pl|complaints'].from) && /Anna Bór/.test(memos['pl|maint'].from) && /Hanna Marek/.test(memos['pl|forecast'].from) && /Hanna Marek/.test(memos['pl|'].from));
-    ok('memo per task: brief switches the memo when a task is picked', await p.evaluate(() => { const keep = team().track; go('brief'); document.querySelector('#main [data-t=maint]').click(); const a = document.querySelector('#memo').dataset.task; document.querySelector('#main [data-t=forecast]').click(); const b = document.querySelector('#memo').dataset.task; setTrack(team(), keep); save(); go('home'); return a === 'maint' && b === 'forecast'; }));
+    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('home')); ok('site preview in English', /Canned fish/i.test(await p.$eval('#sitePreview', e => e.textContent)) && /Open the company site/.test(await p.$eval('#siteOpen', e => e.textContent)));
+    // One memo per task, shown in the brief once the task is chosen: same lot, its own sender, subject and request.
+    const memos = await p.evaluate(() => { const out = {}, keep = team().track; go('brief'); for (const lang of ['pl', 'en']) { S.lang = lang; for (const k of LAB_KEYS) { team().track = k; render(); const m = document.querySelector('#memo'), dd = [...m.querySelectorAll('.memo-meta dd')].map(e => e.textContent); out[lang + '|' + k] = { task: m.dataset.task, from: dd[0], subject: dd[3], body: [...m.querySelectorAll('.card-body > p')].map(e => e.textContent).join(' '), chip: (m.querySelector('.card-head .edu-chip') || {}).textContent || '' }; } } team().track = keep; S.lang = 'en'; render(); return out; });
+    for (const lang of ['pl', 'en']) { const v = ['vision', 'rag', 'complaints', 'forecast', 'maint'].map(k => memos[lang + '|' + k]);
+      ok(`memo per task (${lang}): five different subjects and bodies`, new Set(v.map(x => x.subject)).size === 5 && new Set(v.map(x => x.body)).size === 5);
+      ok(`memo per task (${lang}): every memo names the lot and marks its task`, v.every(x => x.subject.includes('RYB-261031-L2') && x.body.includes('RYB-261031-L2') && x.task && x.chip.length > 8)); }
+    ok('memo per task: the owner of the problem signs it', /Piotr Zielak/.test(memos['pl|rag'].from) && /Magda Kruk/.test(memos['pl|complaints'].from) && /Anna Bór/.test(memos['pl|maint'].from) && /Hanna Marek/.test(memos['pl|forecast'].from) && /Hanna Marek/.test(memos['pl|vision'].from));
+    ok('memo per task: brief shows no memo until a task is picked, then switches with it', await p.evaluate(() => { const keep = team().track; setTrack(team(), ''); go('brief'); render(); const none = !document.querySelector('#memo') && !!document.querySelector('#memoWait'); document.querySelector('#main [data-t=maint]').click(); const a = document.querySelector('#memo').dataset.task, order = (() => { const c = document.querySelector('#main [data-t]'), m = document.querySelector('#memo'), g = document.querySelector('#goal'); return !!(c.compareDocumentPosition(m) & 4) && !!(m.compareDocumentPosition(g) & 4); })(); document.querySelector('#main [data-t=forecast]').click(); const b = document.querySelector('#memo').dataset.task; setTrack(team(), keep); save(); go('home'); return none && order && a === 'maint' && b === 'forecast' && !document.querySelector('#memo'); }));
     ok('no real brands', await p.$eval('#main', e => !/Biedronka|Lidl|Graal|Łosoś Ustka|Auchan|Kaufland/i.test(e.textContent)));
     ok('story no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
@@ -150,19 +151,19 @@ try {
     ok('lab jump bar sits below the path bar (1440)', await p.evaluate(() => { const j = document.querySelector('#labJump').getBoundingClientRect(), b = document.querySelector('#pathBar').getBoundingClientRect(); return b.top >= 0 && j.top >= b.bottom - 1; }));
     ok('path no page errors', !p.errs.length, p.errs.join('|'));
     await p.close();
-    const memoP = q => q.$eval('#memo .card-body > p', e => { const r = e.getBoundingClientRect(), hb = document.querySelector('#pathBar').getBoundingClientRect().bottom; return { top: r.top, bottom: r.bottom, hb, vh: innerHeight }; });
+    const memoP = q => q.$eval('#siteOpen', e => { const r = e.getBoundingClientRect(), hb = document.querySelector('#pathBar').getBoundingClientRect().bottom; return { top: r.top, bottom: r.bottom, hb, vh: innerHeight }; });
     const w = await fresh('#/home', '', { width: 1280, height: 720 });
     ok('first visit: onboarding shown', !!(await w.$('#onboard')));
-    let r = await memoP(w); ok('first visit: memo first paragraph visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
+    let r = await memoP(w); ok('first visit: the company site button visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
     await w.click('#onboardGo'); await w.waitForTimeout(700);
     ok('Zaczynamy sends the first step to the company news', await w.$eval('#pathBar', e => e.dataset.next === 'join' && e.querySelector('#pathNext').dataset.go === 'rybex/news'));
-    r = await memoP(w); ok('after Zaczynamy: memo first paragraph visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
-    await w.click('#memoSite'); await w.waitForFunction(() => S.view === 'rybex');
+    r = await memoP(w); ok('after Zaczynamy: the company site button visible at 1280x720', r.top >= r.hb && r.bottom <= r.vh, JSON.stringify(r));
+    await w.click('#siteOpen'); await w.waitForFunction(() => S.view === 'rybex');
     ok('Zaczynamy and the news complete the first step in the bar', await w.$eval('#pathBar', e => e.dataset.next !== 'join' && +e.dataset.done >= 1));
     await w.close();
     const o = await fresh('#/home');
     await seed(o, () => { const t = team(); t.onboardedAt = ''; t.log.push({ id: 'x1', ts: '', track: 'maint', note: '', testViews: 0 }); });
-    ok('team with work skips onboarding', !!(await o.$('#memo')) && !(await o.$('#onboard')));
+    ok('team with work skips onboarding', !!(await o.$('#sitePreview')) && !(await o.$('#onboard')));
     await seed(o, () => { const t = team(); t.log = []; t.checks = { 'c0': true }; });
     ok('team with a ticked item skips onboarding', !(await o.$('#onboard')));
     await seed(o, () => { const t = team(); t.checks = {}; t.name = ''; });
@@ -419,7 +420,7 @@ try {
           go('arch'); const g = document.querySelector('#pathNext'); return { here, go: { mode: g.dataset.mode, text: g.textContent.trim() } }; }, [acc, id]);
         ok(`exit1 Next on its own page names the action (${id})`, r.here.next === id && r.here.mode === 'here' && !/^Dalej/.test(r.here.text) && r.here.text === txt[id], JSON.stringify(r.here));
         ok(`exit1 Next elsewhere says Dalej (${id})`, r.go.mode === 'go' && /^Dalej: /.test(r.go.text), JSON.stringify(r.go)); }
-      ok('exit1 join without the card: read the memo', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#onboard').remove(); renderPathBar(); return document.querySelector('#pathNext').textContent.trim() === 'Przeczytajcie notatkę'; }));
+      ok('exit1 join without the card: open the company site', await f.evaluate(() => { S.teams[S.team] = defaultTeam(); save(); go('home'); document.querySelector('#onboard').remove(); renderPathBar(); return document.querySelector('#pathNext').textContent.trim() === 'Otwórzcie stronę firmową'; }));
       ok('exit1 task with a chosen track: write the criterion', await f.evaluate(() => { const t = team(); t.onboardedAt = 'x'; t.site.newsRead = true; qz(t, 'life'); t.track = 'forecast'; save(); go('brief'); return document.querySelector('#pathNext').textContent.trim() === 'Wpiszcie kryterium sukcesu'; }));
       ok('exit1 English action text', await f.evaluate(() => { S.lang = 'en'; render(); const s = document.querySelector('#pathNext').textContent.trim(); S.lang = 'pl'; render(); return s === 'Write the success criterion'; }));
       ok('exit1 no page errors (4)', !f.errs.length, f.errs.join('|'));
@@ -539,7 +540,7 @@ try {
     ok('site one h1 per view, company headings start at h2', await p.evaluate(() => document.querySelectorAll('#main h1').length === 1 && !document.querySelector('.rybex-frame h1') && !!document.querySelector('.rybex-frame h2')));
     ok('site no workshop menu item is current', await p.evaluate(() => !document.querySelector('#nav [aria-current], #nav .on')));
     ok('site path bar renders on the site', await p.evaluate(() => !!document.querySelector('#pathBar #pathNext')));
-    for (const pg of await p.evaluate(() => RYBEX_PAGES)) { await p.evaluate(pg => go('rybex', pg), pg); ok(`site fiction banner on ${pg}`, await p.$eval('.rybex-frame .fiction-banner', e => /fikcyjn/.test(e.textContent) && e.getBoundingClientRect().height > 0) && await p.$eval('.rybex-frame', (e, pg) => e.dataset.page === pg && !!e.querySelector('#backToWs') && !!e.querySelector(`nav[aria-label] [data-rp="${pg}"][aria-current="page"]`), pg)); }
+    for (const pg of await p.evaluate(() => RYBEX_PAGES)) { await p.evaluate(pg => go('rybex', pg), pg); ok(`site frame without the fiction notice on ${pg}`, !(await p.$('.rybex-frame .fiction-banner')) && !/utworzoną na potrzeby szkolenia/.test(await p.$eval('.rybex-frame', e => e.textContent)) && await p.$eval('.rybex-frame', (e, pg) => e.dataset.page === pg && !!e.querySelector('#backToWs') && !!e.querySelector(`nav[aria-label] [data-rp="${pg}"][aria-current="page"]`), pg)); }
     await p.evaluate(() => go('rybex', 'products'));
     ok('site products come from PRODUCTS', await p.evaluate(() => PRODUCTS.every(x => document.querySelector('.rybex-frame').textContent.includes(x[0]))));
     await p.waitForFunction(() => document.querySelectorAll('.rybex-frame img').length >= 1, null, { timeout: 8000 });
@@ -549,7 +550,7 @@ try {
     await p.evaluate(() => Promise.all([...document.querySelectorAll('.rf-prod img')].map(img => img.decode().catch(() => {}))));
     ok('site product packshots load', await p.$$eval('.rf-prod img', imgs => imgs.every(img => img.complete && img.naturalWidth > 0)));
     await p.evaluate(() => { go('rybex', 'home'); visionRefresh(); });
-    ok('site hero uses the generated sprat and mackerel packshots', await p.$$eval('.rf-hero-pic img', (imgs, expected) => imgs.length === 2 && imgs.every((img, i) => img.getAttribute('src') === expected[i]), packshots));
+    ok('site hero uses the generated fishing boat', await p.$$eval('.rf-hero-pic img', imgs => imgs.length === 1 && imgs[0].getAttribute('src') === 'assets/images/rybex-hero-fishing-boat.png'));
     ok('site vision refresh leaves product packshots unchanged', await p.$$eval('.rf-prod img', (imgs, expected) => imgs.length === 4 && imgs.every((img, i) => img.getAttribute('src') === expected[i] && !img.hasAttribute('data-vi')), packshots));
     await p.evaluate(() => go('rybex', 'products'));
     await p.click('.rybex-frame [data-lab=vision]'); ok('site product links to the vision lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'vision'));
@@ -567,8 +568,8 @@ try {
     ok('site no real brands on any page', await p.evaluate(() => RYBEX_PAGES.every(pg => { go('rybex', pg); return !/Biedronka|Lidl|Graal|Auchan|Kaufland|NIP|KRS|\+48/.test(document.querySelector('.rybex-frame').textContent); })));
     ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     const q = await fresh('#/home'); ok('site photos not loaded before the products page', await q.evaluate(() => !VIS.initialized));
-    ok('site memo links to the company news', await q.$eval('#memoSite', e => !e.disabled && e.getAttribute('href') === '#/rybex/news' && /Otwórzcie stronę firmy Rybex/.test(e.textContent)));
-    await q.click('#memoSite'); await q.waitForFunction(() => S.view === 'rybex', null, { timeout: 3000 }).catch(() => {}); ok('site memo link opens the news page', await q.evaluate(() => S.view === 'rybex' && S.sub.rybex === 'news'));
+    ok('site start page button links to the company news', await q.$eval('#siteOpen', e => !e.disabled && e.getAttribute('href') === '#/rybex/news' && /Otwórzcie stronę firmową/.test(e.textContent)));
+    await q.click('#siteOpen'); await q.waitForFunction(() => S.view === 'rybex', null, { timeout: 3000 }).catch(() => {}); ok('site start page button opens the news page', await q.evaluate(() => S.view === 'rybex' && S.sub.rybex === 'news'));
     await q.goto(q.url().replace(/#.*/, '#/home')); await q.waitForFunction(() => S.view === 'home');
     await q.evaluate(() => { const x = JSON.parse(localStorage.getItem(STORE_KEY)); x.view = 'home'; x.sub = { demos: 'life', lab: 'vision' }; localStorage.setItem(STORE_KEY, JSON.stringify(x)); });
     await q.reload(); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
@@ -1242,7 +1243,7 @@ try {
       await p.evaluate(() => go('rybex', 'products'));
       ok('exit2r2 the site loads no vision photo set', await p.evaluate(() => !VIS.initialized && typeof rybexPick === 'undefined' && typeof rybexPhotos === 'undefined' && !/rybex/.test(visionRefresh.toString())));
       const im = await p.evaluate(() => { const r = q => [...document.querySelectorAll(q)].map(i => ({ alt: i.alt, w: i.getAttribute('width'), h: i.getAttribute('height'), lazy: i.getAttribute('loading') })); const prod = r('.rf-prod img'); go('rybex', 'home'); const hero = r('.rf-hero-pic img'); S.lang = 'en'; render(); const en = r('.rf-hero-pic img'); S.lang = 'pl'; render(); return { prod, hero, en }; });
-      ok('exit2r2 packshots: localised alt, explicit size', [...im.prod, ...im.hero].every(i => /^Puszka Rybex: /.test(i.alt) && i.w && i.h) && im.en.every(i => /^Rybex can: /.test(i.alt)), JSON.stringify(im));
+      ok('exit2r2 images: localised alt, explicit size', im.prod.every(i => /^Puszka Rybex: /.test(i.alt) && i.w && i.h) && im.hero.every(i => /Kuter rybacki/.test(i.alt) && i.w && i.h) && im.en.every(i => /Fishing boat/.test(i.alt)), JSON.stringify(im));
       ok('exit2r2 packshots: lazy below the fold only', im.prod.every(i => i.lazy === 'lazy') && im.hero.every(i => i.lazy !== 'lazy'), JSON.stringify(im));
       ok('exit2r2 no page errors (packshots)', !p.errs.length, p.errs.join('|'));
       await p.close(); }
@@ -1251,8 +1252,8 @@ try {
       await p.$$eval('.rf-prod', e => e.forEach(x => x.scrollIntoView())); await p.waitForFunction(() => document.querySelectorAll('.rf-prod .rf-ph').length === 4, null, { timeout: 5000 }).catch(() => {});
       const fb = await p.evaluate(() => [...document.querySelectorAll('.rf-prod .rf-ph')].map(e => ({ t: e.textContent, l: e.getAttribute('aria-label'), r: e.getAttribute('role'), h: e.getBoundingClientRect().height })));
       ok('exit2r2 blocked packshot: a visible tile with the product name', fb.length === 4 && fb.every((x, i) => x.r === 'img' && /^Puszka Rybex: /.test(x.l) && x.h > 50) && fb.map(x => x.t).join() === (await p.evaluate(() => PRODUCTS.map(x => x[0]).join())), JSON.stringify(fb));
-      await p.evaluate(() => go('rybex', 'home')); await p.waitForFunction(() => document.querySelectorAll('.rf-hero-pic .rf-ph').length === 2, null, { timeout: 5000 }).catch(() => {});
-      ok('exit2r2 blocked hero packshots fall back too', await p.$$eval('.rf-hero-pic .rf-ph', e => e.length === 2 && e.every(x => x.offsetWidth > 40)));
+      await p.evaluate(() => go('rybex', 'home')); await p.locator('.rf-hero-pic img').evaluate(i => i.decode());
+      ok('exit2r2 boat hero independent of blocked packshots', await p.$$eval('.rf-hero-pic img', e => e.length === 1 && e[0].naturalWidth === 1942));
       ok('exit2r2 no page errors (blocked packshots)', !errs.length, errs.join('|'));
       await ctx.close(); }
     { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage();
@@ -1422,7 +1423,7 @@ try {
         await seed(p, `() => (${done[nx]})(team())`); }
       for (const d of ['tok', 'rag', 'split']) { await p.evaluate(() => go('demos', 'life')); await p.click(`#demoTabs button[data-s=${d}]`); await at('demo tab ' + d); }
       await p.click('#trackTabs button[data-k=rag]').catch(() => {}); await p.evaluate(() => go('lab', 'maint')); await p.click('#trackTabs button[data-k=rag]'); await at('track tab');
-      await p.evaluate(() => go('home')); await p.click('#memo [href^="#/rybex"], #memoSite').catch(async () => { await p.evaluate(() => go('rybex', 'news')); }); await at('open the site');
+      await p.evaluate(() => go('home')); await p.click('#siteOpen').catch(async () => { await p.evaluate(() => go('rybex', 'news')); }); await at('open the site');
       await p.click('.rybex-frame nav [data-rp=about]'); await at('site menu'); await p.click('#backToWs'); await at('close the site');
       await p.evaluate(() => go('home')); await p.click('#showExample'); await at('enter the example'); await p.click('#exampleExit'); await at('leave the example');
       await p.click('#langSeg button[data-l=en]'); await at('language switch'); await p.click('#langSeg button[data-l=pl]');
