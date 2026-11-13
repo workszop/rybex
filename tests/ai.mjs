@@ -1,7 +1,7 @@
 // Probes for the model-backed features. Starts the mock server itself.
 // Usage: cd tests && node ai.mjs [section...]   (sections: core rag compl vision log data fixes photo file audit record)
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -514,6 +514,8 @@ try {
       await p.click('#aiConnect');
       await p.waitForFunction(() => document.querySelector('#aiBar').dataset.aiState === 'ready', null, { timeout: 5000 }).catch(() => {});
       ok(`record ${k}: connect -> ready, run control present`, await p.$eval('#aiBar', e => e.dataset.aiState) === 'ready' && !!(await p.$(runBtn)), await p.$eval('#aiBar', e => e.dataset.aiState));
+      ok(`record ${k}: #aiModel is a select offering both models`, await p.$eval('#aiModel', e => e.tagName === 'SELECT' && ['deepseek', 'haiku'].every(v => [...e.options].some(o => o.value === v))));
+      if (k === 'complaints') ok('record complaints: learning-curve and model-comparison controls exist', !!(await p.$('#cCurve')) && !!(await p.$('#cCmp')));
       ok(`record ${k}: no page errors`, !p.errs.length, p.errs.join(' | '));
       await p.close();
     }
@@ -524,6 +526,20 @@ try {
     await p.evaluate(() => { go('lab', 'vision'); const L = lab().vision; L.method = 'llm'; save(); render(); });
     ok('record: same for vision (#visRun)', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#visRun')));
     await p.close();
+    // The tool's guards: a dry run (AI set) must name an OUT outside the repo's replay.json, and the app must really use AI.
+    const ROOT = path.join(HERE, '..'), REPLAY = path.join(ROOT, 'replay.json'), TOOL = path.join(ROOT, 'tools', 'record-replay.mjs');
+    const before = fs.readFileSync(REPLAY), mtime = fs.statSync(REPLAY).mtimeMs;
+    const tool = env => spawnSync('node', [TOOL], { cwd: ROOT, env: { ...process.env, CC: 'test-code', ...env }, encoding: 'utf8', timeout: 120000 });
+    const tmp = path.join(os.tmpdir(), `replay-probe-${process.pid}.json`);
+    let r = tool({ AI: 'http://127.0.0.1:8800/mock', OUT: '' });
+    ok('record tool: AI without OUT exits non-zero', r.status !== 0 && /OUT/.test(r.stderr), r.status + ' ' + r.stderr);
+    r = tool({ AI: 'http://127.0.0.1:8800/mock', OUT: 'replay.json' });
+    ok('record tool: OUT=replay.json (relative) refused', r.status !== 0 && /replay\.json/.test(r.stderr), r.status + ' ' + r.stderr);
+    r = tool({ AI: 'http://127.0.0.1:8800/mock', OUT: path.join(ROOT, 'tools', '..', 'replay.json') });
+    ok('record tool: OUT=<repo>/tools/../replay.json refused', r.status !== 0 && /replay\.json/.test(r.stderr), r.status + ' ' + r.stderr);
+    r = tool({ AI: 'https://evil.example', OUT: tmp });
+    ok('record tool: an AI URL the app ignores stops the tool before any run', r.status !== 0 && /ignored/.test(r.stderr) && !/done /.test(r.stdout) && !fs.existsSync(tmp), r.status + ' ' + r.stderr + r.stdout);
+    ok('record tool: replay.json untouched', fs.readFileSync(REPLAY).equals(before) && fs.statSync(REPLAY).mtimeMs === mtime);
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

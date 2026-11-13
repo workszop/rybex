@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -557,7 +557,7 @@ try {
     ok('site no real brands on any page', await p.evaluate(() => RYBEX_PAGES.every(pg => { go('rybex', pg); return !/Biedronka|Lidl|Graal|Auchan|Kaufland|NIP|KRS|\+48/.test(document.querySelector('.rybex-frame').textContent); })));
     ok('site no page errors', !p.errs.length, p.errs.join('|')); await p.close();
     const q = await fresh('#/home'); ok('site photos not loaded before the products page', await q.evaluate(() => !VIS.initialized));
-    ok('site memo links to the company news', await q.$eval('#memoSite', e => !e.disabled && e.getAttribute('href') === '#/rybex/news' && /Otwórz stronę firmy Rybex/.test(e.textContent)));
+    ok('site memo links to the company news', await q.$eval('#memoSite', e => !e.disabled && e.getAttribute('href') === '#/rybex/news' && /Otwórzcie stronę firmy Rybex/.test(e.textContent)));
     await q.click('#memoSite'); await q.waitForFunction(() => S.view === 'rybex', null, { timeout: 3000 }).catch(() => {}); ok('site memo link opens the news page', await q.evaluate(() => S.view === 'rybex' && S.sub.rybex === 'news'));
     await q.goto(q.url().replace(/#.*/, '#/home')); await q.waitForFunction(() => S.view === 'home');
     await q.evaluate(() => { const x = JSON.parse(localStorage.getItem(STORE_KEY)); x.view = 'home'; x.sub = { demos: 'life', lab: 'vision' }; localStorage.setItem(STORE_KEY, JSON.stringify(x)); });
@@ -1469,6 +1469,33 @@ try {
       await seed(p, () => { const t = team(); t.onboardedAt = 'x'; t.site.newsRead = true; }); await p.evaluate(() => go('home'));
       ok('a11y a forward next step keeps "Next step"', /Next step: /.test(await p.$eval('#pathBar .pb-txt', e => e.textContent)));
       ok('a11y no page errors (cleanup)', !p.errs.length, p.errs.join('|')); await p.close(); }
+  }
+
+  // ─── Task 21b review: buttons address the team in the plural; vision recap number agreement ───
+  if (run('copy')) {
+    const p = await fresh('#/home');
+    await seed(p, () => { const t = team(); t.name = 'X'; t.track = 'vision'; });
+    // Visible button labels of three or more words must not start with a second-person-singular imperative.
+    const SG = /^(Uruchom|Zapisz|Wstaw|Odsłoń|Ukryj|Eksportuj|Wróć) /;
+    const labels = () => p.$$eval('button', es => es.filter(e => e.offsetParent !== null).map(e => e.textContent.replace(/\s+/g, ' ').trim()).filter(t => t.split(' ').length >= 3));
+    for (const k of ['vision', 'rag', 'complaints', 'forecast', 'maint']) {
+      await p.evaluate(k => go('lab', k), k); await p.waitForTimeout(200);
+      const r = await labels();
+      ok(`copy ${k} rules view: no singular imperative on a 3+ word button`, r.length > 0 && !r.some(t => SG.test(t)), r.filter(t => SG.test(t)).join(' | '));
+      const sw = await p.$('#ragGen button[data-g=llm], #visMethod button[data-m=llm], #cMethod button[data-m=llm]');
+      if (sw) { await sw.click(); await p.waitForSelector('#aiBar'); const m = await labels();
+        ok(`copy ${k} model view: no singular imperative on a 3+ word button`, m.length > 0 && !m.some(t => SG.test(t)), m.filter(t => SG.test(t)).join(' | ')); }
+    }
+    await p.evaluate(() => enterExample()); await p.waitForSelector('#exampleExit');
+    ok('copy example exit button is plural', await p.$eval('#exampleExit', e => e.textContent.trim()) === 'Wróćcie do swojej pracy');
+    await p.evaluate(() => exitExample());
+    const r = await p.evaluate(() => { S.lang = 'pl'; return [[1, 2, 0], [5, 5, 5], [22, 0, 22]].map(([tp, fp, fn]) => recapText('vision', { tp, fp, fn }, { set: 'val', n: 60 })); });
+    ok('copy vision recap (1,2,0)', r[0].includes('alarm 3 razy: 1 puszka była naprawdę wadliwa, 2 były dobre (fałszywe alarmy)') && r[0].includes('Nie przegapił żadnej wadliwej puszki.'), r[0]);
+    ok('copy vision recap (5,5,5)', r[1].includes('5 puszek było naprawdę wadliwych') && r[1].includes('5 było dobrych (fałszywe alarmy)') && r[1].includes('Przegapił 5 wadliwych puszek'), r[1]);
+    ok('copy vision recap (22,0,22)', r[2].includes('22 puszki były naprawdę wadliwe') && r[2].includes('fałszywych alarmów nie było') && r[2].includes('Przegapił 22 wadliwe puszki'), r[2]);
+    const one = await p.evaluate(() => [recapText('vision', { tp: 0, fp: 1, fn: 0 }, { set: 'val', n: 60 }), recapText('vision', { tp: 0, fp: 2, fn: 0 }, { set: 'val', n: 60 })]);
+    ok('copy vision recap: one alarm reads "alarm raz", two false ones "oba"', one[0].includes('podniósł alarm raz: puszka była dobra') && one[1].includes('oba dotyczyły dobrych puszek'), one.join(' | '));
+    ok('copy no page errors', !p.errs.length, p.errs.join('|')); await p.close();
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

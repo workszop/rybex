@@ -26,6 +26,8 @@ CC='class-code' node tools/record-replay.mjs
 CC=test-code AI=http://127.0.0.1:8800/mock OUT=/tmp/replay-mock.json node tools/record-replay.mjs
 ```
 
+The dry run checks that the tool still drives every lab to the end. With `AI` set, `OUT` is required and may not be the repository's `replay.json`, and the tool stops before any call if the app does not use the given URL (the app accepts only a localhost `?ai=`). Its request keys should match `replay.json` except for the LLM-judge requests, which embed the mock's answers.
+
 ## Guided path
 
 A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
@@ -49,11 +51,11 @@ What participants meet along the way:
 - In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a short written justification of the method choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
-- "Porównaj dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
+- "Porównajcie dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
 - Risk cards on a sixth demo tab, "Ryzyka" (personal data, hallucination, AI Act, bias, prompt injection), told through fictional Rybex staff.
 - Four go-live decisions on the architecture page (where the model runs, who may stop the line, what is monitored, how often it is reviewed). Each answer shows its cost at once. For the complaints and knowledge-assistant tracks, choosing the cloud or hybrid option without the "Anonimizacja danych osobowych" (personal-data anonymisation) component in the diagram shows a privacy warning with a button that adds the component or switches to local processing.
 - Nine badges (baseline saved, baseline beaten, fair test and others), announced when earned.
-- "Pokaż przykład zespołu" (Show an example team): a read-only preview of a finished, deliberately imperfect forecast project. The team's own work is not touched, the model does not run and report export is off while the example is shown.
+- "Pokażcie przykład zespołu" (Show an example team): a read-only preview of a finished, deliberately imperfect forecast project. The team's own work is not touched, the model does not run and report export is off while the example is shown.
 
 ## Company site
 
