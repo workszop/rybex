@@ -1301,6 +1301,7 @@ try {
     await u.goto(u.url().replace(/#.*/, '#/trainer')); await u.waitForTimeout(150);
     ok('trainer route closed without the flag', await u.evaluate(() => S.view !== 'trainer' && !document.querySelector('#trSlots')));
     await u.close();
+    { const c = await fresh('#/trainer'); ok('trainer cold load without the flag is not the trainer view', await c.evaluate(() => S.view !== 'trainer' && !document.querySelector('#trSlots') && !location.hash.includes('trainer'))); await c.close(); }
     const p = await fresh('#/trainer', '&trainer=1');
     ok('trainer view with eight slots', await p.$$eval('#trSlots tbody tr', e => e.length) === 8 && await p.evaluate(() => document.body.dataset.trainer === 'true' && S.view === 'trainer'));
     ok('trainer intro text verbatim', await p.$eval('#trIntro', e => e.textContent.trim()) === 'Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, kto zrobił baseline, ile razy oglądano test i czy uzupełniono uzasadnienie. Nie porównujemy surowego F1 na teście na forum grupy.');
@@ -1317,16 +1318,30 @@ try {
     await p.setInputFiles('#trImport', [file({ name: 'Szprot', track: 'vision', log: [{ track: 'vision', base: true }], lab: { vision: { testViews: 4 } } }), file({ name: 'Makrela', track: 'rag' }), { name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{nope') }, { name: 'other.json', mimeType: 'application/json', buffer: Buffer.from('{"app":"x","data":{}}') }]);
     await p.waitForFunction(() => document.querySelectorAll('#trFiles tbody tr').length === 2);
     ok('two valid files listed, bad one reported, slots untouched', slot0 === await p.evaluate(() => JSON.stringify(S.teams)) && store0 === await p.evaluate(() => localStorage.getItem(STORE_KEY)));
+    await p.waitForFunction(() => document.querySelector('#trStatus').textContent.trim() !== '');
+    ok('trfix focus back on the file input after an import', await p.evaluate(() => document.activeElement && document.activeElement.id === 'trImport'));
     ok('bad files named in the status line', await p.$eval('#trStatus', e => e.getAttribute('aria-live') === 'polite' && /bad\.json/.test(e.textContent) && /other\.json/.test(e.textContent) && !/Szprot\.json/.test(e.textContent)));
     ok('summary shows baseline and test views, not test scores', await p.$eval('#trFiles', e => /Szprot/.test(e.textContent) && e.querySelector('[data-col=testViews]').textContent.trim() === '4' && !e.querySelector('[data-col=testScore], [data-col=f1], [data-col=acc]')));
     ok('summary fields', await p.evaluate(() => { const s = teamSummary(defaultTeam()); return ['name', 'track', 'steps', 'baseline', 'why', 'experiments', 'testViews', 'quizFirst', 'quizDone', 'risks', 'decisions', 'noteCount', 'newsRead'].every(k => k in s); }));
     await p.setInputFiles('#trImport', [file({ name: 'Szprot2', track: 'vision' }, 'Szprot.json')]);
     await p.waitForFunction(() => /Szprot2/.test(document.querySelector('#trFiles').textContent));
     ok('same file name replaces its row', await p.$$eval('#trFiles tbody tr', e => e.length) === 2 && await p.evaluate(() => X.trFiles.length === 2));
+    await p.setInputFiles('#trImport', [file({ name: '=1+1', track: 'rag' }, 'f1.json'), file({ name: '-Szprot', track: 'rag' }, 'f2.json'), file({ name: 'A;"B"', track: 'rag' }, 'f3.json'), { name: 'big.json', mimeType: 'application/json', buffer: Buffer.alloc(5 * 1024 * 1024 + 1, 32) }]);
+    await p.waitForFunction(() => document.querySelectorAll('#trFiles tbody tr').length === 5);
+    ok('trfix oversized file reported by name', await p.$eval('#trStatus', e => /big\.json/.test(e.textContent) && /5 MB/.test(e.textContent)));
+    await p.evaluate(() => trImport([{ name: 'broken.json', size: 10, text: () => Promise.reject(new Error('io')) }, new File([JSON.stringify({ app: 'rybex-ai-workshop', data: { name: 'Leszcz' } })], 'ok2.json')]));
+    ok('trfix unreadable file reported, the rest still loaded', await p.$eval('#trStatus', e => /broken\.json/.test(e.textContent)) && await p.evaluate(() => X.trFiles.some(f => f.file === 'ok2.json')));
+    await p.evaluate(() => { S.lang = 'en'; save(); render(); });
+    ok('trfix status line follows the language', await p.$eval('#trStatus', e => /Skipped|loaded/i.test(e.textContent) && !/Pominięto|Wczytano/.test(e.textContent)));
+    await p.evaluate(() => { S.lang = 'pl'; save(); render(); });
     await p.evaluate(() => { S.ai.code = 'SECRET-CODE-123'; save(); team().track = 'rag'; render(); });
     const [d] = await Promise.all([p.waitForEvent('download'), p.click('#trCsv')]);
     const csv = (await (await import('node:fs')).promises.readFile(await d.path())).toString('utf8');
     ok('csv has BOM, semicolons, both tables, tak/nie, no code', csv.charCodeAt(0) === 0xFEFF && /Zespół;/.test(csv) && /Dorsz/.test(csv) && /Makrela/.test(csv) && /;tak;/.test(csv) && /;nie;/.test(csv) && !csv.includes('SECRET-CODE-123') && !/lepiej/.test(csv), csv.slice(0, 300));
+    const cells = csv.replace(/^\uFEFF/, '').split('\r\n').filter(Boolean).flatMap(l => { const r = []; let c = '', q = false; for (const ch of l) { if (q === 'end') { if (ch === '"') { c += '"'; q = true; } else if (ch === ';') { r.push(c); c = ''; q = false; } } else if (q) { if (ch === '"') q = 'end'; else c += ch; } else if (ch === '"' && c === '') q = true; else if (ch === ';') { r.push(c); c = ''; } else c += ch; } r.push(c); return r; });
+    ok('trfix csv neutralises formula cells', /(^|;)"'=1\+1 – f1\.json"/m.test(csv) && /(^|;)"'-Szprot – f2\.json"/m.test(csv), csv.split('\r\n').filter(l => /f[12]\.json/.test(l)).join(' | '));
+    ok('trfix csv keeps ; and " in one cell', cells.includes('A;"B" – f3.json'));
+    ok('trfix no n/m cells in the csv', !cells.some(c => /^\d+\/\d+$/.test(c)), cells.filter(c => /^\d+\/\d+$/.test(c)).slice(0, 3).join(','));
     ok('class code never in trainer view', await p.evaluate(() => !document.querySelector('#main').innerHTML.includes('SECRET-CODE-123')));
     ok('class code never in exports', await p.evaluate(() => ![reportMD(), reportHTML(), JSON.stringify({ data: team() })].some(x => x.includes('SECRET-CODE-123'))));
     ok('flag not persisted', await p.evaluate(() => !localStorage.getItem(STORE_KEY).includes('trainer')));
@@ -1337,7 +1352,8 @@ try {
     await p.evaluate(() => { location.hash = '#/trainer'; }); await p.waitForTimeout(150);
     ok('trainer view not reachable from the example', await p.evaluate(() => S.example && S.view !== 'trainer') && await p.$eval('#trChip', e => getComputedStyle(e).display === 'none'));
     await p.evaluate(() => exitExample()); await p.evaluate(() => go('trainer')); await p.waitForTimeout(100);
-    ok('example copy never listed as a slot', await p.$$eval('#trSlots tbody tr', e => e.length === 8 && !e.some(r => /przykład|example/i.test(r.dataset.slot || ''))));
+    const exName = await p.evaluate(() => EXAMPLE_TEAM().name);
+    ok('example copy never listed as a slot', !!exName && await p.$$eval('#trSlots tbody tr', (e, n) => e.length === 8 && !e.some(r => r.cells[0].textContent.includes(n)), exName), exName);
     ok('trainer no page errors', p.errs.length === 0, p.errs.join('|'));
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }

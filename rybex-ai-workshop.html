@@ -2717,7 +2717,8 @@ function teamSummary(t){const k=t.track,ps=pathState(t),tl=k?testLabOf(t,k):null
   quizDone:Object.keys(Q).filter(q=>quizDone(t,q)).length,quizOf:Object.keys(Q).length,risks:riskCount(t),risksOf:RISK_SCENARIOS().length,
   decisions:goLiveCount(t),decisionsOf:GO_LIVE_DECISIONS(t).length,noteCount:t.log.filter(l=>typeof l.note==='string'&&l.note.trim()).length,newsRead:!!t.site.newsRead}}
 // Column key, header, cell text; booleans carry data-v. Shared by the tables and the CSV.
-function trCols(){const yn=v=>v==null?'–':v?T('tak','yes'):T('nie','no'),of=(a,b)=>`${a}/${b}`;return[
+// csv: counts read as text "3 z 9" (Excel turns 3/9 into a date).
+function trCols(csv){const yn=v=>v==null?'–':v?T('tak','yes'):T('nie','no'),of=(a,b)=>csv?T(`${a} z ${b}`,`${a} of ${b}`):`${a}/${b}`;return[
  ['track',T('Zadanie','Task'),s=>s.track?trackName(s.track):'–'],['steps',T('Kroki ścieżki','Path steps'),s=>of(s.steps,s.stepsOf)],
  ['baseline',T('Baseline zapisany','Baseline saved'),s=>yn(s.baseline),1],['beaten',T('Baseline pobity (strojenie)','Baseline beaten (tuning set)'),s=>yn(s.beaten),1],
  ['why',T('Uzasadnienie','Justification'),s=>yn(s.why),1],['experiments',T('Eksperymenty','Experiments'),s=>String(s.experiments)],
@@ -2731,23 +2732,35 @@ const trSlotRows=()=>Array.from({length:TEAM_COUNT},(_,i)=>{const n=i+1,t=Object
 const trFileRows=()=>(X.trFiles||[]).map(f=>{const s=teamSummary(f.team);return[{file:f.file},`${s.name||T('(bez nazwy)','(no name)')} – ${f.file}`,s]});
 function trTable(id,first,rows,empty){const C=trCols();
  return`<div class="tscroll"><table id="${id}"><thead><tr><th scope="col">${first}</th>${C.map(c=>`<th scope="col">${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(([a,h,s])=>`<tr ${Object.entries(a).map(([k,v])=>`data-${k}="${esc(String(v))}"`).join(' ')}><td>${esc(h)}</td>${C.map(c=>`<td data-col="${c[0]}"${c[3]?` data-v="${s[c[0]]}"`:''}>${esc(c[2](s))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${rows.length?'':`<p class="hint" id="${id}Empty">${empty}</p>`}`}
-function trCSV(){const C=trCols(),q=v=>/[;"\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v,line=a=>a.map(x=>q(String(x))).join(';'),
+// A cell that a spreadsheet would read as a formula (= + - @ tab CR first) gets a leading apostrophe and quotes.
+function trCSV(){const C=trCols(true),q=v=>{const f=/^[=+\-@\t\r]/.test(v);if(f)v="'"+v;return f||/[;"\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v},line=a=>a.map(x=>q(String(x))).join(';'),
   part=(title,first,rows)=>[line([title]),line([first,...C.map(c=>c[1])]),...rows.map(([,h,s])=>line([h,...C.map(c=>c[2](s))]))];
  return'﻿'+[...part(T('Lokalne sloty','Local slots'),T('Zespół','Team'),trSlotRows()),'',...part(T('Wczytane pliki','Imported files'),T('Zespół – plik','Team – file'),trFileRows())].join('\r\n')+'\r\n'}
+// X.trRes keeps what happened (counts, skipped names and reasons); trMsg() words it in the current language.
+const TR_MAX=5*1024*1024;
+function trMsg(){const r=X.trRes;if(!r)return'';if(r.cleared)return T('Lista wyczyszczona.','List cleared.');
+ const why={json:T('nieprawidłowy JSON','invalid JSON'),app:T('to nie plik zespołu z tej aplikacji','not a team file from this app'),read:T('nie udało się odczytać pliku','the file could not be read'),big:T('plik większy niż 5 MB','file larger than 5 MB')};
+ return`${T(`Wczytano plików: ${r.n}.`,`Files loaded: ${r.n}.`)}${r.bad.length?' '+T('Pominięto','Skipped')+': '+r.bad.map(([n,w])=>`${n} (${why[w]})`).join(', ')+'.':''}`}
 async function trImport(files){const bad=[];let n=0;X.trFiles=X.trFiles||[];
- for(const f of files){let o;try{o=JSON.parse(await f.text())}catch(e){bad.push(`${f.name} (${T('nieprawidłowy JSON','invalid JSON')})`);continue}
-  if(!isObj(o)||o.app!==APP_ID||!isObj(o.data)){bad.push(`${f.name} (${T('to nie plik zespołu z tej aplikacji','not a team file from this app')})`);continue}
+ for(const f of files){let txt,o;if(f.size>TR_MAX){bad.push([f.name,'big']);continue}
+  try{txt=await f.text()}catch(e){bad.push([f.name,'read']);continue}
+  try{o=JSON.parse(txt)}catch(e){bad.push([f.name,'json']);continue}
+  if(!isObj(o)||o.app!==APP_ID||!isObj(o.data)){bad.push([f.name,'app']);continue}
   const row={file:f.name,team:normTeam(o.data)},i=X.trFiles.findIndex(x=>x.file===f.name);if(i>=0)X.trFiles[i]=row;else X.trFiles.push(row);n++}
- X.trMsg=`${T(`Wczytano plików: ${n}.`,`Files loaded: ${n}.`)}${bad.length?' '+T('Pominięto','Skipped')+': '+bad.join(', ')+'.':''}`;if(S.view==='trainer')vTrainer()}
+ X.trRes={n,bad};trPaintFiles()}
+// Updates the file table, the clear button and the status line in place: the file input keeps focus and the
+// live region announces the new text.
+function trPaintFiles(){if(S.view!=='trainer'||!$('#trFilesBox'))return;$('#trFilesBox').innerHTML=trTable('trFiles',T('Zespół – plik','Team – file'),trFileRows(),T('Brak wczytanych plików.','No files loaded.'));
+ $('#trClear').disabled=!(X.trFiles||[]).length;$('#trStatus').textContent=trMsg();$('#trImport').focus()}
 function vTrainer(){const fn=X.trFiles||[];
  mainEl.innerHTML=pageHead(T('Tryb prowadzącego','Trainer mode'),'',`<p class="edu-lead" id="trIntro">${T('Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, kto zrobił baseline, ile razy oglądano test i czy uzupełniono uzasadnienie. Nie porównujemy surowego F1 na teście na forum grupy.','Trainer mode: load the team files to see who ran the baseline, how many times the test set was viewed and whether the justification was filled in. We do not compare raw test-set F1 in front of the group.')}</p>`)
   +`<section class="sec"><h2 class="sr-only">${T('Postęp zespołów','Team progress')}</h2><div class="wrap">`+card('users',T('Zespoły na tej przeglądarce (sloty 1–8)','Teams in this browser (slots 1–8)'),trTable('trSlots',T('Zespół','Team'),trSlotRows(),''),{tone:'blue'})
   +`<div class="mt">${card('upload',T('Wczytane pliki zespołów','Imported team files'),`<p class="edu-small">${T('Wybierz kilka plików JSON naraz. Pliki zostają tylko w pamięci tej karty: nie trafiają do żadnego slotu i znikają po zamknięciu strony. Ten sam plik wczytany ponownie zastępuje swój wiersz.','Select several JSON files at once. The files stay only in this tab’s memory: they are not written to any slot and are gone when the page closes. Loading the same file again replaces its row.')}</p>
  <div class="field mt"><label for="trImport">${T('Pliki zespołów (JSON)','Team files (JSON)')}</label><input type="file" id="trImport" class="input" accept="application/json,.json" multiple></div>
- <p class="hint" id="trStatus" aria-live="polite">${esc(X.trMsg||'')}</p><div class="mt">${trTable('trFiles',T('Zespół – plik','Team – file'),trFileRows(),T('Brak wczytanych plików.','No files loaded.'))}</div>`,{tone:'yellow',foot:`<button type="button" class="btn-ghost btn-sm" id="trClear"${fn.length?'':' disabled'}>${ic('trash-2')}${T('Wyczyść listę','Clear the list')}</button>`})}</div>`
+ <p class="hint" id="trStatus" aria-live="polite">${esc(trMsg())}</p><div class="mt" id="trFilesBox">${trTable('trFiles',T('Zespół – plik','Team – file'),trFileRows(),T('Brak wczytanych plików.','No files loaded.'))}</div>`,{tone:'yellow',foot:`<button type="button" class="btn-ghost btn-sm" id="trClear"${fn.length?'':' disabled'}>${ic('trash-2')}${T('Wyczyść listę','Clear the list')}</button>`})}</div>`
   +`<div class="mt">${card('download',T('Eksport','Export'),`<p class="edu-small">${T('Plik CSV z obiema tabelami (średniki, kodowanie UTF-8) otworzy się w Excelu. Nie zawiera kodu zajęć ani notatek zespołów.','A CSV file with both tables (semicolons, UTF-8) opens in Excel. It contains no class code and no team notes.')}</p>`,{tone:'green',foot:`<button type="button" class="btn" id="trCsv">${ic('download')}${T('Pobierz CSV','Download CSV')}</button>`})}</div></div></section>`;
  $('#trImport').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)trImport(f)};
- $('#trClear').onclick=()=>{X.trFiles=[];X.trMsg=T('Lista wyczyszczona.','List cleared.');vTrainer();$('#trImport').focus()};
+ $('#trClear').onclick=()=>{X.trFiles=[];X.trRes={cleared:true};trPaintFiles()};
  $('#trCsv').onclick=()=>dl('rybex_trainer.csv',trCSV(),'text/csv;charset=utf-8');
  icons(mainEl)}
 // ─── Listeners ───
