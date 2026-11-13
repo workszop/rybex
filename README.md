@@ -26,7 +26,7 @@ CC='class-code' node tools/record-replay.mjs
 
 ## Guided path
 
-A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu and the keys `1`–`7` always work. The nine steps (`PATH_STEPS`, Polish label first):
+A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
 
 1. Przydział i strona firmy (Team set-up and the company) – read the incident memo, enter the team name, read the notice about the returned lot on the company site.
 2. Cykl projektu (Project lifecycle) – the lifecycle demo and its quiz.
@@ -44,7 +44,7 @@ What participants meet along the way:
 - Glossary terms underlined in the text, with a tooltip on hover or keyboard focus.
 - A plain-language recap of each result with two headline numbers; the other metrics (F1, accuracy, the confusion matrix and so on) are folded under "Więcej miar" (More metrics).
 - Two-question quizzes after the demos (lifecycle, tokens, RAG, data split, metrics).
-- In every lab, a "Uruchom metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a written justification of the method choice (at least one sentence). Old team files whose test set was already revealed or viewed stay revealed.
+- In every lab, a "Uruchom metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline and a short written justification of the method choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównaj dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
@@ -67,7 +67,7 @@ Team files are JSON with `version: 3` (`FILE_VERSION`). Version 3 adds the path,
 
 ### Trainer mode
 
-Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It is a convenience, not access control: any participant who knows the parameter can add it to the address. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes and news read, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
+Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It is a convenience, not access control: any participant who knows the parameter can add it to the address. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show the task, path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes and news read, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
 
 ## Tests
 
