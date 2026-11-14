@@ -73,6 +73,14 @@ Team files are JSON with `version: 3` (`FILE_VERSION`). Version 3 adds the path,
 
 Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/trainer`). The flag is never saved: a reload without it is the participant view. It is a convenience, not access control: any participant who knows the parameter can add it to the address. It adds a "Tryb prowadzącego" chip in the header that opens `#/trainer`, where the trainer sees the progress of the eight local team slots of this browser and of team files imported from the participants' laptops (select several JSON files at once; they stay in memory only and are never written to a slot). The tables show the task, path steps, baseline saved and beaten on the tuning set, justification, experiments, test views, quizzes, risk cards, go-live decisions, notes, news read, intranet opened and contact form sent, never a test-set score; "Pobierz CSV" exports both tables for Excel. The `replay.json` download in the AI panel and the skipping of the reveal gate and of the note requirement are also trainer-only. The class code never appears in the trainer view, the CSV, reports or team files.
 
+## Presentation
+
+The Polish workshop deck is `prezentacja.html`, served at `https://rybex.warsztaty-ai.com/prezentacja.html`. Press `F` for full screen and `S` for the speaker view.
+
+Four `[uzupełnij: …]` placeholders on slides 1, 23, 25 and 27 must be filled in before each workshop; `node tests/presentation.mjs facts` lists them.
+
+The screenshots in `assets/presentation/` come from the real app. Refresh them with `node tools/presentation-shots.mjs` (modes `base`, `ai`, `all`). The two AI shots need the class code and spend a few cents of class budget: `CC=<class code> node tools/presentation-shots.mjs ai`. The class server caches identical requests, so a retake on the same day as the previous one is refused by the tool when the run comes back cached; change the prompt sentence in `aiShots` and run again.
+
 ## Tests
 
 ```bash
@@ -82,6 +90,7 @@ node ai.mjs                # app probes against a mock Worker (no real calls)
 node vision-realistic.mjs  # photo asset loading and fallback
 node worker.mjs            # Worker contract against a mock OpenRouter
 node guided.mjs [section]  # guided path probes; run one or more sections by name
+node presentation.mjs [section]  # slide deck probes (shots ai deck facts); `ai` spends class budget and needs CC=<class code>
 ```
 
 `guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
