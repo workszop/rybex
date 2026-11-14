@@ -1,6 +1,6 @@
 # AI Project Lab – Rybex
 
-Workshop app for running an AI project end to end for Rybex, a fictional canned-fish manufacturer: task choice, data, method, prototype, evaluation and report. It is built as a guided simulation for non-technical participants: an incident to solve, a recommended nine-step path, a fictional company website and short checks along the way. Polish and English.
+Workshop app for running an AI project end to end for Rybex, a canned-fish manufacturer: task choice, data, method, prototype, evaluation and report. It is built as a guided simulation for non-technical participants: an incident to solve, a recommended nine-step path, a company website and short checks along the way. Polish and English.
 
 **Open:** https://workszop.github.io/rybex/
 
@@ -52,17 +52,17 @@ What participants meet along the way:
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównajcie dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
-- Risk cards on a sixth demo tab, "Ryzyka" (personal data, hallucination, AI Act, bias, prompt injection), told through fictional Rybex staff.
+- Risk cards on a sixth demo tab, "Ryzyka" (personal data, hallucination, AI Act, bias, prompt injection), told through Rybex staff.
 - Four go-live decisions on the architecture page (where the model runs, who may stop the line, what is monitored, how often it is reviewed); who may stop the line and what is monitored are worded for the team's track. Each answer shows its cost at once. For the complaints and knowledge-assistant tracks, choosing the cloud or hybrid option without the "Anonimizacja danych osobowych" (personal-data anonymisation) component in the diagram shows a privacy warning with a button that adds the component or switches to local processing.
 - Nine badges (baseline saved, baseline beaten, fair test and others), announced when earned.
 - "Pokażcie przykład zespołu" (Show an example team): a read-only preview of a finished, deliberately imperfect forecast project. The team's own work is not touched, the model does not run and report export is off while the example is shown.
 
 ## Company site
 
-The route `#/rybex/<page>` shows a fictional Rybex website inside a frame, with a back button to the workshop. Pages (`RYBEX_PAGES`): `home`, `about`, `products`, `quality`, `news`, `contact`, `career`, `intranet`. Every page carries the banner "Rybex jest firmą fikcyjną, utworzoną na potrzeby szkolenia. Wszystkie osoby, miejsca i zdarzenia są wymyślone." It is not a menu item; the path bar and links in the app lead to it.
+The route `#/rybex/<page>` shows the Rybex website inside a frame, with a back button to the workshop. Pages (`RYBEX_PAGES`): `home`, `about`, `products`, `quality`, `news`, `contact`, `career`, `intranet`. It is not a menu item; the path bar and links in the app lead to it.
 
 - The contact form writes to the team's inbox (`team().inbox`, at most 20 entries). The inbox is shown in the complaints lab ("Zgłoszenia z formularza www"), where only the team's keyword rules classify it. It is kept apart from the 60 evaluation complaints: never part of the dev or test set and never sent in model runs.
-- The intranet page shows requests from fictional staff that link to the labs, the process documents and the inbox count.
+- The intranet page shows requests from Rybex staff that link to the labs, the process documents and the inbox count.
 - The product images are `assets/products/*.webp` (four packshots), used only by the site. If one cannot load, a neutral tile with the product name takes its place.
 
 ## Team files

@@ -48,7 +48,7 @@ const baselineAndGate = async (p, runSel = '#runBase') => {
 const SHOTS = [
   { id: 'site-home', hash: '#/rybex/home', ai: false, el: null,
     seed: p => seedTeam(p, { site: { newsRead: false } }),
-    alt: 'Strona główna fikcyjnej firmy Rybex, producenta konserw rybnych, w ramce przeglądarki.' },
+    alt: 'Strona główna firmy Rybex, producenta konserw rybnych, w ramce przeglądarki.' },
   { id: 'site-news', hash: '#/rybex/news', ai: false, el: null,
     seed: p => seedTeam(p, {}),
     alt: 'Strona firmy Rybex z aktualnością o partii konserw zwróconej przez sieć handlową.' },
