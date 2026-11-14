@@ -1911,7 +1911,13 @@ ok('story site preview is a still picture with one working button', await p.$eva
         oksOf(r).forEach(re => { if (!ps.some(t => re.test(t))) out.unmatched.push(r.q[li]); }); if (r.bad && !(arch && arch.p[li].some(t => r.bad.test(t))) && !ps.some(t => r.bad.test(t))) out.badMiss.push(r.q[li]);
         if (r.type === 'version' && !(arch && arch.p[li].some(t => r.bad.test(t)))) out.badMiss.push('archive: ' + r.q[li]); }
       if (out.good) { const v = RQ.find(r => r.type === 'version'), m = RQ.find(r => r.type === 'multi'), li = 0, cur = byId(v.doc).p[li].find(t => v.ok.test(t)), old = arch.p[li].find(t => v.bad.test(t)), parts = m.doc.map((id, i) => byId(id).p[li].find(t => m.ok[i].test(t)));
-        out.rule = { cur: rqGood(v, cur), old: rqGood(v, old), both: rqGood(v, cur + ' ' + old), one: rqGood(m, parts[0]), all: rqGood(m, parts.join(' ')), empty: rqGood(v, '') || rqGood(v, null), oos: rqGood(RQ.find(r => r.oos), 'x') }; }
+        out.rule = { cur: rqGood(v, cur), old: rqGood(v, old), both: rqGood(v, cur + ' ' + old), one: rqGood(m, parts[0]), all: rqGood(m, parts.join(' ')), empty: rqGood(v, '') || rqGood(v, null), oos: rqGood(RQ.find(r => r.oos), 'x') };
+        const q = re => RQ.find(r => r.ok instanceof RegExp && r.ok.source === re), sp = q('120'), vib = RQ.find(r => /drgań/.test(r.q[0])), rm = RQ.find(r => /rozmaza/.test(r.q[0]));
+        Object.assign(out.rule, { archNote: rqGood(v, 'Szew kontroluje się co 30 minut. Wersja ARCH-01 o kontroli co 60 minut jest archiwalna i nie obowiązuje.'), archNoteEn: rqGood(v, 'The seam is inspected every 30 minutes; the archived version said every 60 minutes.'),
+          oldAsCur: rqGood(v, 'Szew kontroluje się co 60 minut; wcześniej co 30 minut.'), oldAsCurEn: rqGood(v, 'The seam is inspected every 60 minutes, previously every 30 minutes.'),
+          backTo: rqGood(sp, 'Najwyżej 120 puszek na minutę, a powrót do zwykłej nastawy (300 puszek na minutę) dopiero na polecenie brygadzisty.'), speedCur: rqGood(sp, 'Zamykarka pracuje z prędkością 300 puszek na minutę, wcześniej 120.'),
+          vib: ['gdy drgania przekroczą 4 mm/s', 'drgania ponad 4 mm/s', 'powyżej 4 mm/s', 'when vibration exceeds 4 mm/s', 'over 4 mm/s'].every(a => rqGood(vib, a)), vibWarn: rqGood(vib, 'drgania między 3 a 4 mm/s'),
+          remark: rqGood(rm, 'Such cans are held and sent for re-marking.') && rqGood(rm, 'They are remarked once.'), remarks: rqGood(rm, 'Hand over your remarks to the relief operator.') }); }
       return out; });
     ok('ragdata at least 10 documents with valid, unique ids, the old five kept', d.docs >= 10 && d.ids && d.old, JSON.stringify([d.docs, d.ids, d.old]));
     ok('ragdata every document: 8+ paragraphs of 2+ sentences, equal counts in PL and EN', d.shape.length === 0, d.shape.join());
@@ -1923,6 +1929,8 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('ragdata example chips and the challenge question stay in the tuning set', d.chips && d.firstOos);
     ok('ragdata no em-dash and no straight or English quotes in the Polish documents', !d.dash && d.plQuotes);
     ok('ragdata rqGood: all facts required, an archived value is wrong', d.good && d.rule.cur === true && d.rule.old === false && d.rule.both === false && d.rule.one === false && d.rule.all === true && d.rule.empty === false && d.rule.oos === false, JSON.stringify(d.rule));
+    ok('ragdata rqGood: an old value marked as archived or as the normal setting is not held against the answer; given as current it still is', d.rule.archNote === true && d.rule.archNoteEn === true && d.rule.backTo === true && d.rule.oldAsCur === false && d.rule.oldAsCurEn === false && d.rule.speedCur === false, JSON.stringify(d.rule));
+    ok('ragdata rqGood: „przekroczą/ponad/powyżej 4 mm/s” and "exceeds/over/above" count, the warning band does not; "re-marking" counts, "remarks" does not', d.rule.vib === true && d.rule.vibWarn === false && d.rule.remark === true && d.rule.remarks === false, JSON.stringify(d.rule));
     // Calibration on the tuning set, both languages: the literal baseline clearly weakest, TF-IDF in the middle, the sliders matter, nothing is perfect.
     const cal = await p.evaluate(() => { const out = {}, keep = S.lang; for (const lang of ['pl', 'en']) { S.lang = lang; const def = ragEval({ k: 2, chunk: 1, min: .12 }), grid = [];
         for (const k of [1, 2, 3, 4, 5]) for (const chunk of [1, 2, 3, 4]) for (const min of [.05, .12, .2]) grid.push(ragEval({ k, chunk, min }).ok);
