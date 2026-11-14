@@ -3112,25 +3112,32 @@ function bestRun(t,k){const e=t.log.filter(l=>l.track===k&&!l.base&&l.res&&isObj
  // Forecast runs differ in product and horizon, so the raw lowest MAPE would just pick the easiest data; rank by error relative to the same data's historical mean instead.
  const rel=x=>{const p=x.res.primary;return k==='forecast'&&typeof p.base==='number'&&p.base>0?p.v/p.base:p.v};
  if(!dev.length){const b=e.reduce((a,x)=>better(rel(x),rel(a))?x:a);return{entry:b,dev:null,test:null,testEntry:testScore(b)!=null?b:null}}
- const b=dev.reduce((a,x)=>better(devScore(x),devScore(a))?x:a),te=testScore(b)!=null?b:[...e].reverse().find(x=>x!==b&&cfgKey(x)===cfgKey(b)&&testScore(x)!=null)||null;
- return{entry:b,dev:devScore(b),test:te?testScore(te):null,testEntry:te}}
+ const b=dev.reduce((a,x)=>better(devScore(x),devScore(a))?x:a);
+ // Once a result is saved with the test revealed, that configuration is the team's final one: the report shows it, never a
+ // different (or tied) tuning-set winner that would need a second look at the test.
+ const te=[...e].reverse().find(x=>testScore(x)!=null);
+ if(te){const de=devScore(te)!=null?te:[...e].reverse().find(x=>cfgKey(x)===cfgKey(te)&&devScore(x)!=null)||null,dv=de?devScore(de):null;
+  return{entry:de||te,dev:dv,test:testScore(te),testEntry:te,final:true,other:b!==de&&cfgKey(b)!==cfgKey(te)&&(dv==null||better(devScore(b),dv))?b:null}}
+ return{entry:b,dev:devScore(b),test:null,testEntry:null}}
 const BEST_METRIC=k=>({vision:'F1',complaints:T('trafność','accuracy'),rag:T('poprawne odpowiedzi','correct answers')})[k]||'';
 const LOST_TEST=()=>T('Zespół odsłonił zbiór testowy, ale nie zapisał wyniku końcowego.','The team revealed the test set but did not save a final result.');
 // Test views on the team's track and whether an entry saved with the test revealed exists (null on tracks without a hidden test).
 function testFacts(t,k){const L=k?testLabOf(t,k):null;if(!L)return null;const n=L.testViews,saved=t.log.some(l=>l.track===k&&cmpTestSaved(l));return{n,lost:n>0&&!saved}}
 // The baseline printed next to the best run is the like-with-like one from pairBase (for a complaints model run, primary.base holds the keyword-rules score, not the majority class).
-function bestText(k,b,lost){if(!b)return T('(brak zapisanych eksperymentów)','(no saved experiments)');const p=b.entry.res.primary,pb=pairBase(b.entry)??(typeof p.base==='number'?p.base:null),c=b.entry.cfg||{},
+function bestText(k,b,lost,seen){if(!b)return T('(brak zapisanych eksperymentów)','(no saved experiments)');const p=b.entry.res.primary,pb=pairBase(b.entry)??(typeof p.base==='number'?p.base:null),c=b.entry.cfg||{},
   base=pb==null?'':`${T('wobec','vs')} ${BASE_NAME(k,true)}: ${pct(pb)}`,views=b.testEntry&&b.testEntry.testViews?` (${T('test oglądany','test viewed')}: ${b.testEntry.testViews}×)`:'',
   data=k==='forecast'&&PRODUCTS[c.p]?` (${S.lang==='pl'?PRODUCTS[c.p][0]:PRODUCTS[c.p][1]}, ${T(`horyzont ${c.h} mies.`,`horizon ${c.h} months`)})`:'',
-  safe=k==='complaints'?complSafetyNote(b.entry):'';
+  safe=k==='complaints'?complSafetyNote(b.entry,b.final):'',m=BEST_METRIC(k),dl=k==='vision'?T('walidacja','validation'):'dev',
+  other=b.other&&devScore(b.other)!=null?`. ${T(`Na danych do strojenia najwyżej wypadł inny wariant (${cmpCfg(b.other)}): ${pct(devScore(b.other))}, ale do testu wybraliście ten powyżej – w raporcie liczy się wynik testu`,`On the tuning data another configuration scored highest (${cmpCfg(b.other)}): ${pct(devScore(b.other))}, but you took the one above to the test – the report counts the test result`)}`:'';
+ if(b.test!=null){const low=b.dev!=null&&b.test<b.dev-1e-9?` (${T('niżej niż na danych do strojenia – to normalne: ustawienia dopasowano do tamtych danych, a test pokazuje wynik na nowych','lower than on the tuning data – that is normal: the settings were fitted to that data, and the test shows the score on new data')})`:'';
+  return(b.dev!=null?`${m} (${dl}): ${pct(b.dev)} ${base}${safe} · `:`${base?base+' · ':''}`)+`${m} (test): ${pct(b.test)}${views}${low}${other}`}
  if(b.dev==null)return`${p.m}${data}: ${pct(p.v)} ${base}${views}`;
- const m=BEST_METRIC(k),dl=k==='vision'?T('walidacja','validation'):'dev';
- return`${m} (${dl}): ${pct(b.dev)} ${base}${safe} · `+(b.test!=null?`${m} (test): ${pct(b.test)}${views}${b.test<b.dev-1e-9?` (${T('niżej niż na danych do strojenia – to normalne: ustawienia dopasowano do tamtych danych, a test pokazuje wynik na nowych','lower than on the tuning data – that is normal: the settings were fitted to that data, and the test shows the score on new data')})`:''}`:lost?LOST_TEST():T('ten wariant nie był jeszcze oceniony na zbiorze testowym – wróćcie do Laboratorium, odsłońcie zbiór testowy przy tym ustawieniu i zapiszcie wynik','this configuration has not been scored on the test set yet – go back to the Build lab, reveal the test set with this setting and save the result'))}
+ return`${m} (${dl}): ${pct(b.dev)} ${base}${safe} · `+(lost?LOST_TEST():seen?T('wynik testu nie jest zapisany w dzienniku','the test result is not saved in the log'):T('zbiór testowy nie był jeszcze odsłonięty: odsłońcie go jeden raz przy wybranym ustawieniu i zapiszcie wynik','the test set has not been revealed yet: reveal it once with your chosen setting and save the result'))}
 // Food safety sits beside accuracy: the "best" run is ranked by accuracy, so say when another saved run caught more food-safety complaints.
-function complSafetyNote(e){const s=x=>{const v=(x.res||{}).safety;return typeof v==='number'?v:null},v=s(e);if(v==null)return'';
+function complSafetyNote(e,fin){const s=x=>{const v=(x.res||{}).safety;return typeof v==='number'?v:null},v=s(e);if(v==null)return'';if(fin)return ` · ${T('wykryte zgłoszenia o bezpieczeństwie żywności','food-safety complaints detected')}: ${pct(v)}`;
  const top=team().log.filter(l=>l.track==='complaints'&&!l.base&&s(l)!=null&&devScore(l)!=null).reduce((a,l)=>!a||s(l)>s(a)?l:a,null);
  return ` · ${T('wykryte zgłoszenia o bezpieczeństwie żywności','food-safety complaints detected')}: ${pct(v)}`+(top&&s(top)>v+1e-9?`. ${T(`Uwaga: inny zapisany wariant (${cmpCfg(top)}) wykrył ich więcej: ${pct(s(top))}, przy trafności ${pct(devScore(top))}`,`Note: another saved configuration (${cmpCfg(top)}) detected more of them: ${pct(s(top))}, at accuracy ${pct(devScore(top))}`)}`:'')}
-function reportFacts(){const t=team(),k=t.track,M=trMeta(),L=LANES(),title=t.name||`${T('Zespół','Team')} ${S.team}`,dec=k?t.decision[k]:null,method=k&&dec&&dec.m>=0&&M[k].methods[dec.m]?M[k].methods[dec.m][0]:null,best=k?bestRun(t,k):null,tf=testFacts(t,k),bestTxt=k?bestText(k,best,!!(tf&&tf.lost)):T('(najpierw wybierzcie zadanie zespołu w Laboratorium)','(first choose the team’s task in the Build lab)'),sel=L.map(l=>[l[1],l[2].filter(o=>t.arch.sel[o[0]]).map(o=>o[1])]).filter(x=>x[1].length);
+function reportFacts(){const t=team(),k=t.track,M=trMeta(),L=LANES(),title=t.name||`${T('Zespół','Team')} ${S.team}`,dec=k?t.decision[k]:null,method=k&&dec&&dec.m>=0&&M[k].methods[dec.m]?M[k].methods[dec.m][0]:null,best=k?bestRun(t,k):null,tf=testFacts(t,k),bestTxt=k?bestText(k,best,!!(tf&&tf.lost),!!(tf&&tf.n)):T('(najpierw wybierzcie zadanie zespołu w Laboratorium)','(first choose the team’s task in the Build lab)'),sel=L.map(l=>[l[1],l[2].filter(o=>t.arch.sel[o[0]]).map(o=>o[1])]).filter(x=>x[1].length);
  return{t,k,title,trackTxt:k?M[k].title:T('(nie wybrano)','(not chosen)'),method:method||T('(nie wybrano)','(not chosen)'),why:dec&&dec.why?dec.why:T('(brak uzasadnienia)','(no justification)'),best,bestTxt,testTxt:tf?(tf.n?T(`odsłonięty ${tf.n}×`,`revealed ${tf.n}×`):T('jeszcze nie odsłonięty','not revealed yet'))+(tf.lost&&!bestTxt.includes(LOST_TEST())?'. '+LOST_TEST():''):null,
  chTxt:Object.values(CHALLENGES()).filter(c=>Object.hasOwn(t.challenges,c.id)&&t.challenges[c.id]==='done').map(c=>c.title).join(', '),sel,
  lotH:T(`Dotyczy partii ${STORY().lot}`,`Concerns lot ${STORY().lot}`),caseTxt:caseLine(),goal:t.goal.trim()||T('(zespół nie wpisał kryterium sukcesu)','(the team did not write a success criterion)')}}

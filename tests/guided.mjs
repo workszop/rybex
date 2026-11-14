@@ -2056,6 +2056,19 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('persona rag answers are not FAQ questions; the example gets the hold rule', !/\?$/.test(ra[0]) && /wstrzymuje się/.test(ra[1]), JSON.stringify(ra));
     ok('persona fixes: no page errors', !p.errs.length, p.errs.join('|'));
     await p.close(); }
+  // Best-result line after the one-time test: the tested configuration is final; the line never asks for a second reveal.
+  { const p = await fresh('#/lab/vision');
+    const r = await p.evaluate(() => { const t = team(), out = {}, v = (id, f1, test) => ({ id, ts: '', track: 'vision', cfg: { th: { d: id } }, res: { val: { f1 }, test: test == null ? null : { f1: test }, primary: { m: 'F1', v: test ?? f1, base: 0, hi: true, test: test != null } }, note: 'n', testViews: test == null ? 0 : 1 });
+      t.track = 'vision'; t.log = [v('a', .947), v('b', .947), v('c', .947, .9)]; lab().vision.testViews = 1; out.tie = reportFacts().bestTxt;
+      t.track = 'complaints'; lab().compl.testViews = 1;
+      t.log = [{ id: 'm', ts: '', track: 'complaints', cfg: { mode: 'llm', model: 'x', ver: 'v1', shots: 0, set: 'dev' }, res: { acc: .75, safety: 5 / 9, base: .583, maj: .25, primary: { m: 'trafność modelu (dev)', v: .75, base: .583, hi: true } }, note: 'n', testViews: 0 },
+        { id: 'k', ts: '', track: 'complaints', cfg: { kw: { damage: 'x' }, safety: 'y' }, res: { dev: .639, base: .25, safety: 1, test: .708, primary: { m: 'trafność (test)', v: .708, base: .25, hi: true } }, note: 'n', testViews: 1 }];
+      out.compl = reportFacts().bestTxt; out.complBest = bestRun(t, 'complaints').testEntry.id;
+      t.log = [t.log[0]]; out.lost = reportFacts().bestTxt; lab().compl.testViews = 0; out.fresh = reportFacts().bestTxt; return out; });
+    ok('best result: tied tuning scores show the tested run, no second reveal', /F1 \(test\): 90,0/.test(r.tie) && !/odsłońcie/.test(r.tie), r.tie);
+    ok('best result: the tested keyword run is final, the better untested model run is named without advice to re-test', r.complBest === 'k' && /trafność \(test\): 70,8/.test(r.compl) && /inny wariant/.test(r.compl) && !/odsłońcie/.test(r.compl) && !/Uwaga/.test(r.compl), r.compl);
+    ok('best result: test seen but not saved says so; before any reveal it asks for one reveal', /nie zapisał wyniku końcowego/.test(r.lost) && /odsłońcie go jeden raz/.test(r.fresh), JSON.stringify([r.lost, r.fresh]));
+    await p.close(); }
   // Vision: Next on the reveal step opens the panel of the method the team ticked (pixel rules), not the model tab left open.
   { const p = await fresh('#/lab/vision');
     await p.evaluate(() => { const t = team(); t.track = 'vision'; t.decision.vision = { m: 0, why: 'Reguły są szybkie i wyjaśnialne.' }; lab().vision.method = 'llm'; save(); go('lab', 'vision'); });
