@@ -2069,6 +2069,23 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('best result: the tested keyword run is final, the better untested model run is named without advice to re-test', r.complBest === 'k' && /trafność \(test\): 70,8/.test(r.compl) && /inny wariant/.test(r.compl) && !/odsłońcie/.test(r.compl) && !/Uwaga/.test(r.compl), r.compl);
     ok('best result: test seen but not saved says so; before any reveal it asks for one reveal', /nie zapisał wyniku końcowego/.test(r.lost) && /odsłońcie go jeden raz/.test(r.fresh), JSON.stringify([r.lost, r.fresh]));
     await p.close(); }
+  // Re-test fixes: templates keep the team's safeguards and follow the vision method; the lab's own reveal button refuses the other panel; rag box counts match the data.
+  { const p = await fresh('#/arch');
+    await p.evaluate(() => { const t = team(); t.track = 'vision'; t.decision.vision = { m: 2, why: 'Model przez API jest najszybszy.' }; t.arch.sel = { hitl: true, anon: true, erp: true }; save(); go('arch'); });
+    await p.click('button[data-p=vision]');
+    const a = await p.evaluate(() => ({ ...team().arch.sel }));
+    ok('template keeps the team safeguards and drops other blocks', a.hitl && a.anon && !a.erp, JSON.stringify(a));
+    ok('vision template follows the chosen API model', a.llm && !a.cv && !a.rules, JSON.stringify(a));
+    await p.evaluate(() => { const t = team(); t.decision.vision = { m: 0, why: 'Reguły są szybkie i wyjaśnialne.' }; lab().vision.method = 'llm'; lab().vision.testViews = 0; lab().vision.revealed = false; const b = baseRun('vision'); logAdd('vision', b.cfg, b.res, b.primary, { base: true }); save(); go('lab', 'vision'); });
+    await p.click('[data-reveal=vision]'); await p.waitForTimeout(200);
+    const r = await p.evaluate(() => ({ views: lab().vision.testViews, revealed: lab().vision.revealed, msg: $('#gateMsg') ? $('#gateMsg').textContent : '' }));
+    ok('reveal from the non-chosen panel is refused with a reason', r.views === 0 && !r.revealed && /tylko raz/.test(r.msg), JSON.stringify(r));
+    await p.click('#toast button'); await p.waitForTimeout(200);
+    ok('the toast switches to the chosen panel', await p.evaluate(() => lab().vision.method !== 'llm' && lab().vision.testViews === 0));
+    const box = await p.evaluate(() => { team().track = 'rag'; save(); go('demos', 'split'); return $('#yourTask').textContent; });
+    ok('rag split box counts come from the question sets', box.includes(`${await p.evaluate(() => RQ_DEV.length)} pytań kontrolnych`) && box.includes(`${await p.evaluate(() => RQ_TEST.length)} ukrytych`), box);
+    ok('re-test fixes: no page errors', !p.errs.length, p.errs.join('|'));
+    await p.close(); }
   // Vision: Next on the reveal step opens the panel of the method the team ticked (pixel rules), not the model tab left open.
   { const p = await fresh('#/lab/vision');
     await p.evaluate(() => { const t = team(); t.track = 'vision'; t.decision.vision = { m: 0, why: 'Reguły są szybkie i wyjaśnialne.' }; lab().vision.method = 'llm'; save(); go('lab', 'vision'); });
