@@ -804,75 +804,287 @@ function buildComplaints(){const r=rng(21);return C_PLAN.map((k,i)=>{const[c,h,t
  return Object.defineProperty({id:i+1,product:pr,text:o+t.replace('{p}','„'+pr+'”')+e,category:c},'hazard',{value:!!h,enumerable:false})})}
 const DATA={sales:buildSales(),sensors:buildSensors(),compl:buildComplaints()};
 
+// Knowledge-assistant corpus: current procedures, a workstation instruction, a quality FAQ, a change memo and one archived procedure version (ARCH-01)
 const DOCS=[
+{id:'ARCH-01',t:['Kontrola szwu puszki, wersja 2 (archiwalna)','Can seam inspection, version 2 (archived)'],p:[[
+'WERSJA ARCHIWALNA, NIEOBOWIĄZUJĄCA. Wersja 2 obowiązywała od 1 marca 2024 do 31 sierpnia 2026 i została zastąpiona wersją 3 (PROCES-01). Dokument zostaje w archiwum tylko do wglądu podczas audytów.',
+'Szew puszki kontroluje się co 60 minut na każdej zamykarce. Kontrolę wykonuje operator zamykarki.',
+'Mierzy się wysokość szwu (2,9–3,1 mm) oraz grubość szwu (1,05–1,20 mm). Do pomiaru służy suwmiarka.',
+'Rozbiórkę szwu wykonuje się raz na zmianę, na początku pracy. Operator rozcina puszkę i ocenia zakładkę haków na oko, bez pomiaru.',
+'Przy odchyleniu od normy brygadzista zatrzymuje linię i izoluje puszki wyprodukowane w ostatnich 60 minutach. Odizolowane puszki przegląda zmiana, na której wykryto odchylenie.',
+'Po regulacji zamykarki linię uruchamia brygadzista. Zgoda działu jakości nie jest potrzebna, jeśli pierwsza kontrola po regulacji mieści się w normie.',
+'Wynik kontroli wpisuje się do karty kontrolnej zmiany i podpisuje. Kartę odbiera kierownik zmiany na koniec dnia.',
+'Karty kontrolne szwu przechowuje się przez 2 lata w biurze kierownika zmiany. Starsze karty wolno zniszczyć bez dodatkowej zgody.'],[
+'ARCHIVED VERSION, NO LONGER IN FORCE. Version 2 was in force from 1 March 2024 to 31 August 2026 and was replaced by version 3 (PROCES-01). The document stays in the archive only for reference during audits.',
+'The can seam is inspected every 60 minutes on each seamer. The seamer operator does the inspection.',
+'Seam height (2.9–3.1 mm) and seam thickness (1.05–1.20 mm) are measured. Use a caliper.',
+'A seam teardown is done once per shift, at the start of work. The operator cuts a can open and judges the hook overlap by eye, without measuring.',
+'If a value is out of tolerance, the foreman stops the line and isolates the cans produced in the last 60 minutes. The isolated cans are looked through by the shift on which the deviation was found.',
+'After the seamer is adjusted the foreman restarts the line. The consent of the quality department is not needed if the first inspection after the adjustment is within tolerance.',
+'The inspection result is recorded on the shift control card and signed. The shift manager collects the card at the end of the day.',
+'Seam control cards are kept for 2 years in the shift manager’s office. Older cards may be destroyed without further consent.']]},
+{id:'FAQ-01',t:['Pytania pracowników do działu jakości','Employee questions to the quality department'],p:[[
+'Pytania zebrał dział jakości, ostatnia aktualizacja 10 września 2026. Pochodzą ze szkoleń stanowiskowych i ze skrzynki przy szatni. Odpowiedzi są skrótem, a w razie różnic obowiązuje procedura.',
+'Czy autoklaw i retorta to to samo? Tak, „autoklaw” to potoczna nazwa retorty. Nastawy podaje PROCES-02: dla puszek 170 g jest to 121°C przez 40 minut.',
+'Co to jest „dekiel”? W procedurach dekiel nazywa się wieczkiem. Wieczka nakłada zamykarka, a wymiary szwu, który łączy wieczko z puszką, opisuje PROCES-01.',
+'Puszka spadła mi na podłogę, czy mogę ją odłożyć na taśmę? Nie. Puszka, która dotknęła podłogi, idzie do pojemnika na odpad, także gdy wygląda na całą.',
+'Czy lekko wgnieciona puszka może iść do kartonu? Wgniecenie na korpusie płytsze niż 1 mm jest dopuszczalne. Każde wgniecenie na szwie albo przy wieczku dyskwalifikuje puszkę.',
+'Kto może zatrzymać linię? Każdy pracownik, który widzi zagrożenie dla ludzi albo dla jakości. Nikt nie ponosi konsekwencji za zatrzymanie w dobrej wierze.',
+'Co zrobić, gdy drukarka kodów przestaje drukować w środku zmiany? Zatrzymać podawanie puszek i wezwać brygadzistę. Puszki bez kodu odkłada się osobno i znakuje według PROCES-03.',
+'Czy mogę wynieść puszkę z hali do domu? Nie, także puszkę uszkodzoną. Wyroby dla pracowników sprzedaje sklepik zakładowy w piątki.',
+'Gdzie zgłosić pomysł na usprawnienie albo błąd w procedurze? Na formularzu F-20 u brygadzisty albo mailem do działu jakości. Odpowiedź przychodzi w ciągu 10 dni roboczych.',
+'Mam katar albo skaleczoną rękę, czy mogę pracować przy otwartym produkcie? Zgłoś to brygadziście przed wejściem na halę. Z raną na dłoni pracuje się tylko w opatrunku i rękawicy, zwykle przy pakowaniu kartonów.'],[
+'The questions were collected by the quality department, last updated 10 September 2026. They come from workstation training and from the box by the changing room. The answers are a summary, and if anything differs the procedure applies.',
+'Are the autoclave and the retort the same thing? Yes, “autoclave” is the everyday name for the retort. The settings are in PROCES-02: for 170 g cans it is 121°C for 40 minutes.',
+'What is a “lid”? Procedures call the lid a can end. Can ends are put on by the seamer, and the dimensions of the seam that joins the end to the can are described in PROCES-01.',
+'A can fell on the floor, may I put it back on the belt? No. A can that touched the floor goes into the waste bin, even when it looks undamaged.',
+'May a slightly dented can go into the carton? A dent on the body shallower than 1 mm is acceptable. Any dent on the seam or near the can end disqualifies the can.',
+'Who may stop the line? Any employee who sees a hazard to people or to quality. Nobody faces consequences for a stop made in good faith.',
+'What to do when the code printer stops printing in the middle of a shift? Stop feeding cans and call the foreman. Cans without a code are put aside separately and marked under PROCES-03.',
+'May I take a can from the hall home? No, not even a damaged one. Products for employees are sold in the plant shop on Fridays.',
+'Where do I report an improvement idea or a mistake in a procedure? On form F-20 at the foreman’s desk or by e-mail to the quality department. A reply comes within 10 working days.',
+'I have a cold or a cut on my hand, may I work with open product? Tell the foreman before you enter the hall. With a wound on the hand you work only with a dressing and a glove, usually at carton packing.']]},
+{id:'INSTR-01',t:['Instrukcja stanowiskowa: operator zamykarki, linia 2','Workstation instruction: seamer operator, line 2'],p:[[
+'Wydanie 4, obowiązuje od 1 września 2026. Instrukcja wisi przy zamykarce Z-2 i dotyczy operatora oraz jego zmiennika. W razie różnic pierwszeństwo mają procedury PROCES-01 i PROCES-05.',
+'Przed startem załóż czepek, fartuch i ochronniki słuchu, zdejmij zegarek i biżuterię. Sprawdź, czy osłony zamykarki są zamknięte, a wyłącznik awaryjny odblokowany.',
+'Początek zmiany: nasmaruj zamykarkę, sprawdź poziom oleju w dozowniku i liczbę wieczek w magazynku. Przepuść 5 pustych puszek i obejrzyj szew, zanim puścisz produkt.',
+'W czasie pracy patrz na trzy rzeczy: wskaźnik drgań na panelu, równe podawanie wieczek i wycieki oleju pod głowicą. Każdą z nich zgłoś brygadziście, zanim zrobi się z niej postój.',
+'Zamykarka pracuje zwykle z prędkością 300 puszek na minutę. Tej nastawy operator sam nie zmienia.',
+'Wieczka dołóż, gdy w magazynku zostanie ich mniej niż jedna czwarta. Pusty magazynek zatrzymuje zamykarkę, a puszki bez wieczka trzeba wyrzucić.',
+'Zacięcie puszki: zatrzymaj zamykarkę przyciskiem STOP, odczekaj, aż głowice staną, i dopiero wtedy otwórz osłonę. Zaciętą puszkę i dwie sąsiednie wyrzuć do pojemnika na odpad.',
+'Nigdy nie wyjmuj puszki ręką przy pracujących głowicach. Po każdym otwarciu osłony pierwsze 3 puszki odłóż do kontroli szwu.',
+'Przezbrojenie na inny format wykonuje mechanik utrzymania ruchu, nie operator. Twoje zadanie to opróżnić magazynek wieczek i zgłosić brygadziście gotowość.',
+'Po przezbrojeniu obowiązuje rozruch kontrolowany, który trwa do trzech dobrych kontroli szwu z rzędu. Brygadzista stoi wtedy przy maszynie.',
+'Zamykarka pracuje w tym czasie z prędkością najwyżej 120 puszek na minutę. Do zwykłej nastawy wraca się dopiero na polecenie brygadzisty.',
+'Koniec zmiany: zapisz stan licznika puszek, przekaż zmiennikowi uwagi o pracy maszyny i podpisz kartę zmiany. Niczego nie zostawiaj „na słowo”.',
+'Awaria lub wypadek: wciśnij wyłącznik awaryjny i zadzwoń do brygadzisty, numer wewnętrzny 230. Po godzinie 15 dyżur utrzymania ruchu ma numer wewnętrzny 245.'],[
+'Issue 4, in force from 1 September 2026. The instruction hangs next to seamer Z-2 and applies to the operator and the relief operator. If anything differs, procedures PROCES-01 and PROCES-05 take precedence.',
+'Before you start, put on a hair net, an apron and ear protection, and take off your watch and jewellery. Check that the seamer guards are closed and the emergency stop is released.',
+'Start of shift: lubricate the seamer, check the oil level in the dosing unit and the number of can ends in the magazine. Run 5 empty cans through and look at the seam before you let product in.',
+'While running, watch three things: the vibration reading on the panel, even feeding of can ends and oil leaks under the head. Report any of them to the foreman before it turns into a stoppage.',
+'The seamer is normally run at a speed of 300 cans per minute. The operator does not alter this setting.',
+'Top up can ends when less than one quarter of them is left in the magazine. An empty magazine stops the seamer, and cans without an end have to be thrown away.',
+'Jammed can: stop the seamer with the STOP button, wait until the heads stand still and only then open the guard. Throw the jammed can and its two neighbours into the waste bin.',
+'Never take a can out by hand while the heads are running. After every opening of the guard, put the first 3 cans aside for a seam inspection.',
+'A changeover to another format is done by a maintenance mechanic, not by the operator. Your job is to empty the can end magazine and tell the foreman you are ready.',
+'A changeover is followed by a controlled start-up, which lasts until three good seam inspections in a row. The foreman stays at the machine during that time.',
+'During that time the seamer is run at a speed of no more than 120 cans per minute. The normal setting returns only on the foreman’s order.',
+'End of shift: write down the can counter, hand over your remarks about the machine to the relief operator and sign the shift card. Leave nothing “by word of mouth”.',
+'Breakdown or accident: press the emergency stop and call the foreman on extension 230. After 3 p.m. the maintenance duty phone is extension 245.']]},
+{id:'NOTATKA-01',t:['Komunikat 7/2026: zmiana procedury kontroli szwu','Notice 7/2026: change to the seam inspection procedure'],p:[[
+'Mirszyce, 25 sierpnia 2026. Od: Piotr Zielak, kierownik działu jakości i bezpieczeństwa żywności. Do: operatorzy zamykarek, brygadziści, kierownicy zmian, utrzymanie ruchu.',
+'Od 1 września 2026 obowiązuje wersja 3 procedury PROCES-01 „Kontrola szwu puszki”. Wersja 2 traci ważność z końcem sierpnia i trafia do archiwum jako ARCH-01.',
+'Powód zmiany: w drugim kwartale trzy razy wykryliśmy za niski szew dopiero po godzinie produkcji. Za każdym razem trzeba było wstrzymać i przejrzeć ponad 7000 puszek.',
+'Najważniejsza zmiana to częstsza kontrola. Szew kontrolujemy teraz co 30 minut, czyli dwa razy częściej niż w wersji 2, i z takiego samego okresu izolujemy puszki po złym wyniku.',
+'Rozbiórka szwu przestaje być czynnością „na początek zmiany” i ma teraz własny rytm w ciągu zmiany. Węższa jest też tolerancja grubości szwu; obie wartości podaje wersja 3.',
+'Zmienia się zasada ponownego uruchomienia linii. Brygadzista nie rusza już linii sam: decyduje kierownik zmiany po zgodzie działu jakości.',
+'Szkolenia z wersji 3 prowadzi dział jakości od 26 do 29 sierpnia, przez kwadrans na początku każdej zmiany. Udział potwierdza się podpisem na liście, a operator bez szkolenia nie obsługuje zamykarki samodzielnie.',
+'Stare karty kontrolne z nagłówkiem „wersja 2” należy oddać brygadziście do 31 sierpnia. Pytania proszę kierować do działu jakości, numer wewnętrzny 214.'],[
+'Mirszyce, 25 August 2026. From: Piotr Zielak, quality and food safety manager. To: seamer operators, foremen, shift managers, maintenance.',
+'From 1 September 2026 version 3 of procedure PROCES-01 “Can seam inspection” is in force. Version 2 expires at the end of August and goes to the archive as ARCH-01.',
+'Reason for the change: in the second quarter we found a seam that was too low three times, each time only after an hour of production. Every time more than 7000 cans had to be held and looked through.',
+'The main change is more frequent inspection. We now inspect the seam every 30 minutes, twice as often as in version 2, and after a bad result we isolate cans from the same period.',
+'The seam teardown stops being a “start of shift” job and now has its own rhythm during the shift. The seam thickness tolerance is narrower too; both values are given in version 3.',
+'The rule for restarting the line changes. The foreman no longer restarts the line alone: the shift manager decides once the quality department agrees.',
+'Training on version 3 is run by the quality department from 26 to 29 August, a quarter of an hour at the start of every shift. Attendance is confirmed by signing the list, and an operator without training does not run a seamer alone.',
+'Old control cards with the header “version 2” must be handed to the foreman by 31 August. Please send questions to the quality department, extension 214.']]},
 {id:'PROCES-01',t:['Kontrola szwu puszki','Can seam inspection'],p:[[
-'Szew puszki kontroluje się co 30 minut na każdej zamykarce.',
-'Mierzy się wysokość szwu (2,9–3,1 mm) oraz grubość szwu (1,05–1,15 mm) suwmiarką lub projektorem szwów.',
-'Przy odchyleniu od normy należy natychmiast zatrzymać linię i odizolować puszki wyprodukowane w ostatnich 30 minutach.',
-'Wynik kontroli wpisuje się do karty kontrolnej zmiany i podpisuje.'],[
-'The can seam is inspected every 30 minutes on each seaming machine.',
-'Seam height (2.9–3.1 mm) and seam thickness (1.05–1.15 mm) are measured with a caliper or a seam projector.',
-'If a value is out of tolerance, stop the line immediately and isolate cans produced in the last 30 minutes.',
-'The inspection result is recorded on the shift control card and signed.']]},
+'Wersja 3, obowiązuje od 1 września 2026. Właścicielem procedury jest Piotr Zielak, kierownik działu jakości i bezpieczeństwa żywności. Procedura dotyczy zamykarek na liniach 1, 2 i 3.',
+'Szew puszki kontroluje się co 30 minut na każdej zamykarce. Kontrolę wykonuje operator zamykarki, a brygadzista potwierdza ją podpisem raz na zmianę.',
+'Mierzy się wysokość szwu (2,9–3,1 mm) oraz grubość szwu (1,05–1,15 mm). Do pomiaru służy suwmiarka albo projektor szwów, który stoi w laboratorium przy linii 2.',
+'Oprócz pomiaru z zewnątrz co 4 godziny wykonuje się rozbiórkę szwu. Operator rozcina puszkę i sprawdza, jak hak wieczka zachodzi na hak korpusu; zakładka nie może być krótsza niż 1,0 mm.',
+'Przy odchyleniu od normy należy natychmiast zatrzymać linię i odizolować puszki wyprodukowane w ostatnich 30 minutach. Odizolowane puszki trafiają na paletę z czerwoną etykietą „WSTRZYMANE”, a dalej postępuje się według PROCES-06.',
+'Linię po zatrzymaniu uruchamia kierownik zmiany, ale dopiero po zgodzie działu jakości. Wcześniej utrzymanie ruchu reguluje zamykarkę, a dwie kolejne kontrole szwu muszą zmieścić się w normie.',
+'Wynik każdej kontroli wpisuje się do karty kontrolnej zmiany (formularz F-07) i podpisuje. Wpis zawiera godzinę, numer zamykarki, oba wymiary i kod partii.',
+'Karty kontrolne szwu przechowuje dział jakości przez 3 lata. Po tym czasie można je zniszczyć za zgodą kierownika działu jakości.',
+'Wyjątek: przez pierwszą godzinę po przezbrojeniu zamykarki na inny format szew kontroluje się co 10 minut. Do zwykłego rytmu wraca się po trzech dobrych wynikach z rzędu.'],[
+'Version 3, in force from 1 September 2026. The procedure is owned by Piotr Zielak, quality and food safety manager. It applies to the seamers on lines 1, 2 and 3.',
+'The can seam is inspected every 30 minutes on each seamer. The seamer operator does the inspection and the foreman confirms it with a signature once per shift.',
+'Seam height (2.9–3.1 mm) and seam thickness (1.05–1.15 mm) are measured. Use a caliper or the seam projector that stands in the laboratory next to line 2.',
+'Besides the outside measurement, a seam teardown is done every 4 hours. The operator cuts a can open and checks how the end hook overlaps the body hook; the overlap must not be shorter than 1.0 mm.',
+'If a value is out of tolerance, stop the line immediately and isolate the cans produced in the last 30 minutes. Isolated cans go onto a pallet with a red “ON HOLD” label and are then handled under PROCES-06.',
+'After a stop the line is restarted by the shift manager, but only once the quality department agrees. Before that, maintenance adjusts the seamer and two consecutive seam inspections must be within tolerance.',
+'The result of every inspection is recorded on the shift control card (form F-07) and signed. The entry gives the time, the seamer number, both dimensions and the batch code.',
+'Seam control cards are kept by the quality department for 3 years. After that they may be destroyed with the consent of the quality manager.',
+'Exception: during the first hour after a seamer changeover to another format the seam is inspected every 10 minutes. The normal rhythm returns after three good results in a row.']]},
 {id:'PROCES-02',t:['Sterylizacja w retorcie','Retort sterilization'],p:[[
-'Puszki 170 g sterylizuje się w temperaturze 121°C przez 40 minut przy ciśnieniu około 2,1 bara.',
-'Przebieg cyklu (temperatura, ciśnienie, czas) jest rejestrowany w dzienniku partii.',
-'Po awarii zasilania lub spadku temperatury poniżej 119°C cykl należy powtórzyć albo zablokować partię do decyzji działu jakości.',
-'Puszek po sterylizacji nie wolno zwalniać bez zapisu cyklu.'],[
-'170 g cans are sterilized at 121°C for 40 minutes at about 2.1 bar pressure.',
-'The cycle record (temperature, pressure, time) is logged in the batch log.',
-'After a power failure or a temperature drop below 119°C the cycle must be repeated or the batch blocked until the quality department decides.',
-'Cans must not be released after sterilization without a cycle record.']]},
+'Wersja 4, obowiązuje od 1 lutego 2026. Właścicielem procedury jest dział jakości. Procedura obejmuje retorty R-1 i R-2 oraz wszystkie formaty puszek.',
+'Puszki 170 g sterylizuje się w temperaturze 121°C przez 40 minut przy ciśnieniu około 2,1 bara. Czas liczy się od chwili, gdy czujnik w najzimniejszym miejscu kosza pokaże 121°C.',
+'Większy format 300 g, pakowany na linii 3, nagrzewa się wolniej i ma osobną kartę nastaw KN-3. Operator retorty wybiera ją na panelu przed załadunkiem kosza.',
+'Takie puszki sterylizuje się 55 minut, a temperatura i ciśnienie zostają bez zmian. Pomylenie programu oznacza wstrzymanie całego wsadu.',
+'Przebieg cyklu (temperatura, ciśnienie, czas) zapisuje się automatycznie i trafia do dziennika partii. Operator podpisuje wydruk i przypina go do karty partii.',
+'Po awarii zasilania lub spadku temperatury poniżej 119°C cykl należy powtórzyć albo zablokować partię do decyzji działu jakości. Cykl wolno powtórzyć tylko raz, a drugi nieudany cykl oznacza utylizację wsadu.',
+'Po sterylizacji puszki chłodzi się w retorcie wodą chlorowaną, aż temperatura w środku puszki spadnie do 40°C. Chłodzenie zajmuje zwykle około 20 minut.',
+'Schłodzone kosze odstawia się do strefy suszenia na co najmniej 6 godzin. W tym czasie puszek nie wolno dotykać gołymi rękami ani etykietować, bo mokry szew może zassać wodę.',
+'Puszek po sterylizacji nie wolno zwalniać bez zapisu cyklu. Brak wydruku traktuje się tak samo jak nieudany cykl.',
+'Czujniki temperatury retorty wzorcuje się co 6 miesięcy, a manometr raz w roku. Wzorcowanie zleca utrzymanie ruchu, a świadectwa przechowuje dział jakości.'],[
+'Version 4, in force from 1 February 2026. The procedure is owned by the quality department. It covers retorts R-1 and R-2 and all can formats.',
+'170 g cans are sterilized at 121°C for 40 minutes at about 2.1 bar pressure. The time counts from the moment the sensor in the coldest spot of the basket shows 121°C.',
+'The larger 300 g format, packed on line 3, heats up more slowly and has its own settings card KN-3. The retort operator selects it on the panel before loading the basket.',
+'Such cans are sterilized for 55 minutes, while temperature and pressure stay the same. Choosing the wrong program means the whole load is put on hold.',
+'The cycle record (temperature, pressure, time) is saved automatically and goes into the batch log. The operator signs the printout and pins it to the batch card.',
+'After a power failure or a temperature drop below 119°C the cycle must be repeated or the batch blocked until the quality department decides. A cycle may be repeated only once, and a second failed cycle means the load is destroyed.',
+'After sterilization the cans are chilled in the retort with chlorinated water until the temperature inside the can falls to 40°C. Chilling usually takes about 20 minutes.',
+'Chilled baskets are moved to the drying zone for at least 6 hours. During that time the cans must not be touched with bare hands or labelled, because a wet seam can draw water in.',
+'Cans must not be released after sterilization without a cycle record. A missing printout is treated the same as a failed cycle.',
+'Retort temperature sensors are calibrated every 6 months and the pressure gauge once a year. Maintenance orders the calibration and the quality department keeps the certificates.']]},
 {id:'PROCES-03',t:['Etykietowanie i kod partii','Labeling and batch code'],p:[[
-'Kod partii ma format RYB-RRMMDD-L, gdzie L oznacza numer linii produkcyjnej.',
-'Kod nanosi drukarka inkjet, a czytelność kodu kontroluje kamera co godzinę.',
-'Etykieta nie może być przesunięta o więcej niż 2 mm względem osi puszki.',
-'Puszki z nieczytelnym kodem lub krzywą etykietą wstrzymuje się i kieruje do ponownego znakowania.'],[
-'The batch code has the format RYB-YYMMDD-L, where L is the production line number.',
-'The code is applied by an inkjet printer and its legibility is checked by a camera every hour.',
-'The label must not be shifted by more than 2 mm relative to the can axis.',
-'Cans with an unreadable code or a crooked label are held and sent for re-marking.']]},
+'Wersja 2, obowiązuje od 15 stycznia 2025. Właścicielem procedury jest dział jakości. Procedura dotyczy drukarek inkjet i etykieciarek na wszystkich liniach.',
+'Kod partii ma format RYB-RRMMDD-L, gdzie RRMMDD to data produkcji, a L oznacza numer linii produkcyjnej. Na przykład RYB-261031-L2 to partia z 31 października 2026 z linii 2.',
+'Kod nanosi drukarka inkjet na dno puszki, jeszcze przed zamykarką. Czytelność kodu kontroluje kamera co godzinę, a operator dodatkowo ogląda pierwszą puszkę po każdym postoju.',
+'Pod kodem partii drukuje się datę minimalnej trwałości. Dla konserw w oleju jest to 36 miesięcy od daty produkcji. Konserwy w sosie pomidorowym mają 24 miesiące.',
+'Etykieta nie może być przesunięta o więcej niż 2 mm względem osi puszki. Sprawdza się to szablonem na 5 puszkach co godzinę.',
+'Puszki z nieczytelnym kodem lub krzywą etykietą wstrzymuje się i kieruje do ponownego znakowania. Znakować ponownie wolno tylko raz i tylko wtedy, gdy kod partii da się ustalić z dziennika linii.',
+'Jeżeli kodu nie da się ustalić, puszki traktuje się jak partię bez identyfikacji i nie mogą one trafić do sprzedaży. O utylizacji decyduje kierownik działu jakości.',
+'Przy zmianie produktu operator etykieciarki zdejmuje z maszyny wszystkie stare etykiety i odnotowuje to w karcie zmiany. Pierwsze 10 puszek po zmianie ogląda brygadzista.',
+'Etykiety rozlicza się na koniec zmiany: liczba wydanych minus zwrócone i zniszczone musi zgadzać się z liczbą puszek z dokładnością do 0,5%. Większą różnicę zgłasza się kierownikowi zmiany.'],[
+'Version 2, in force from 15 January 2025. The procedure is owned by the quality department. It applies to the inkjet printers and labellers on all lines.',
+'The batch code has the format RYB-YYMMDD-L, where YYMMDD is the production date and L is the production line number. For example, RYB-261031-L2 is the batch of 31 October 2026 from line 2.',
+'The code is applied by an inkjet printer to the bottom of the can, before the seamer. A camera checks code legibility every hour, and the operator also looks at the first can after every stoppage.',
+'The best-before date is printed under the batch code. For products in oil it is 36 months from the production date. Products in tomato sauce get 24 months.',
+'The label must not be shifted by more than 2 mm relative to the can axis. This is checked with a template on 5 cans every hour.',
+'Cans with an unreadable code or a crooked label are held and sent for re-marking. Re-marking is allowed only once and only when the batch code can be established from the line log.',
+'If the code cannot be established, the cans are treated as a batch without identification and must not be sold. The quality manager decides on their disposal.',
+'At a product change the labeller operator removes all old labels from the machine and notes it on the shift card. The foreman looks at the first 10 cans after the change.',
+'Labels are reconciled at the end of the shift: labels issued minus returned and destroyed must agree with the number of cans to within 0.5%. A larger difference is reported to the shift manager.']]},
 {id:'PROCES-04',t:['Obsługa reklamacji','Complaint handling'],p:[[
-'Na każdą reklamację odpowiadamy w ciągu 14 dni od zgłoszenia.',
-'Zgłoszenia dotyczące zapachu, wybrzuszenia puszki lub podejrzenia zatrucia traktuje się jako potencjalne zagrożenie bezpieczeństwa żywności.',
-'W takim przypadku należy zabezpieczyć próbkę, zapisać numer partii i przekazać sprawę do działu jakości w ciągu 24 godzin.',
-'Klientowi oferujemy zwrot pieniędzy lub wymianę produktu.'],[
-'Every complaint is answered within 14 days of submission.',
-'Reports about smell, a bulging can or suspected poisoning are treated as a potential food safety hazard.',
-'In that case secure a sample, record the batch number and pass the case to the quality department within 24 hours.',
-'The customer is offered a refund or a product replacement.']]},
+'Wersja 5, obowiązuje od 1 czerwca 2026. Właścicielką procedury jest Magda Kruk z obsługi reklamacji i klienta. Część o bezpieczeństwie żywności zatwierdza dział jakości.',
+'Na każdą reklamację odpowiadamy w ciągu 14 dni od zgłoszenia. Termin liczy się od dnia, w którym wiadomość wpłynęła do skrzynki reklamacji, a nie od dnia jej odczytania.',
+'Każde zgłoszenie dostaje numer w rejestrze reklamacji i jedną kategorię: zapach lub świeżość, uszkodzenie puszki, etykieta lub kod, jakość produktu, dostawa lub faktura. Gdy klient opisuje kilka problemów, wybiera się kategorię o najwyższym priorytecie.',
+'Zgłoszenia dotyczące zapachu, wybrzuszenia puszki, syku przy otwieraniu lub podejrzenia zatrucia traktuje się jako potencjalne zagrożenie bezpieczeństwa żywności. Kategoria zgłoszenia nie ma tu znaczenia.',
+'W takim przypadku należy zabezpieczyć próbkę, zapisać numer partii i przekazać sprawę do działu jakości w ciągu 24 godzin. Klienta prosi się, żeby nie wyrzucał puszki i nie jadł jej zawartości.',
+'Jeżeli klient nie zna numeru partii, prosi się go o zdjęcie dna puszki. Bez numeru partii sprawa i tak trafia do działu jakości, z dopiskiem „partia nieustalona”.',
+'Klientowi oferujemy zwrot pieniędzy lub wymianę produktu. Zwrot do 200 zł zatwierdza pracownik obsługi reklamacji, a wyższe kwoty kierownik sprzedaży.',
+'Uszkodzenia powstałe w transporcie (zgnieciony karton, przemoczona paleta) zgłasza się przewoźnikowi w ciągu 7 dni od dostawy. Do zgłoszenia dołącza się zdjęcia i list przewozowy.',
+'Dane osobowe klienta z reklamacji przechowuje się przez 12 miesięcy od zamknięcia sprawy. Potem Marek Lis (IT i ochrona danych) usuwa je z rejestru i zostaje sama treść zgłoszenia.',
+'Raz w miesiącu obsługa reklamacji przekazuje dyrekcji zakładu zestawienie: liczbę zgłoszeń w każdej kategorii i partie, które pojawiły się więcej niż dwa razy. Zestawienie omawia się na przeglądzie jakości w pierwszy poniedziałek miesiąca.'],[
+'Version 5, in force from 1 June 2026. The procedure is owned by Magda Kruk of complaints and customer service. The food safety part is approved by the quality department.',
+'Every complaint is answered within 14 days of submission. The deadline counts from the day the message arrived in the complaints inbox, not from the day it was read.',
+'Each report gets a number in the complaints register and one category: smell or freshness, damaged can, label or code, product quality, delivery or invoice. When the customer describes several problems, the category with the highest priority is chosen.',
+'Reports about smell, a bulging can, hissing on opening or suspected poisoning are treated as a potential food safety hazard. The category of the report does not matter here.',
+'In that case secure a sample, record the batch number and pass the case to the quality department within 24 hours. The customer is asked not to throw the can away and not to eat its contents.',
+'If the customer does not know the batch number, ask for a photo of the can bottom. Without a batch number the case still goes to the quality department, marked “batch not established”.',
+'The customer is offered a refund or a product replacement. A refund up to 200 zł is approved by the complaints officer, higher amounts by the sales manager.',
+'Damage caused in transport (a crushed carton, a soaked pallet) is reported to the carrier within 7 days of delivery. Photos and the waybill are attached to the report.',
+'The customer’s personal data from a complaint is kept for 12 months after the case is closed. Then Marek Lis (IT and data protection) removes it from the register and only the text of the report stays.',
+'Once a month the complaints team gives the plant management a summary: the number of reports in each category and the batches that came up more than twice. The summary is discussed at the quality review on the first Monday of the month.']]},
 {id:'PROCES-05',t:['Konserwacja zamykarki','Seamer maintenance'],p:[[
-'Zamykarkę smaruje się co 8 godzin pracy.',
-'Rolki zamykające wymienia się co 500 000 puszek.',
-'Wzrost drgań powyżej 4 mm/s oznacza konieczność natychmiastowego przeglądu maszyny.',
-'Kalibrację zamykarki wykonuje się raz na kwartał i dokumentuje w karcie maszyny.'],[
-'The seamer is lubricated every 8 hours of operation.',
-'Seaming rollers are replaced every 500,000 cans.',
-'Vibration above 4 mm/s means the machine must be inspected immediately.',
-'The seamer is calibrated once per quarter and documented in the machine card.']]}];
+'Wersja 3, obowiązuje od 1 marca 2026. Właścicielką procedury jest Anna Bór z utrzymania ruchu. Procedura dotyczy zamykarek Z-1, Z-2 i Z-3.',
+'Zamykarkę smaruje się co 8 godzin pracy smarem dopuszczonym do kontaktu z żywnością (klasa H1). Smarowanie wykonuje operator na początku zmiany i wpisuje je do karty maszyny.',
+'Rolki zamykające wymienia się co 500 000 puszek. Stan licznika puszek odczytuje się z panelu zamykarki przy każdym przeglądzie tygodniowym.',
+'Wzrost drgań powyżej 4 mm/s oznacza konieczność natychmiastowego przeglądu maszyny. Operator zatrzymuje zamykarkę i wzywa utrzymanie ruchu, nie czeka z tym do końca zmiany.',
+'Drgania między 3 a 4 mm/s to stan ostrzegawczy. Zamykarka może pracować, ale utrzymanie ruchu planuje przegląd w ciągu 48 godzin, a szew kontroluje się w tym czasie co 15 minut.',
+'Przegląd tygodniowy obejmuje luzy głowic, stan rolek i szczęk oraz szczelność układu smarowania. Zajmuje około 45 minut i wypada w poniedziałek przed pierwszą zmianą.',
+'Kalibrację zamykarki wykonuje się raz na kwartał i dokumentuje w karcie maszyny. Po kalibracji dział jakości robi rozbiórkę szwu na 10 puszkach.',
+'Krytyczne części zamienne (komplet rolek, szczęki, pasek napędowy) muszą być zawsze w magazynie. Gdy zostaje ostatni komplet, magazynier zamawia następny tego samego dnia.',
+'Każdy postój zamykarki dłuższy niż 15 minut wpisuje się do dziennika postojów z przyczyną i czasem trwania. Dziennik przegląda co tydzień kierownik utrzymania ruchu.'],[
+'Version 3, in force from 1 March 2026. The procedure is owned by Anna Bór of maintenance. It applies to seamers Z-1, Z-2 and Z-3.',
+'The seamer is lubricated every 8 hours of operation with a food-grade lubricant (class H1). The operator lubricates it at the start of the shift and enters it in the machine card.',
+'Seaming rollers are replaced every 500,000 cans. The can counter is read from the seamer panel at every weekly service.',
+'Vibration above 4 mm/s means the machine must be inspected immediately. The operator stops the seamer and calls maintenance and does not wait for the end of the shift.',
+'Vibration between 3 and 4 mm/s is a warning state. The seamer may run, but maintenance plans a service within 48 hours, and during that time the seam is inspected every 15 minutes.',
+'The weekly service covers head play, the condition of rollers and chucks and the tightness of the lubrication system. It takes about 45 minutes and falls on Monday before the first shift.',
+'The seamer is calibrated once per quarter and this is documented in the machine card. After calibration the quality department does a seam teardown on 10 cans.',
+'Critical spare parts (a set of rollers, chucks, the drive belt) must always be in the store. When the last set is left, the storekeeper orders the next one the same day.',
+'Every seamer stoppage longer than 15 minutes is entered in the stoppage log with its cause and duration. The maintenance manager reviews the log every week.']]},
+{id:'PROCES-06',t:['Wstrzymanie i zwolnienie partii','Batch hold and release'],p:[[
+'Wersja 2, obowiązuje od 1 kwietnia 2026. Właścicielem procedury jest Piotr Zielak. Procedura opisuje, co dzieje się z partią, której jakość budzi wątpliwości.',
+'Partię może wstrzymać każdy pracownik, który zauważy zagrożenie: wystarczy zgłosić to brygadziście. W ciągu 2 godzin od zgłoszenia partia musi dostać w systemie magazynowym status „WSTRZYMANA”.',
+'Wstrzymane palety oznacza się czerwoną etykietą i przewozi do wydzielonej strefy K w magazynie wyrobów gotowych. Palet z tej strefy nie wolno wydawać ani przepakowywać.',
+'Jeżeli część partii wyjechała już do klienta, kierownik działu jakości tego samego dnia zawiadamia dyrekcję zakładu i dział sprzedaży. O wycofaniu z rynku decyduje dyrektor zakładu.',
+'Dział jakości bada wstrzymaną partię w ciągu 5 dni roboczych. Badanie obejmuje przegląd zapisów (szew, sterylizacja, kod) i próbkę 20 puszek z każdej palety.',
+'Partię zwalnia wyłącznie kierownik działu jakości albo jego zastępca, na formularzu F-12 „Decyzja o partii”. Podpis brygadzisty ani kierownika zmiany nie wystarcza.',
+'Możliwe są trzy decyzje: zwolnienie, przesortowanie albo utylizacja. Przesortowaną partię bada się ponownie, zanim trafi do sprzedaży.',
+'Z każdej wyprodukowanej partii zostawia się 6 puszek jako próbkę archiwalną. Próbki przechowuje się do końca terminu przydatności i jeszcze 3 miesiące dłużej.',
+'Po zgłoszeniu wybrzuszonej puszki (bombażu) partię wstrzymuje się zawsze, także gdy chodzi o jedną sztukę. Sprawdza się wtedy również dwie partie sterylizowane tego samego dnia w tej samej retorcie.'],[
+'Version 2, in force from 1 April 2026. The procedure is owned by Piotr Zielak. It describes what happens to a batch whose quality is in doubt.',
+'Any employee who notices a hazard can put a batch on hold: telling the foreman is enough. Within 2 hours of the report the batch must get the status “ON HOLD” in the warehouse system.',
+'Pallets on hold are marked with a red label and moved to the separate zone K in the finished goods warehouse. Pallets from this zone must not be shipped or repacked.',
+'If part of the batch has already left for a customer, the quality manager informs the plant management and the sales department the same day. The plant director decides on a market withdrawal.',
+'The quality department examines a batch on hold within 5 working days. The examination covers a review of the records (seam, sterilization, code) and a sample of 20 cans from each pallet.',
+'A batch is released only by the quality manager or his deputy, on form F-12 “Batch decision”. The signature of a foreman or a shift manager is not enough.',
+'Three decisions are possible: release, re-sorting or disposal. A re-sorted batch is examined again before it goes on sale.',
+'From every batch produced, 6 cans are kept as a retention sample. Samples are stored until the end of shelf life and 3 months longer.',
+'After a report of a bulging can the batch is always put on hold, even when it is about a single can. Two other batches sterilized the same day in the same retort are then checked as well.']]},
+{id:'PROCES-07',t:['Mycie i higiena linii','Line cleaning and hygiene'],p:[[
+'Wersja 2, obowiązuje od 1 października 2025. Właścicielem procedury jest dział jakości. Procedura dotyczy linii 1–3, od stołu nadawczego do zamykarki.',
+'Linię myje się po każdej zmianie w czterech krokach: spłukanie wodą, piana alkaliczna na 10 minut, drugie spłukanie i dezynfekcja. Dozowniki oleju i sosu rozbiera się i myje ręcznie.',
+'Raz w tygodniu, w sobotę, wykonuje się mycie kwaśne, które usuwa kamień. Tego dnia nie planuje się produkcji na trzeciej zmianie.',
+'Po produkcji szprota w sosie musztardowym obowiązuje mycie alergenowe, bo gorczyca jest alergenem. Zwykłe mycie po zmianie wtedy nie wystarcza.',
+'Linię spłukuje się w tym trybie wodą o temperaturze 60°C przez 25 minut i myje pianą dwukrotnie. Dopiero potem można pakować wyrób bez gorczycy.',
+'Skuteczność mycia alergenowego potwierdza test paskowy na obecność białka. Wynik dodatni oznacza powtórzenie mycia, a linii nie wolno uruchamiać „na próbę”.',
+'Czystość po zwykłym myciu ocenia brygadzista wzrokowo. Dwa razy w tygodniu dział jakości pobiera wymazy z 5 punktów linii.',
+'Pracownik myje i dezynfekuje ręce przy każdym wejściu na halę oraz po każdej przerwie. Rękawice zmienia się co 2 godziny albo od razu po uszkodzeniu.',
+'Środki myjące przechowuje się w zamkniętej szafie poza halą produkcyjną. Stężenia roztworów podaje karta mycia M-2, która wisi przy każdej linii.'],[
+'Version 2, in force from 1 October 2025. The procedure is owned by the quality department. It applies to lines 1–3, from the feed table to the seamer.',
+'The line is cleaned after every shift in four steps: a water rinse, alkaline foam for 10 minutes, a second rinse and disinfection. Oil and sauce dosing units are taken apart and washed by hand.',
+'Once a week, on Saturday, an acid clean is done to remove scale. No production is planned for the third shift that day.',
+'When sprat in mustard sauce has been produced, an allergen clean is required, because the seasoning is an allergen. The normal clean after the shift is then not enough.',
+'In this mode the line is rinsed with water at 60°C for 25 minutes and foamed twice. Only then may a product without mustard be packed.',
+'The allergen clean is confirmed with a protein strip test. A positive result means the clean is repeated, and the line must not be started “just to try”.',
+'Cleanliness after a normal clean is judged visually by the foreman. Twice a week the quality department takes swabs from 5 points on the line.',
+'Employees wash and disinfect their hands at every entry to the production hall and after every break. Gloves are changed every 2 hours or straight away when damaged.',
+'Cleaning agents are stored in a locked cabinet outside the production hall. Solution strengths are given on cleaning card M-2, which hangs next to every line.']]},
+{id:'PROCES-08',t:['Przyjęcie surowca i opakowań','Receiving raw material and packaging'],p:[[
+'Wersja 3, obowiązuje od 1 maja 2026. Właścicielem procedury jest dział jakości. Procedura dotyczy dostaw ryb, oleju, pustych puszek i wieczek.',
+'Każdą dostawę ryb przyjmuje magazynier razem z kontrolerem jakości. Bez kontrolera rozładunek się nie zaczyna, nawet gdy kierowca się spieszy.',
+'Ryba świeża, przywożona w lodzie, musi mieć przy przyjęciu temperaturę od 0 do 2°C mierzoną w mięsie. Dostawę cieplejszą niż 4°C odsyła się bez rozładunku.',
+'Ryba mrożona jest dostarczana w blokach po 10 kg. Obowiązuje dla niej inna granica i inny sposób pomiaru niż dla ryby z lodu.',
+'Przy przyjęciu bloki muszą mieć temperaturę nie wyższą niż −18°C, mierzoną sondą w nawierconym otworze. Dopuszcza się −15°C, jeśli trwało to krócej niż pół godziny podczas rozładunku.',
+'Z każdej dostawy ryb pobiera się próbkę 9 sztuk do badania histaminy. Wynik powyżej 100 mg/kg oznacza odrzucenie całej dostawy.',
+'Sprawdza się też dokumenty: handlowy dokument identyfikacyjny, numer statku lub zakładu oraz datę połowu. Dostawy bez daty połowu się nie przyjmuje.',
+'Puste puszki i wieczka kontroluje się wyrywkowo, po 50 sztuk z każdej palety. Paleta, na której w próbce jest więcej niż 2 wgniecione puszki, wraca do dostawcy.',
+'Przyjęty surowiec dostaje etykietę z datą przyjęcia i numerem dostawy. Rybę świeżą trzeba przerobić w ciągu 18 godzin, a rozmrożoną w ciągu 12 godzin.'],[
+'Version 3, in force from 1 May 2026. The procedure is owned by the quality department. It applies to deliveries of fish, oil, empty cans and can ends.',
+'Every fish delivery is received by the storekeeper together with a quality inspector. Unloading does not start without the inspector, even when the driver is in a hurry.',
+'Fresh fish, delivered on ice, must have a temperature of 0 to 2°C on receipt, measured in the flesh. A delivery warmer than 4°C is sent back without unloading.',
+'Frozen fish is delivered in 10 kg blocks. It has a different limit and a different way of measuring than fish on ice.',
+'On receipt the blocks must have a temperature no higher than −18°C, measured with a probe in a drilled hole. A reading of −15°C is accepted if it lasted less than half an hour during unloading.',
+'A sample of 9 fish is taken from every delivery for a histamine test. A result above 100 mg/kg means the whole delivery is rejected.',
+'Documents are checked too: the commercial identification document, the vessel or plant number and the catch date. A delivery without a catch date is not accepted.',
+'Empty cans and can ends are checked at random, 50 pieces from each pallet. A pallet with more than 2 dented cans in the sample goes back to the supplier.',
+'Accepted raw material gets a label with the receipt date and the delivery number. Fresh fish must be processed within 18 hours, thawed fish within 12 hours.']]}];
 
-// Evaluation set: right document + a fact the answer must contain; the last four are out of scope
+// Evaluation set. type: direct (the document's own words), para (a worker's wording), multi (needs two documents),
+// version (an archived version gives another value: `bad`), context (the condition sits in a neighbouring paragraph), oos (no answer in the documents).
+// `ok` is one pattern or a list that must all match; an answer matching `bad` is wrong. The first six are the example chips.
 const RQ=[
- {q:['Jak często kontroluje się szew puszki?','How often is the can seam inspected?'],doc:'PROCES-01',ok:/30 min/},
- {q:['W jakiej temperaturze sterylizuje się puszki?','At what temperature are cans sterilized?'],doc:'PROCES-02',ok:/121/},
- {q:['Jaki format ma kod partii?','What is the batch code format?'],doc:'PROCES-03',ok:/RYB-/},
- {q:['W ciągu ilu godzin przekazać reklamację o zapachu do działu jakości?','Within how many hours must a smell complaint go to quality?'],doc:'PROCES-04',ok:/24/},
- {q:['Przy jakich drganiach trzeba wykonać przegląd zamykarki?','At what vibration must the seamer be inspected?'],doc:'PROCES-05',ok:/4 mm/},
- {q:['Co zrobić po awarii zasilania w retorcie?','What to do after a power failure in the retort?'],doc:'PROCES-02',ok:/powtórzyć|repeated/},
- {q:['Do kiedy muszę odpisać klientowi?','When do I have to reply to a customer?'],doc:'PROCES-04',ok:/14 dni|14 days/},
- {q:['Jak długo trwa sterylizacja?','How long does sterilization take?'],doc:'PROCES-02',ok:/40 min/},
- {q:['Co zrobić, gdy puszka jest wybrzuszona?','What to do when a can is bulging?'],doc:'PROCES-04',ok:/24 godzin|24 hours/},
- {q:['Jak często smarować zamykarkę?','How often to lubricate the seamer?'],doc:'PROCES-05',ok:/8 godzin|8 hours/},
- {q:['Kiedy wymienić rolki?','When should the rollers be replaced?'],doc:'PROCES-05',ok:/500/},
- {q:['O ile może być przesunięta etykieta?','How far may the label be shifted?'],doc:'PROCES-03',ok:/2 mm/},
- {q:['Jaka wysokość szwu jest prawidłowa?','What seam height is correct?'],doc:'PROCES-01',ok:/2,9|2\.9/},
- {q:['Co oferujemy klientowi po reklamacji?','What do we offer the customer after a complaint?'],doc:'PROCES-04',ok:/zwrot|refund/},
- {q:['Jak często kalibrować zamykarkę?','How often to calibrate the seamer?'],doc:'PROCES-05',ok:/kwartał|quarter/},
- {q:['Co sprawdza czytelność kodu?','What checks code legibility?'],doc:'PROCES-03',ok:/kamer|camera/},
- {q:['Ile kosztuje puszka?','How much does a can cost?'],oos:1},
- {q:['Jaka jest pogoda w Warszawie?','What is the weather in Warsaw?'],oos:1},
- {q:['Kto jest prezesem Rybex?','Who is the CEO of Rybex?'],oos:1},
- {q:['Czy mogę zjeść puszkę po terminie?','May I eat a can after its date?'],oos:1}];
+ {q:['W jakiej temperaturze sterylizuje się puszki 170 g?','At what temperature are 170 g cans sterilized?'],doc:'PROCES-02',type:'direct',ok:/121/},
+ {q:['Jak gorąco ma być w autoklawie?','How hot should the autoclave get?'],doc:'PROCES-02',type:'para',ok:/121/},
+ {q:['Co ile minut kontroluje się szew puszki?','How often is the can seam inspected?'],doc:'PROCES-01',type:'version',ok:/co 30 min|every 30 min/,bad:/60 min/},
+ {q:['Ile minut sterylizuje się puszki 300 g?','For how many minutes are 300 g cans sterilized?'],doc:'PROCES-02',type:'context',ok:/55 min/,bad:/40 min/},
+ {q:['Klient zgłasza wybrzuszoną puszkę. Ile mam czasu na przekazanie sprawy i co dzieje się z partią?','A customer reports a bulging can. How much time do I have to pass the case on, and what happens to the batch?'],doc:['PROCES-04','PROCES-06'],type:'multi',ok:[/24 godz|24 hours/,/wstrzym|hold|held/]},
+ {q:['Co ile zmieniać rękawiczki?','How often do I swap gloves?'],doc:'PROCES-07',type:'para',ok:/\b2 godzin|\b2 hours/},
+ {q:['Jaki format ma kod partii?','What is the batch code format?'],doc:'PROCES-03',type:'direct',ok:/RYB-(RRMMDD|YYMMDD)/},
+ {q:['Co ile godzin smaruje się zamykarkę?','How often is the seamer lubricated?'],doc:'PROCES-05',type:'direct',ok:/\b8 godzin|\b8 hours/},
+ {q:['O ile milimetrów może być przesunięta etykieta?','How far may the label be shifted from the can axis?'],doc:'PROCES-03',type:'direct',ok:/2 mm/},
+ {q:['W ciągu ilu dni odpowiadamy na reklamację?','Within how many days is a complaint answered?'],doc:'PROCES-04',type:'direct',ok:/14 dni|14 days/},
+ {q:['Powyżej jakich drgań konieczny jest natychmiastowy przegląd maszyny?','Above what vibration must the machine be inspected immediately?'],doc:'PROCES-05',type:'direct',ok:/powyżej 4 mm\/s|above 4 mm\/s/},
+ {q:['Ile ma stygnąć puszka po wyjęciu z retorty?','How long do cans cool down once they come out of the retort?'],doc:'PROCES-02',type:'para',ok:/20 min/},
+ {q:['Klient pisze, że ryba śmierdzi. Komu to dać i jak szybko?','A customer writes that the fish stinks. Who gets it and how fast?'],doc:'PROCES-04',type:'para',ok:/24 godz|24 hours/},
+ {q:['Kod na puszce się rozmazał, co z taką puszką?','The code on a can is smudged, what happens to that can?'],doc:'PROCES-03',type:'para',ok:/ponown\w* znakow|znakow\w* ponown|re-?mark|marked again/},
+ {q:['Ile dekli ma zostać w magazynku, zanim dołożę nowe?','How many lids should be left in the magazine before I top it up?'],doc:'INSTR-01',type:'para',ok:/jedna czwarta|jednej czwartej|one quarter/},
+ {q:['Puszka spadła na ziemię. Mogę ją wrzucić z powrotem na taśmę?','A can dropped on the ground. Can I throw it back on the belt?'],doc:'FAQ-01',type:'para',ok:/odpad|waste/},
+ {q:['Ile ważna jest konserwa w pomidorach?','How long is a can in tomato sauce good for?'],doc:'PROCES-03',type:'para',ok:/24 mies|24 months/},
+ {q:['Po ilu puszkach zmieniamy rolki?','How many cans until the rollers are replaced?'],doc:'PROCES-05',type:'para',ok:/500/},
+ {q:['Czyj podpis zwalnia wstrzymaną partię?','Whose signature releases a held batch?'],doc:'PROCES-06',type:'para',ok:/kierownik\w* działu jakości|quality manager/},
+ {q:['Do jakiej kwoty mogę sama zatwierdzić zwrot?','Up to what amount can I approve a refund myself?'],doc:'PROCES-04',type:'para',ok:/200 zł/},
+ {q:['Ile kosze mają stać na suszeniu?','How long does a basket stay in drying?'],doc:'PROCES-02',type:'para',ok:/\b6 godzin|\b6 hours/},
+ {q:['Jak często wykonuje się rozbiórkę szwu?','How often is a seam teardown done?'],doc:'PROCES-01',type:'version',ok:/\b4 godz|\b4 hours/,bad:/raz na zmian|once per shift|once a shift/},
+ {q:['Jak długo przechowuje się karty kontrolne szwu?','How long are seam control cards kept?'],doc:'PROCES-01',type:'version',ok:/3 lat|3 years/,bad:/2 lat|2 years/},
+ {q:['Jaka grubość szwu jest dopuszczalna?','What seam thickness is acceptable?'],doc:'PROCES-01',type:'version',ok:/1,15|1\.15/,bad:/1,20|1\.20/},
+ {q:['Ile minut spłukiwać linię po sosie musztardowym?','For how many minutes is the line rinsed after mustard sauce?'],doc:'PROCES-07',type:'context',ok:/25 min/,bad:/10 min/},
+ {q:['Jaką temperaturę musi mieć ryba mrożona przy przyjęciu?','What temperature must frozen fish have on receipt?'],doc:'PROCES-08',type:'context',ok:/18 ?°C/,bad:/0 do 2|0 to 2/},
+ {q:['Z jaką prędkością pracuje zamykarka po przezbrojeniu?','At what speed is the seamer run after a changeover?'],doc:'INSTR-01',type:'context',ok:/120/,bad:/300/},
+ {q:['Po zaniku prądu w retorcie: ile razy wolno powtórzyć cykl i na jakim formularzu zwalnia się potem partię?','After a power cut in the retort: how many times may the cycle be repeated, and on which form is the batch released afterwards?'],doc:['PROCES-02','PROCES-06'],type:'multi',ok:[/\braz\b|jednokrotn|once|one time/,/F-12/]},
+ {q:['Ile dni mamy na odpowiedź na reklamację i jak długo zakład trzyma próbkę archiwalną z partii?','How many days do we have to answer a complaint, and how long does the plant keep the retention sample of a batch?'],doc:['PROCES-04','PROCES-06'],type:'multi',ok:[/14 dni|14 days/,/3 mies|3 months|three months|trzy mies/]},
+ {q:['Kto przezbraja zamykarkę i co ile minut kontroluje się potem szew?','Who does a seamer changeover, and how often is the seam inspected afterwards?'],doc:['INSTR-01','PROCES-01'],type:'multi',ok:[/mechanik|mechanic/,/10 min/]},
+ {q:['Ile kosztuje puszka?','How much does a can cost?'],type:'oos',oos:1},
+ {q:['Jaka jest pogoda w Warszawie?','What is the weather in Warsaw?'],type:'oos',oos:1},
+ {q:['Kto jest prezesem Rybex?','Who is the CEO of Rybex?'],type:'oos',oos:1},
+ {q:['Ile dni urlopu ma operator zamykarki?','How many days of leave does a seamer operator get?'],type:'oos',oos:1},
+ {q:['Ile kosztuje godzina postoju linii 2?','How much does an hour of downtime on line 2 cost?'],type:'oos',oos:1},
+ {q:['Jaka jest premia za pracę na nocnej zmianie?','What is the bonus for working the night shift?'],type:'oos',oos:1}];
 const BRIEF_PL="> Sprawa zaczyna się od incydentu w zakładzie Rybex w Mirszycach: sieć handlowa zwróciła paletę „Szprota w oleju” z partii "+LOT+" z powodu wgnieceń i nieczytelnego kodu partii. W tym samym tygodniu do skrzynki reklamacji wpłynęło więcej zgłoszeń niż zwykle, w tym sygnały o zapachu. Dyrektor zakładu prosi nowy zespół AI o jasny opis problemu, sprawdzenie prostych reguł i uczciwą ocenę, czy taki system można puścić bliżej linii.\n\n# Projekt końcowy – część technologiczna\n## Rozwiązanie AI dla firmy Rybex\n\n### Cel projektu\n\nCelem projektu jest zaprojektowanie i sprawdzenie rozwiązania wykorzystującego sztuczną inteligencję w firmie **Rybex – producencie konserw rybnych**. Zespół wybiera jeden problem, opracowuje koncepcję techniczną oraz przygotowuje **Proof of Concept (PoC)**, czyli prototyp pozwalający zweryfikować najważniejsze założenia rozwiązania.\n\nProjekt powinien pokazywać, jak przejść od określenia zadania i pozyskania danych do uruchomienia systemu AI oraz oceny jego działania.\n\n### 1. Wybór zadania\n\nNależy opisać zadanie, które wykonuje system: jakie dane otrzymuje, jak je przetwarza i jaki wynik zwraca użytkownikowi.\n\nPrzykładowe tematy dla firmy Rybex:\n\n- **Wizyjna kontrola jakości** – wykrywanie uszkodzeń puszek, nieprawidłowych etykiet lub nieczytelnych oznaczeń partii.\n- **Prognozowanie popytu** – przewidywanie zapotrzebowania na poszczególne produkty na podstawie danych historycznych.\n- **Przewidywanie awarii maszyn** – wykrywanie nieprawidłowości w danych z urządzeń produkcyjnych.\n- **Asystent wiedzy firmowej** – wyszukiwanie informacji i udzielanie odpowiedzi na podstawie instrukcji obsługi, procedur i dokumentacji technicznej.\n- **Analiza reklamacji** – klasyfikowanie zgłoszeń, identyfikowanie powtarzających się problemów i przygotowywanie projektów odpowiedzi.\n\n### 2. Dane\n\nNależy określić:\n\n- rodzaj i format potrzebnych danych, np. zdjęcia, dokumenty, historia sprzedaży lub odczyty z czujników;\n- źródła danych i sposób ich pozyskania;\n- zakres przygotowania danych: czyszczenie, uzupełnianie, oznaczanie i przekształcanie;\n- sposób podziału danych do budowy rozwiązania i niezależnego testowania;\n- ograniczenia zbioru, np. małą liczbę przykładów, braki lub nierównomierną reprezentację kategorii.\n\nMożna wykorzystać dane firmowe, publiczne zbiory danych lub dane symulowane. Jeśli zespół korzysta z danych zastępczych, należy wyjaśnić, w jakim stopniu odpowiadają warunkom pracy w firmie Rybex.\n\n### 3. Technologia i architektura\n\nNależy przedstawić i uzasadnić wybór:\n\n- modelu lub metody AI;\n- bibliotek, narzędzi i środowiska wykonawczego;\n- infrastruktury: lokalnej, chmurowej lub hybrydowej;\n- sposobu przechowywania i przetwarzania danych;\n- interfejsu użytkownika oraz ewentualnych integracji z innymi systemami.\n\nDokumentacja powinna zawierać **schemat blokowy architektury**, który pokazuje przepływ danych od źródła przez komponenty systemu do wyniku.\n\nRozwiązanie może korzystać z gotowego modelu, zewnętrznego API, mechanizmu RAG lub modelu trenowanego przez zespół. Trenowanie własnego modelu nie jest konieczne – wybór podejścia powinien wynikać z zadania.\n\n### 4. Prototyp i przebieg prac\n\nCzęść praktyczna może mieć postać:\n\n- prostej aplikacji AI, która wykonuje wybrane zadanie;\n- narzędzia lub notatnika do trenowania i testowania modelu;\n- demonstratora wykorzystującego gotowy model lub usługę AI.\n\nNależy opisać sposób uruchomienia prototypu, przeprowadzone eksperymenty oraz najważniejsze decyzje projektowe. Jeśli model był trenowany lub dostrajany, należy podać wykorzystane zasoby, czas i szacunkowy koszt tego procesu.\n\nPrototyp powinien pozwalać sprawdzić główną funkcję systemu.\n\n### 5. Ocena działania\n\nNależy dobrać miary odpowiadające zadaniu, np.:\n\n- precyzję, czułość lub F1 dla klasyfikacji i wykrywania nieprawidłowości;\n- błąd prognozy dla przewidywania popytu;\n- poprawność odpowiedzi i zgodność ze źródłami dla asystenta wiedzy;\n- czas odpowiedzi, zużycie zasobów i koszt pojedynczego wywołania.\n\nOcena powinna obejmować przykłady poprawnego działania i błędów, ograniczenia rozwiązania oraz wnioski z testów. Warto porównać wyniki z prostą metodą odniesienia, np. regułami lub prognozą opartą na średniej historycznej.\n\n### 6. Rezultaty części technologicznej\n\nZespół przedstawia:\n\n- dokumentację danych, technologii i architektury;\n- prototyp lub środowisko eksperymentalne wraz z instrukcją uruchomienia;\n- wyniki testów i analizę błędów;\n- szacunek zapotrzebowania na zasoby oraz kosztów technicznych;\n- opis dalszych prac potrzebnych do wdrożenia, w tym integracji, monitorowania jakości i utrzymania systemu.\n";
 const BRIEF_EN=`> The case starts with an incident at the Rybex plant in Mirszyce: a retail chain returned a pallet of “Sprat in oil” from batch ${LOT} because of dents and an unreadable batch code. In the same week the complaints team received more reports than usual, including reports about the smell. The plant director asks the new AI team for a clear description of the problem, a check of simple rules and an honest assessment of whether such a system can be put closer to the line.
 
@@ -991,7 +1203,7 @@ const CARDS=()=>({
  sales:{src:T('Dane symulowane: 4 produkty × 36 miesięcy, trend, sezonowość (Wielki Post, Boże Narodzenie), szum','Simulated: 4 products × 36 months, trend, seasonality (Lent, Christmas), noise'),n:'144 '+T('wierszy','rows'),prep:T('Brak braków; w praktyce: uzupełnianie luk, korekta promocji i braków magazynowych','No gaps; in practice: filling gaps, adjusting for promotions and stock-outs'),split:T('Podział chronologiczny: ostatnie miesiące jako test (nie losowo!)','Chronological split: last months as test (never random!)'),lim:T('Tylko 3 cykle roczne; brak cen, promocji, pogody','Only 3 yearly cycles; no prices, promotions, weather'),proxy:T('Przybliża dane z ERP; rzeczywiste szeregi mają skoki promocyjne i nieregularności.','Approximates ERP data; real series have promotional spikes and irregularities.')},
  sensors:{src:T('Dane symulowane z zamykarki/retortu: temperatura, ciśnienie, drgania co minutę; 6 okien awarii','Simulated seamer/retort data: temperature, pressure, vibration every minute; 6 failure windows'),n:'600 '+T('wierszy','rows'),prep:T('Etykieta anomalii znana; statystyki normalne liczone tylko z danych treningowych bez awarii','Anomaly label known; normal-behaviour stats computed from fault-free training data only'),split:T('Pierwsze 300 min – trening, kolejne 300 – test','First 300 min – training, next 300 – test'),lim:T('Tylko 6 zdarzeń; rodzaje awarii uproszczone','Only 6 events; failure types simplified'),proxy:T('Realne dane z PLC mają dryf i inne częstotliwości próbkowania.','Real PLC data has drift and different sampling rates.')},
  compl:{src:T('Dane symulowane: 60 zgłoszeń klientów w 5 kategoriach; ok. 1/3 to przypadki trudne: uszkodzenia w transporcie i zgłoszenia opisujące kilka problemów','Simulated: 60 customer complaints in 5 categories; about 1/3 are hard cases: transport damage and complaints describing several problems'),n:'60 '+T('wierszy','rows'),prep:T('Etykiety nadane według instrukcji oznaczania działu reklamacji (uszkodzenia w transporcie, priorytet problemów; treść w Laboratorium → Analiza reklamacji); w praktyce także anonimizacja danych osobowych (RODO)','Labels assigned with the complaints team labelling guideline (transport damage, problem priority; text in Build lab → Complaint analysis); in practice also anonymize personal data (GDPR)'),split:T('Pierwsze 36 – zestaw deweloperski (do dostrajania reguł), ostatnie 24 – test ukryty','First 36 – dev set (tuning rules), last 24 – hidden test'),lim:T('Krótkie teksty pisane według wzorów; realne zgłoszenia są dłuższe, z literówkami i emocjami','Short pattern-based texts; real complaints are longer, with typos and emotion'),proxy:T('Etykieta zależy od procesu w firmie (kto płaci za szkodę, co jest pilniejsze), a nie tylko od treści: tak jest też w realnych działach reklamacji.','The label depends on company process (who pays for the damage, what is more urgent), not only on the text: the same holds in real complaints teams.')},
- doc:{src:T('Fikcyjne opisy procesów Rybex (wartości liczbowe wymyślone na potrzeby warsztatów)','Fictional Rybex process documents (numbers invented for the workshop)'),n:'5 '+T('dokumentów, ok. 20 akapitów','documents, ~20 paragraphs'),prep:T('Podział na fragmenty (chunking), indeksowanie','Chunking and indexing'),split:T('20 pytań kontrolnych: 15 do strojenia (12 z oczekiwanym dokumentem i faktem, 3 spoza zakresu) i 5 ukrytych do testu (4 + 1)','20 control questions: 15 for tuning (12 with the expected document and fact, 3 out of scope) and 5 hidden for the test (4 + 1)'),lim:T('Krótkie, czyste teksty; realne instrukcje to PDF-y ze skanami i tabelami','Short clean texts; real manuals are PDFs with scans and tables'),proxy:T('Struktura odpowiada typowym opisom procesów, skala jest tysiąckrotnie mniejsza.','Structure resembles typical process documents, scale is a thousand times smaller.')}});
+ doc:{src:T('Fikcyjne opisy procesów Rybex (wartości liczbowe wymyślone na potrzeby warsztatów)','Fictional Rybex process documents (numbers invented for the workshop)'),n:DOCS.length+' '+T('dokumentów, ','documents, ')+DOCS.reduce((a,d)=>a+d.p[0].length,0)+' '+T('akapitów','paragraphs'),prep:T('Podział na fragmenty (chunking), indeksowanie','Chunking and indexing'),split:(([d,t])=>T(`${RQ.length} pytań kontrolnych: ${d[0]+d[1]} do strojenia (${d[0]} z oczekiwanym dokumentem i faktem, ${d[1]} spoza zakresu) i ${t[0]+t[1]} ukrytych do testu (${t[0]} + ${t[1]})`,`${RQ.length} control questions: ${d[0]+d[1]} for tuning (${d[0]} with the expected document and fact, ${d[1]} out of scope) and ${t[0]+t[1]} hidden for the test (${t[0]} + ${t[1]})`))([RQ_DEV,RQ_TEST].map(x=>[x.filter(r=>!r.oos).length,x.filter(r=>r.oos).length])),lim:T('Krótkie, czyste teksty; realne instrukcje to PDF-y ze skanami i tabelami','Short clean texts; real manuals are PDFs with scans and tables'),proxy:T('Struktura odpowiada typowym opisom procesów, skala jest tysiąckrotnie mniejsza.','Structure resembles typical process documents, scale is a thousand times smaller.')}});
 const trMeta=()=>({
  vision:{ic:'eye',title:T('Wizyjna kontrola jakości','Visual quality inspection'),inp:T('zdjęcie puszki z kamery na linii','can photo from the line camera'),proc:T('wyliczenie cech obrazu i zastosowanie reguł decyzyjnych','compute image features and apply decision rules'),out:T('OK / wada','OK / defect'),
   methods:[[T('Reguły na cechach pikseli (to demo)','Rules on pixel features (this demo)'),T('szybkie, wyjaśnialne, bez trenowania','fast, explainable, no training'),T('wrażliwe na oświetlenie i tło','sensitive to lighting and background'),'≈ 0 $'],[T('Dostrojona sieć CNN','Fine-tuned CNN'),T('odporna, uczy się z przykładów','robust, learns from examples'),T('wymaga setek oznaczonych wad i GPU','needs hundreds of labeled defects and a GPU'),T('godziny GPU, rząd dziesiątek $','GPU hours, tens of $')],[T('Model wizyjny przez API','Vision model via API'),T('najszybszy PoC, bez trenowania','fastest PoC, no training'),T('koszt za wywołanie, opóźnienie, dane opuszczają zakład','per-call cost, latency, data leaves the plant'),T('centy / 1000 zdjęć (zmierz w laboratorium)','cents / 1000 images (measure it in the lab)')]],data:T('data/vision/can_images (90 trening, 60 walidacja, 60 test)','data/vision/can_images (90 train, 60 validation, 60 test)')},
@@ -1828,7 +2040,7 @@ function rybexHome(R){const h=R.home;return`<div class="rf-hero"><div><h2>Rybex<
 function rybexProdGrid(full){const R=RYBEX_SITE();return`<ul class="rf-prods">${PRODUCTS.map((p,i)=>`<li class="rf-prod">${rybexImg('p'+i,i)}<h3 class="rf-pname">${T(p[0],p[1])}</h3>${full&&i===STORY().product?`<p class="rf-pnote">${R.products.visionNote}</p><p class="rf-pact"><button type="button" class="rf-link" data-lab="vision">${ic('scan-search')}${R.products.vision}</button></p>`:''}</li>`).join('')}</ul>`}
 function rybexAbout(R){return`<div class="rf-blk rf-text"><h2>${R.about.h}</h2>${R.about.p.map(x=>`<p>${x}</p>`).join('')}</div>`}
 function rybexProducts(R){return`<div class="rf-blk"><h2>${R.products.h}</h2><p class="rf-intro">${R.products.lead}</p>${rybexProdGrid(true)}</div>`}
-function rybexQuality(R){const q=R.quality,li=langIx();return`<div class="rf-blk rf-text"><h2>${q.h}</h2>${q.p.map(x=>`<p>${x}</p>`).join('')}<h3>${q.docs}</h3><ul class="rf-docs">${DOCS.map(d=>`<li><button type="button" class="rf-link" data-doc="${d.id}">${ic('file-text')}${d.id} – ${d.t[li]}</button></li>`).join('')}</ul><p><button type="button" class="btn-ghost btn-sm" data-lab="rag">${ic('message-square')}${q.rag}</button></p></div>`}
+function rybexQuality(R){const q=R.quality,li=langIx();return`<div class="rf-blk rf-text"><h2>${q.h}</h2>${q.p.map(x=>`<p>${x}</p>`).join('')}<h3>${q.docs}</h3><ul class="rf-docs">${DOCS.filter(d=>d.id.startsWith('PROCES')).map(d=>`<li><button type="button" class="rf-link" data-doc="${d.id}">${ic('file-text')}${d.id} – ${d.t[li]}</button></li>`).join('')}</ul><p><button type="button" class="btn-ghost btn-sm" data-lab="rag">${ic('message-square')}${q.rag}</button></p></div>`}
 function rybexNews(R){const n=R.news,s=STORY(),row=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;return`<div class="rf-art"><div><p class="rf-crumbs"><button type="button" class="rf-link" data-rp="home">${R.menu.home}</button> / ${R.menu.news}</p><p class="rf-date">${s.date}</p><h2>${n.h}</h2><div class="rf-body">${n.p.map(x=>`<p>${x}</p>`).join('')}</div>
  <h3>${n.season[0]}</h3><p class="rf-season">${n.season[1]}</p><p><button type="button" class="btn-ghost btn-sm" data-lab="forecast">${ic('trending-up')}${n.season[2]}</button></p></div>
  <aside class="rf-facts"><h3>${n.facts}</h3><dl>${row(T('Produkt','Product'),T(...PRODUCTS[s.product].slice(0,2)))}${row(T('Partia','Lot'),s.lot)}${row(T('Data','Date'),s.date)}</dl></aside></div>`}
@@ -2075,7 +2287,7 @@ function syncAiBar(){const slot=$('#aiSlot');if(!slot)return;const want=AI_TRACK
  if(want&&!$('#aiBar')){slot.innerHTML=aiBar();bindAiBar();icons(slot)}else if(!want&&slot.firstChild)slot.innerHTML=''}
 // ─── Baseline (spec 4.18): always on the tuning set or the lab's visible evaluation window, never on a hidden test set ───
 const BASE_INFO=k=>({vision:T('Metoda odniesienia „zawsze OK” uzna każdą puszkę za dobrą. Policzymy jej wynik na 60 zdjęciach walidacyjnych.','The “always OK” baseline calls every can good. We will score it on the 60 validation images.'),
- rag:T('Wyszukiwanie dosłowne zwraca akapit z największą liczbą wspólnych słów. Policzymy jego wynik na 15 pytaniach strojenia.','Literal search returns the paragraph sharing the most words with the question. We will score it on the 15 tuning questions.'),
+ rag:T(`Wyszukiwanie dosłowne zwraca akapit z największą liczbą wspólnych słów. Policzymy jego wynik na ${RQ_DEV.length} pytaniach strojenia.`,`Literal search returns the paragraph sharing the most words with the question. We will score it on the ${RQ_DEV.length} tuning questions.`),
  complaints:T('Klasa większościowa przypisuje każdemu zgłoszeniu najczęstszą kategorię. Policzymy jej wynik na zestawie deweloperskim (36 zgłoszeń).','The majority class gives every complaint the most common category. We will score it on the dev set (36 complaints).'),
  forecast:T('Średnia historyczna prognozuje każdy miesiąc jako średnią z miesięcy treningowych. Policzymy jej błąd na ostatnich miesiącach wybranego produktu.','The historical mean forecasts every month as the average of the training months. We will score its error on the last months of the chosen product.'),
  maint:T('Reguła PROCES-05 podnosi alarm, gdy drgania przekraczają 4 mm/s. Policzymy jej wynik na ocenianych minutach 300–600.','The PROCES-05 rule raises an alarm when vibration exceeds 4 mm/s. We will score it on the evaluated minutes 300–600.')})[k]||'';
@@ -2084,7 +2296,7 @@ const baseKey=k=>`${S.example?'ex':S.team}|${k}`;
 function baseRun(k){
  if(k==='vision'){visInit();const set=VIS.val,n=set.length,nb=set.filter(i=>i.bad).length,m={...prf(0,0,nb,n-nb),p:0,f1:0};
   return{set:'val',html:kpis(m,{recap:plainRecap('vision',m,{set:'val',n})}),cfg:{base:true,set:'val',datasetKey:VIS.datasetKey},res:{val:{p:0,r:0,f1:0},acc:m.acc},primary:{m:BASE_M('vision'),v:0,base:0,hi:true,test:false}}}
- if(k==='rag'){const li=langIx();let ok=0,ref=0;RQ_DEV.forEach(r=>{const q=r.q[li],b=literalBaseline(q);if(r.oos){if(!b)ref++}else if(b&&r.ok.test(b))ok++});const n=RQ_DEV.filter(r=>!r.oos).length,nOos=RQ_DEV.length-n,m={n,ok,ref,nOos};
+ if(k==='rag'){const li=langIx();let ok=0,ref=0;RQ_DEV.forEach(r=>{const q=r.q[li],b=literalBaseline(q);if(r.oos){if(!b)ref++}else if(rqGood(r,b))ok++});const n=RQ_DEV.filter(r=>!r.oos).length,nOos=RQ_DEV.length-n,m={n,ok,ref,nOos};
   return{set:'dev',html:essentials([[`${ok}/${n}`,T('Poprawne odpowiedzi','Correct answers'),'yellow'],[`${ref}/${nOos}`,T('Poprawne odmowy spoza zakresu','Correct out-of-scope refusals'),'green']],[],{recap:plainRecap('rag',m,{set:'dev',n}),extra:`<p class="hint">${T('Ta metoda zwraca akapit z największą liczbą wspólnych słów i odmawia tylko wtedy, gdy żadne słowo pytania nie pasuje do dokumentów.','This method returns the paragraph sharing the most words and refuses only when no word of the question matches the documents.')}</p>`}),cfg:{base:true,set:'dev',lang:S.lang},res:{ok,ref,n,nOos,baseOk:ok},primary:{m:BASE_M('rag'),v:ok/n,base:ok/n,hi:true,test:false}}}
  if(k==='complaints'){const rows=DATA.compl.slice(0,36),top=COMPL_TOP(),ok=rows.filter(r=>r.category===top).length,nh=rows.filter(r=>r.hazard).length,acc=ok/rows.length,m={n:rows.length,ok,hit:0,total:nh};
   return{set:'dev',html:essentials([[pct(acc),`${T('Trafność kategorii','Category accuracy')} (${gl('dev')})`,'blue'],[`0/${nh}`,T('Wykryte zgłoszenia o bezpieczeństwie żywności','Food-safety complaints detected'),'red']],[],{recap:plainRecap('complaints',m,{set:'dev',n:rows.length}),extra:`<p class="hint">${T('Najczęstsza kategoria','Most common category')}: ${catName(top)}. ${T('Ta metoda nie oznacza żadnego zagrożenia bezpieczeństwa żywności.','This method flags no food-safety hazard at all.')}</p>`}),cfg:{base:true,set:'dev'},res:{dev:acc,base:acc,safety:0},primary:{m:BASE_M('complaints'),v:acc,base:acc,hi:true,test:false}}}
@@ -2343,9 +2555,13 @@ function visLLM(){const L=visEnsure();
   logAdd('vision',{mode:'llm',model:r.model,...(r.ver?{ver:r.ver}:{}),shots:r.shots,set:r.set,datasetKey:r.datasetKey||VIS.datasetKey},{val:t?null:s,test:t?s:null,ai:r.sum,ruleF1:r.ruleF1,run:r.id},{m:t?T('F1 modelu (test)','model F1 (test)'):T('F1 modelu (walidacja)','model F1 (validation)'),v:r.m.f1,base:0,hi:true,test:t})}}
 
 // ─── Lab: RAG ───
-// Hidden test questions: four in scope plus one out of scope; the example chips stay in the tuning set
-const RAG_TEST_IDX=new Set([7,9,12,14,19]),RQ_DEV=RQ.filter((_,i)=>!RAG_TEST_IDX.has(i)),RQ_TEST=RQ.filter((_,i)=>RAG_TEST_IDX.has(i));
+// Hidden test questions: one direct, two para, one version, one context, one multi and two out of scope; the example chips and the challenge question stay in the tuning set
+const RAG_TEST_IDX=new Set([8,12,17,22,25,28,33,35]),RQ_DEV=RQ.filter((_,i)=>!RAG_TEST_IDX.has(i)),RQ_TEST=RQ.filter((_,i)=>RAG_TEST_IDX.has(i));
 const RAG_IX={};
+// A question may list one document or several, and one expected fact or several; an answer is good when every fact is there and no superseded value (`bad`) is.
+const rqDocs=r=>[].concat(r.doc||[]),rqOks=r=>[].concat(r.ok||[]);
+function rqGood(r,a){return!r.oos&&typeof a==='string'&&!!a&&rqOks(r).every(x=>x.test(a))&&!(r.bad&&r.bad.test(a))}
+const rqTally=(by,type,add)=>{const t=by[type]||(by[type]={n:0,ok:0,baseOk:0});t.n++;for(const k in add)t[k]=(t[k]||0)+(add[k]?1:0)};
 function ragIndex(chunk){const key=S.lang+chunk;return RAG_IX[key]||(RAG_IX[key]=ragBuild(chunk))}
 function ragBuild(chunk){const li=langIx(),ch=[];DOCS.forEach(d=>{const ps=d.p[li];for(let i=0;i<ps.length;i+=chunk){ch.push({doc:d.id,title:d.t[li],par:(i+1)+(chunk>1?'–'+Math.min(i+chunk,ps.length):''),text:ps.slice(i,i+chunk).join(' ')})}});
  const df={};ch.forEach(c=>{c.tf={};toks(c.text).forEach(t=>c.tf[t]=(c.tf[t]||0)+1);Object.keys(c.tf).forEach(t=>df[t]=(df[t]||0)+1)});
@@ -2356,10 +2572,10 @@ function bestSentence(text,q){const sents=text.split(/(?<=[.!?])\s+/),qs=new Set
 function ragAnswer(q,sc,cfg){const top=sc[0];if(!top||top.s<cfg.min)return{a:T('Nie znalazłem tej informacji w opisach procesów.','I could not find this in the process documents.'),src:[],sim:top?top.s:0,refused:true};
  return{a:bestSentence(top.c.text,q),src:sc.slice(0,cfg.k).filter(x=>x.s>=cfg.min).map(x=>({doc:x.c.doc,par:x.c.par})),sim:top.s,refused:false}}
 function literalBaseline(q){const li=langIx(),words=q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' ').filter(w=>w&&!STOP.has(w));let best=null,bs=0;DOCS.forEach(d=>d.p[li].forEach(p=>{const pw=p.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').split(' '),n=words.filter(w=>pw.includes(w)).length;if(n>bs){bs=n;best=p}}));return best}
-function ragEval(cfg,set=RQ_DEV){const li=langIx();let hit=0,ok=0,ref=0,baseOk=0,precSum=0;const rows=set.map(r=>{const q=r.q[li],sc=ragAsk(q,cfg.chunk),ans=ragAnswer(q,sc,cfg),got=sc.slice(0,cfg.k).map(x=>x.c.doc);
-  if(r.oos){if(ans.refused)ref++;return{q,oos:1,a:ans.a,sim:ans.sim,good:ans.refused,got}}
-  const h=got.includes(r.doc),c=!ans.refused&&r.ok.test(ans.a),b=literalBaseline(q);if(ans.src.length)precSum+=ans.src.filter(x=>x.doc===r.doc).length/ans.src.length;if(h)hit++;if(c)ok++;if(b&&r.ok.test(b))baseOk++;return{q,doc:r.doc,got,h,a:ans.a,sim:ans.sim,good:c}});
- const n=set.filter(r=>!r.oos).length;return{rows,hit,ok,ref,baseOk,n,nOos:set.filter(r=>r.oos).length,prec:precSum/n}}
+function ragEval(cfg,set=RQ_DEV){const li=langIx(),byType={};let hit=0,ok=0,ref=0,baseOk=0,precSum=0;const rows=set.map(r=>{const q=r.q[li],sc=ragAsk(q,cfg.chunk),ans=ragAnswer(q,sc,cfg),got=sc.slice(0,cfg.k).map(x=>x.c.doc),b=literalBaseline(q);
+  if(r.oos){if(ans.refused)ref++;rqTally(byType,'oos',{ok:ans.refused,baseOk:!b});return{q,oos:1,type:'oos',a:ans.a,sim:ans.sim,good:ans.refused,got}}
+  const docs=rqDocs(r),h=docs.every(d=>got.includes(d)),c=!ans.refused&&rqGood(r,ans.a),bg=rqGood(r,b);if(ans.src.length)precSum+=ans.src.filter(x=>docs.includes(x.doc)).length/ans.src.length;if(h)hit++;if(c)ok++;if(bg)baseOk++;rqTally(byType,r.type,{ok:c,baseOk:bg});return{q,doc:docs.join(', '),type:r.type,got,h,a:ans.a,sim:ans.sim,good:c}});
+ const n=set.filter(r=>!r.oos).length;return{rows,hit,ok,ref,baseOk,n,nOos:set.filter(r=>r.oos).length,prec:n?precSum/n:0,byType}}
 // ─── Lab: RAG with a model ───
 const RAG_SYS=()=>T('Jesteś asystentem pracowników firmy Rybex. Odpowiadaj wyłącznie na podstawie podanych fragmentów opisów procesów. Jeśli fragmenty nie zawierają odpowiedzi, ustaw "refused": true i napisz, że nie wiesz. Odpowiadaj krótko (jedno lub dwa zdania) po polsku i podaj źródła. Zwróć wyłącznie JSON: {"answer": "...", "sources": [{"doc": "PROCES-01", "par": "1"}], "refused": false}','You are an assistant for Rybex employees. Answer only from the process document passages provided. If the passages do not contain the answer, set "refused": true and say you do not know. Answer briefly (one or two sentences) in English and cite the sources. Return JSON only: {"answer": "...", "sources": [{"doc": "PROCES-01", "par": "1"}], "refused": false}');
 const JUDGE_SYS=()=>T('Jesteś sędzią oceniającym odpowiedzi asystenta wiedzy firmy Rybex. Dostajesz pytanie, wzorcowy fragment procedury i odpowiedź asystenta. Oceń: "correct" – czy odpowiedź zawiera fakt z wzorcowego fragmentu potrzebny do odpowiedzi na pytanie; "grounded" – czy odpowiedź nie dodaje informacji spoza fragmentu. Zwróć wyłącznie JSON: {"correct": true, "grounded": true, "reason": "jedno krótkie zdanie"}','You are a judge grading answers of the Rybex knowledge assistant. You get the question, a reference procedure passage and the assistant answer. Grade: "correct" – does the answer contain the fact from the reference passage needed to answer the question; "grounded" – does the answer avoid adding information that is not in the passage. Return JSON only: {"correct": true, "grounded": true, "reason": "one short sentence"}');
@@ -2374,21 +2590,23 @@ async function ragLLMAsk(q,L,signal){const sc=ragAsk(q,L.chunk),ps=sc.filter(x=>
  if(!ps.length)return{a:RAG_NOT_FOUND(),src:[],refused:true,sim,top,ai:null,messages:null};
  const messages=ragMessages(q,ps),x=await callModel({messages,maxTokens:250,signal}),c=ragClean(x.data);
  return{a:c?c.answer:T('(model nie zwrócił poprawnego JSON)','(the model did not return valid JSON)'),src:c?c.src:[],refused:c?c.refused:false,sim,top,ai:aiUse(x),messages}}
-function refPassage(r){const li=langIx(),d=DOCS.find(x=>x.id===r.doc);return d?(d.p[li].find(p=>r.ok.test(p))||d.p[li].join(' ')):''}
-async function ragJudge(r,q,a,signal){const x=await callModel({messages:[{role:'system',content:JUDGE_SYS()},{role:'user',content:`${T('Pytanie','Question')}: ${q}\n${T('Wzorcowy fragment','Reference passage')} (${r.doc}): ${refPassage(r)}\n${T('Odpowiedź asystenta','Assistant answer')}: ${a}`}],maxTokens:120,signal}),d=x.data;
+// Reference for the judge: from every listed document the paragraphs holding an expected fact (the whole document when none matches)
+function refPassage(r){const li=langIx(),oks=rqOks(r);return rqDocs(r).map(id=>{const d=DOCS.find(x=>x.id===id);if(!d)return'';const ps=d.p[li].filter(p=>oks.some(x=>x.test(p)));return(ps.length?ps:d.p[li]).join(' ')}).filter(Boolean).join('\n')}
+async function ragJudge(r,q,a,signal){const x=await callModel({messages:[{role:'system',content:JUDGE_SYS()},{role:'user',content:`${T('Pytanie','Question')}: ${q}\n${T('Wzorcowy fragment','Reference passage')} (${rqDocs(r).join(', ')}): ${refPassage(r)}\n${T('Odpowiedź asystenta','Assistant answer')}: ${a}`}],maxTokens:120,signal}),d=x.data;
  return{v:isObj(d)?{correct:!!d.correct,grounded:!!d.grounded,reason:typeof d.reason==='string'?d.reason.slice(0,200):''}:null,ai:aiUse(x)}}
 async function ragEvalLLM(L,set,{signal,onProgress}){const li=langIx(),items=set.map(r=>({r,q:r.q[li]})),ext=ragEval(L,set);
  const res=await runBatch(items,async it=>{const ans=await ragLLMAsk(it.q,L,signal),judge=L.judge&&!it.r.oos&&!ans.refused?await ragJudge(it.r,it.q,ans.a,signal):null;return{ans,judge}},{signal,onProgress});
- const failed=aiCheckFailed(res),rows=[],uses=[];let hit=0,ok=0,ref=0,precSum=0,baseOk=0,jn=0,agree=0;
+ const failed=aiCheckFailed(res),rows=[],uses=[],byType={};let hit=0,ok=0,ref=0,precSum=0,baseOk=0,extOk=0,jn=0,agree=0;
  res.forEach((x,i)=>{const{r,q}=items[i];
-  if(!x.ok){rows.push({q,doc:r.doc||'',oos:!!r.oos,a:aiErrText(x.kind),good:false,refused:false,err:true,src:[],judge:null});return}
+  const docs=rqDocs(r),doc=docs.join(', ');
+  if(!x.ok){rows.push({q,doc,type:r.type,oos:!!r.oos,a:aiErrText(x.kind),good:false,refused:false,err:true,src:[],judge:null});return}
   const{ans,judge}=x.value;if(ans.ai)uses.push(ans.ai);if(judge)uses.push(judge.ai);
-  if(r.oos){if(ans.refused)ref++;rows.push({q,doc:'',oos:true,a:ans.a,good:ans.refused,refused:ans.refused,src:ans.src,judge:null});return}
-  const g=!ans.refused&&r.ok.test(ans.a),b=literalBaseline(q);if(ans.top.includes(r.doc))hit++;if(g)ok++;if(b&&r.ok.test(b))baseOk++;if(ans.src.length)precSum+=ans.src.filter(s=>s.doc===r.doc).length/ans.src.length;
+  if(r.oos){if(ans.refused)ref++;rqTally(byType,'oos',{ok:ans.refused,baseOk:!literalBaseline(q),extOk:ext.rows[i].good});rows.push({q,doc:'',type:'oos',oos:true,a:ans.a,good:ans.refused,refused:ans.refused,src:ans.src,judge:null});return}
+  const g=!ans.refused&&rqGood(r,ans.a),bg=rqGood(r,literalBaseline(q)),eg=ext.rows[i].good;if(docs.every(d=>ans.top.includes(d)))hit++;if(g)ok++;if(bg)baseOk++;if(eg)extOk++;rqTally(byType,r.type,{ok:g,baseOk:bg,extOk:eg});if(ans.src.length)precSum+=ans.src.filter(s=>docs.includes(s.doc)).length/ans.src.length;
   const jv=judge&&judge.v?judge.v:null;if(jv){jn++;if(jv.correct===g)agree++}
-  rows.push({q,doc:r.doc,oos:false,a:ans.a,good:g,refused:ans.refused,src:ans.src,judge:jv})});
+  rows.push({q,doc,type:r.type,oos:false,a:ans.a,good:g,refused:ans.refused,src:ans.src,judge:jv})});
  const okSet=set.filter((r,i)=>res[i].ok),n=okSet.filter(r=>!r.oos).length;
- return{failed,rows,res:{hit,ok,ref,n,nOos:okSet.length-n,prec:n?precSum/n:0,baseOk,extOk:ext.ok},sum:aiSummary(uses),judgeN:L.judge?jn:null,agree:jn?agree/jn:null}}
+ return{failed,rows,res:{hit,ok,ref,n,nOos:okSet.length-n,prec:n?precSum/n:0,baseOk,extOk,byType},sum:aiSummary(uses),judgeN:L.judge?jn:null,agree:jn?agree/jn:null}}
 const useText=u=>`${aiModelName(u.model)} · ${num(u.in,0)} + ${cnt(u.out,'token',num(u.out,0))} · ${usd(u.cost)} · ${num(u.ms/1000,2)} s${u.replayed?' · '+T('nagrana odpowiedź','recorded answer'):u.cached?' · '+T('z pamięci podręcznej','from cache'):''}`;
 
 function labRag(){X.aiHook=null;syncAiBar();const L=lab().rag,li=langIx(),qs=RQ.slice(0,6),oosQ=RQ.find(r=>r.oos).q[li],llm=L.gen==='llm';
@@ -2398,7 +2616,7 @@ function labRag(){X.aiHook=null;syncAiBar();const L=lab().rag,li=langIx(),qs=RQ.
  <div class="well mt"><div class="chat" id="chat" aria-live="polite"></div><div class="chatbar"><label class="sr-only" for="qi">${T('Pytanie','Question')}</label><input type="text" class="input" id="qi" placeholder="${T('Np. Co zrobić, gdy puszka jest wybrzuszona?','E.g. What to do when a can is bulging?')}"><button type="button" class="btn" id="qs">${T('Wyślij','Send')}</button></div>
  <div class="mt">${qs.map((x,i)=>`<button type="button" class="chip" data-i="${i}">${x.q[li]}</button>`).join('')}</div>
  <p class="edu-small mt">${T('Sprawdźcie też pytanie spoza dokumentów:','Also try an out-of-scope question:')} <button type="button" class="chip" id="oosQ">${oosQ}</button></p></div>`,{tone:'blue'})}
- ${card('code',llm?T('Prompt wysyłany do modelu','Prompt sent to the model'):T('Prompt, który trafiłby do modelu językowego','Prompt that would go to an LLM'),`<div id="ragPrompt"></div>`,{tone:'blue'})}</div><div class="mt">${card('gauge',T('Ocena na pytaniach kontrolnych','Evaluation on the control questions'),`<p>${T('Strojenie: 15 pytań. Test: 5 ukrytych pytań, które odsłaniacie na końcu. Każde odsłonięcie jest liczone.','Tuning: 15 questions. Test: 5 hidden questions you reveal at the end. Each reveal is counted.')}</p><div class="row mt"><button type="button" class="btn-ink" id="ragRv" data-reveal="rag" aria-describedby="gateMsg" data-blocked="${revealGate('rag')}"></button><span id="ragViews" class="edu-chip tone-stone"></span></div>${GATE_P}<p class="hint" id="ragLock"></p><h4 style="margin:16px 0 8px">${T('Odpowiedź ekstrakcyjna (liczona na żywo, bez kosztu)','Extractive answer (computed live, free)')}</h4><div id="ragRes"></div>
+ ${card('code',llm?T('Prompt wysyłany do modelu','Prompt sent to the model'):T('Prompt, który trafiłby do modelu językowego','Prompt that would go to an LLM'),`<div id="ragPrompt"></div>`,{tone:'blue'})}</div><div class="mt">${card('gauge',T('Ocena na pytaniach kontrolnych','Evaluation on the control questions'),`<p>${T(`Strojenie: ${RQ_DEV.length} pytań. Test: ${RQ_TEST.length} ukrytych pytań, które odsłaniacie na końcu. Każde odsłonięcie jest liczone.`,`Tuning: ${RQ_DEV.length} questions. Test: ${RQ_TEST.length} hidden questions you reveal at the end. Each reveal is counted.`)}</p><div class="row mt"><button type="button" class="btn-ink" id="ragRv" data-reveal="rag" aria-describedby="gateMsg" data-blocked="${revealGate('rag')}"></button><span id="ragViews" class="edu-chip tone-stone"></span></div>${GATE_P}<p class="hint" id="ragLock"></p><h4 style="margin:16px 0 8px">${T('Odpowiedź ekstrakcyjna (liczona na żywo, bez kosztu)','Extractive answer (computed live, free)')}</h4><div id="ragRes"></div>
  <div id="ragModelRes" class="mt" data-ai-run="off" ${llm?'':'hidden'}><h4 style="margin:18px 0 8px">${T('Model językowy na tych samych pytaniach','Language model on the same questions')}</h4><div class="row"><button type="button" class="btn" id="ragRun"></button><span class="mlist"><label><input type="checkbox" id="ragJudge" ${L.judge?'checked':''}><span>${T('Oceniaj też modelem-sędzią (drugie wywołanie na odpowiedź)','Also grade with a judge model (a second call per answer)')}</span></label></span></div>${aiRunBox('ragRunBox')}<div id="ragModelOut" class="mt"></div></div>${saveBar('rag')}`,{tone:'blue'})}</div>`;
  const drawChat=()=>{const L=lab().rag,c=$('#chat');if(!c)return;c.innerHTML=L.msgs.map(m=>{const other=m.lang&&m.lang!==S.lang,lbl=other?`<span class="edu-chip tone-stone">${esc(String(m.lang).toUpperCase())}</span>`:'';const weak=!m.refused&&m.sim<WEAK_SIM;const isOos=RQ.some(r=>r.oos&&r.q.includes(m.q));
    return`<div class="msg u">${esc(m.q)}</div><div class="msg a">${esc(m.a)} ${lbl}<div class="meta">${(m.src||[]).map(s=>`<button type="button" class="linkbtn" data-doc="${esc(s.doc)}">${esc(s.doc)} §${esc(s.par)}</button>`).join(' ')}${m.refused?'':`<span>${T('podobieństwo','similarity')} ${num(m.sim,2)}</span>`}${weak?`<span class="edu-chip tone-yellow">${T('słabe dopasowanie','weak match')}</span>`:''}${m.ai?`<span class="ai-cost">${esc(useText(m.ai))}</span>`:''}</div>${m.note?`<p class="edu-small" style="margin-top:6px">${esc(m.note)}</p>`:''}${isOos&&!m.refused?`<p class="edu-small" style="margin-top:6px">${T(`To pytanie jest spoza dokumentów, a system odpowiedział: pojedyncze słowo pasuje do procedury. Ustawcie min. podobieństwo powyżej ${num(m.sim,2)} i zapytajcie ponownie.`,`This question is out of scope, yet the system answered: a single word matches a procedure. Set min. similarity above ${num(m.sim,2)} and ask again.`)}</p>`:''}</div>`}).join('')+(X.ragPending?`<div class="msg u">${esc(X.ragPending)}</div><div class="msg a pending">${T('Model pisze odpowiedź…','The model is writing…')}</div>`:'')||`<p class="edu-small">${T('Zadajcie pytanie lub wybierzcie przykład.','Ask a question or pick an example.')}</p>`;
@@ -2409,12 +2627,12 @@ function labRag(){X.aiHook=null;syncAiBar();const L=lab().rag,li=langIx(),qs=RQ.
   el.innerHTML=`<pre style="white-space:pre-wrap">${esc(txt)}</pre><p class="hint mt">${m?T(`To dokładnie ten tekst trafił do modelu przy ostatnim pytaniu: ${txt.length} ${plural(txt.length,['znak','znaki','znaków'],[])}. Model odpowiada w JSON, a aplikacja wstawia tylko pola answer i sources.`,`This is exactly what went to the model for the last question: ${txt.length} characters. The model answers in JSON and the app shows only the answer and sources fields.`):T('Zadajcie pytanie, aby zobaczyć prawdziwe zapytanie.','Ask a question to see the real request.')}</p>`};
  const drawEval=()=>{const L=lab().rag;$('#rkV').textContent=L.k;$('#rcV').textContent=L.chunk;$('#rmV').textContent=num(L.min,2);const rv=L.revealed,e=ragEval(L,rv?RQ_TEST:RQ_DEV),o=$('#ragRes');Object.assign(o.dataset,{hit:e.hit,ok:e.ok,ref:e.ref,n:e.n,baseOk:e.baseOk,nOos:e.nOos,prec:e.prec,set:rv?'test':'dev',testVisible:rv,testViews:L.testViews});
   ['rk','rc','rm'].forEach(id=>$('#'+id).disabled=rv);$('#ragRv').innerHTML=rv?ic('eye-off')+T('Ukryjcie test i wróćcie do strojenia','Hide the test and return to tuning'):ic('lock-open')+T('Odsłońcie pytania testowe','Reveal the test questions');$('#ragViews').textContent=T(`Test oglądany: ${L.testViews}×`,`Test viewed: ${L.testViews}×`);$('#ragLock').textContent=rv?T('Parametry są zablokowane, gdy test jest widoczny.','Parameters are locked while the test is visible.'):'';
-  const rc={set:rv?'test':'dev'};o.innerHTML=essentials([[`${e.ok}/${e.n}`,T('Poprawne odpowiedzi','Correct answers'),'yellow'],[`${e.ref}/${e.nOos}`,T('Poprawne odmowy spoza zakresu','Correct out-of-scope refusals'),'green']],[[pct(e.prec),T('trafne źródła: udział cytatów z właściwego dokumentu','source precision: citations from the right document'),'grape'],[`${e.hit}/${e.n}`,`hit@${L.k}: ${T('właściwy dokument','right document')}`,'blue'],[`${e.baseOk}/${e.n}`,T('metoda odniesienia: wyszukiwanie dosłowne','baseline: literal search'),'ink']],{cls:'grid3 wide',recap:plainRecap('rag',e,{...rc,n:e.n}),extra:`<div class="tscroll tall mt"><table><thead><tr><th>${T('Pytanie','Question')}</th><th>${T('Oczekiwane','Expected')}</th><th>${T('Znalezione','Retrieved')}</th><th>${T('Odpowiedź','Answer')}</th><th>${T('Wynik','Result')}</th></tr></thead><tbody>${e.rows.map(r=>`<tr><td>${esc(r.q)}</td><td>${r.oos?T('odmowa','refusal'):r.doc}</td><td>${r.oos?'–':r.got.join(', ')}</td><td>${esc(r.a)}</td><td><span class="edu-chip ${r.good?'tone-green':'tone-red'}">${r.good?T('dobrze','good'):T('błąd','wrong')}</span></td></tr>`).join('')}</tbody></table></div><p class="hint mt">${T('Trafiony dokument nie oznacza dobrej odpowiedzi: dlatego mierzymy obie rzeczy osobno. Większe k znajduje więcej, ale cytuje więcej szumu i kosztuje więcej tokenów.','Finding the right document does not mean a good answer, so we measure both separately. A larger k finds more but cites more noise and costs more tokens.')}</p><p class="hint">${T('W tak małym zbiorze (5 krótkich dokumentów) hit@k trafia niemal przy każdym ustawieniu, więc nie nadaje się do strojenia: dostrajajcie parametry, patrząc na poprawne odpowiedzi i odmowy. Wynik zależy też od języka dokumentów, dlatego wersje PL i EN to osobne eksperymenty.','In a corpus this small (5 short documents) hit@k succeeds at almost every setting, so it cannot guide tuning: tune on correct answers and refusals. The result also depends on the document language, so the PL and EN versions are separate experiments.')}</p>`});
+  const rc={set:rv?'test':'dev'};o.innerHTML=essentials([[`${e.ok}/${e.n}`,T('Poprawne odpowiedzi','Correct answers'),'yellow'],[`${e.ref}/${e.nOos}`,T('Poprawne odmowy spoza zakresu','Correct out-of-scope refusals'),'green']],[[pct(e.prec),T('trafne źródła: udział cytatów z właściwego dokumentu','source precision: citations from the right document'),'grape'],[`${e.hit}/${e.n}`,`hit@${L.k}: ${T('właściwy dokument','right document')}`,'blue'],[`${e.baseOk}/${e.n}`,T('metoda odniesienia: wyszukiwanie dosłowne','baseline: literal search'),'ink']],{cls:'grid3 wide',recap:plainRecap('rag',e,{...rc,n:e.n}),extra:`<div class="tscroll tall mt"><table><thead><tr><th>${T('Pytanie','Question')}</th><th>${T('Oczekiwane','Expected')}</th><th>${T('Znalezione','Retrieved')}</th><th>${T('Odpowiedź','Answer')}</th><th>${T('Wynik','Result')}</th></tr></thead><tbody>${e.rows.map(r=>`<tr><td>${esc(r.q)}</td><td>${r.oos?T('odmowa','refusal'):r.doc}</td><td>${r.oos?'–':r.got.join(', ')}</td><td>${esc(r.a)}</td><td><span class="edu-chip ${r.good?'tone-green':'tone-red'}">${r.good?T('dobrze','good'):T('błąd','wrong')}</span></td></tr>`).join('')}</tbody></table></div><p class="hint mt">${T('Trafiony dokument nie oznacza dobrej odpowiedzi: dlatego mierzymy obie rzeczy osobno. Większe k znajduje więcej, ale cytuje więcej szumu i kosztuje więcej tokenów.','Finding the right document does not mean a good answer, so we measure both separately. A larger k finds more but cites more noise and costs more tokens.')}</p><p class="hint">${T('Pytanie, które wymaga dwóch dokumentów, liczy się w hit@k dopiero wtedy, gdy oba są wśród k fragmentów. Odpowiedź z wartością ze starej wersji procedury jest błędna, nawet jeśli brzmi wiarygodnie. Wynik zależy też od języka dokumentów, dlatego wersje PL i EN to osobne eksperymenty.','A question that needs two documents counts in hit@k only when both are among the k passages. An answer with a value from an old version of a procedure is wrong, even if it sounds plausible. The result also depends on the document language, so the PL and EN versions are separate experiments.')}</p>`});
   announce(recapText('rag',e,{...rc,n:e.n}));renderChallenge('rag')};
  const drawModel=()=>{const L=lab().rag,o=$('#ragModelRes');if(!o)return;const setName=L.revealed?'test':'dev',m=L.mrun,out=$('#ragModelOut'),b=$('#ragRun');
   if(L.gen!=='llm'){o.hidden=true;o.dataset.aiRun='off';return}o.hidden=false;b.disabled=S.example;
-  if(o.dataset.aiRun!=='running')b.innerHTML=ic('play')+(L.revealed?T('Uruchomcie model na 5 pytaniach testowych','Run the model on the 5 test questions'):T('Uruchomcie model na 15 pytaniach strojenia','Run the model on the 15 tuning questions'));icons(b);
-  if(!m){if(o.dataset.aiRun!=='running')o.dataset.aiRun='none';out.innerHTML=`<p class="hint">${T('Brak wyniku modelu. Przebieg na 15 pytaniach kosztuje zwykle ułamek centa.','No model result yet. A run on 15 questions usually costs a fraction of a cent.')}</p>`;return}
+  if(o.dataset.aiRun!=='running')b.innerHTML=ic('play')+(L.revealed?T(`Uruchomcie model na ${RQ_TEST.length} pytaniach testowych`,`Run the model on the ${RQ_TEST.length} test questions`):T(`Uruchomcie model na ${RQ_DEV.length} pytaniach strojenia`,`Run the model on the ${RQ_DEV.length} tuning questions`));icons(b);
+  if(!m){if(o.dataset.aiRun!=='running')o.dataset.aiRun='none';out.innerHTML=`<p class="hint">${T(`Brak wyniku modelu. Przebieg na ${RQ_DEV.length} pytaniach kosztuje zwykle ułamek centa.`,`No model result yet. A run on ${RQ_DEV.length} questions usually costs a fraction of a cent.`)}</p>`;return}
   const stale=m.sig!==ragSig(L,setName),R=m.res,U=m.sum;if(o.dataset.aiRun!=='running')o.dataset.aiRun='done';
   Object.assign(o.dataset,{stale,n:R.n,nOos:R.nOos,ok:R.ok,ref:R.ref,hit:R.hit,prec:R.prec,calls:U.calls,cost:U.cost,ms:U.ms,set:m.set});if(m.judge&&m.judgeN!=null){o.dataset.judgeN=m.judgeN;o.dataset.agree=m.agree==null?'':m.agree}else{delete o.dataset.judgeN;delete o.dataset.agree}
   const per=U.calls?U.cost/U.calls*1000:0,js=m.judge&&m.judgeN!=null;

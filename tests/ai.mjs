@@ -112,7 +112,7 @@ try {
     await p.click('#ragRun');
     await p.waitForSelector('#ragModelRes[data-ai-run="done"]', { timeout: 15000 });
     const d = await p.$eval('#ragModelRes', e => ({ ...e.dataset }));
-    ok('model evaluation on dev: 12 in-scope + 3 out-of-scope', d.n === '12' && d.nOos === '3' && +d.calls > 0 && +d.cost > 0 && d.ok !== undefined, JSON.stringify(d));
+    ok('model evaluation on dev: 24 in-scope + 4 out-of-scope', d.n === '24' && d.nOos === '4' && +d.calls > 0 && +d.cost > 0 && d.ok !== undefined, JSON.stringify(d));
     await p.check('#ragJudge');
     await p.click('#ragRun');
     await p.waitForSelector('#ragModelRes[data-ai-run="done"][data-judge-n]', { timeout: 15000 });
@@ -135,7 +135,7 @@ try {
     await p.close();
     p = await fresh('#/lab/rag');
     await p.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); });
-    await p.click('#proto .chip[data-i="1"]');
+    await p.click('#proto .chip[data-i="0"]');
     await p.waitForFunction(() => document.querySelectorAll('#chat .msg.a').length >= 1 && !document.querySelector('#chat .msg.a.pending'));
     ok('no code -> extractive fallback with a note', /121/.test(await p.$eval('#chat .msg.a:last-child', e => e.textContent)) && /kod zajęć/i.test(await p.$eval('#chat .msg.a:last-child', e => e.textContent)));
     ok('no page errors (rag, no code)', !p.errs.length, p.errs.join(' | '));
@@ -339,7 +339,7 @@ try {
     await p.click('#ragRun'); await p.waitForTimeout(100);
     await p.$eval('#rk', e => { e.value = '5'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     await p.waitForSelector('#ragModelRes[data-ai-run="done"]', { timeout: 20000 });
-    const ks = (await mock('calls')).last.messages[1].content.match(/\[PROCES-/g).length;
+    const ks = (await mock('calls')).last.messages[1].content.match(/\[[A-Z]+-\d{2} §/g).length;
     ok('RAG run uses settings from its start (k=2) and is marked stale', ks <= 2 && await p.$eval('#ragModelRes', e => e.dataset.stale) === 'true', `passages=${ks}`);
     ok('no page errors (fixes)', !p.errs.length, p.errs.join(' | '));
     await p.close();

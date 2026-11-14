@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -1897,6 +1897,71 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('fresh no stale announcement after a language switch', await p.$eval('#live', e => !/Zdanie po polsku/.test(e.textContent)));
       ok('fresh no page errors', !p.errs.length, p.errs.join('|')); await p.close(); }
   }
+  if (run('ragdata')) { const p = await fresh('#/lab/rag');
+    const d = await p.evaluate(() => { const TYPES = ['direct', 'para', 'multi', 'version', 'context', 'oos'], docsOf = r => [].concat(r.doc || []), oksOf = r => [].concat(r.ok || []), byId = id => DOCS.find(x => x.id === id), cnt = (set, t) => set.filter(r => r.type === t).length, txt = JSON.stringify(DOCS.map(x => [x.t, x.p])) + JSON.stringify(RQ.map(r => r.q));
+      const out = { docs: DOCS.length, ids: DOCS.every(x => /^[A-Z]+-\d{2}$/.test(x.id)) && new Set(DOCS.map(x => x.id)).size === DOCS.length, old: ['PROCES-01', 'PROCES-02', 'PROCES-03', 'PROCES-04', 'PROCES-05'].every(byId),
+        shape: DOCS.filter(x => !(x.t.length === 2 && x.p.length === 2 && x.p[0].length >= 8 && x.p[0].length === x.p[1].length && x.p.every(ps => ps.every(t => typeof t === 'string' && t.split(/(?<=[.!?])\s+/).length >= 2)))).map(x => x.id),
+        n: RQ.length, counts: Object.fromEntries(TYPES.map(t => [t, cnt(RQ, t)])), typed: RQ.every(r => TYPES.includes(r.type) && !!r.oos === (r.type === 'oos') && r.q.length === 2 && r.q.every(q => q.trim())),
+        docIds: RQ.every(r => r.oos ? !r.doc : docsOf(r).length >= 1 && docsOf(r).every(byId)), multi: RQ.filter(r => r.type === 'multi').every(r => docsOf(r).length === 2 && oksOf(r).length === 2), single: RQ.filter(r => !r.oos && r.type !== 'multi').every(r => docsOf(r).length === 1),
+        version: RQ.filter(r => r.type === 'version').every(r => r.bad instanceof RegExp), archived: DOCS.filter(x => /WERSJA ARCHIWALNA/.test(x.p[0][0]) && /ARCHIVED VERSION/.test(x.p[1][0])).map(x => x.id),
+        test: { n: RQ_TEST.length, ...Object.fromEntries(TYPES.map(t => [t, cnt(RQ_TEST, t)])) }, dev: RQ_DEV.length, split: RQ_DEV.length + RQ_TEST.length === RQ.length && !RQ_DEV.some(r => RQ_TEST.includes(r)), chips: RQ.slice(0, 6).every(r => RQ_DEV.includes(r) && !r.oos), firstOos: RQ_DEV.includes(RQ.find(r => r.oos)),
+        dash: /\u2014/.test(txt), plQuotes: !/["“]/.test(JSON.stringify(DOCS.map(x => x.p[0])).replace(/","|\["|"\]/g, '')), unmatched: [], badMiss: [], good: typeof rqGood === 'function' };
+      const arch = byId(out.archived[0]);
+      for (const li of [0, 1]) for (const r of RQ.filter(r => !r.oos)) { const ps = docsOf(r).flatMap(id => byId(id).p[li]);
+        oksOf(r).forEach(re => { if (!ps.some(t => re.test(t))) out.unmatched.push(r.q[li]); }); if (r.bad && !(arch && arch.p[li].some(t => r.bad.test(t))) && !ps.some(t => r.bad.test(t))) out.badMiss.push(r.q[li]);
+        if (r.type === 'version' && !(arch && arch.p[li].some(t => r.bad.test(t)))) out.badMiss.push('archive: ' + r.q[li]); }
+      if (out.good) { const v = RQ.find(r => r.type === 'version'), m = RQ.find(r => r.type === 'multi'), li = 0, cur = byId(v.doc).p[li].find(t => v.ok.test(t)), old = arch.p[li].find(t => v.bad.test(t)), parts = m.doc.map((id, i) => byId(id).p[li].find(t => m.ok[i].test(t)));
+        out.rule = { cur: rqGood(v, cur), old: rqGood(v, old), both: rqGood(v, cur + ' ' + old), one: rqGood(m, parts[0]), all: rqGood(m, parts.join(' ')), empty: rqGood(v, '') || rqGood(v, null), oos: rqGood(RQ.find(r => r.oos), 'x') }; }
+      return out; });
+    ok('ragdata at least 10 documents with valid, unique ids, the old five kept', d.docs >= 10 && d.ids && d.old, JSON.stringify([d.docs, d.ids, d.old]));
+    ok('ragdata every document: 8+ paragraphs of 2+ sentences, equal counts in PL and EN', d.shape.length === 0, d.shape.join());
+    ok('ragdata 28+ questions, every type present in the required numbers', d.n >= 28 && d.typed && d.counts.direct >= 3 && d.counts.para >= 6 && d.counts.multi >= 3 && d.counts.version >= 3 && d.counts.context >= 3 && d.counts.oos >= 4, JSON.stringify(d.counts));
+    ok('ragdata question documents exist; multi needs two documents and two facts', d.docIds && d.multi && d.single);
+    ok('ragdata every expected fact is in its document(s) in both languages', d.unmatched.length === 0, d.unmatched.join(' | '));
+    ok('ragdata one archived document, marked in both languages; every version question has a wrong value that the archive contains', d.archived.length === 1 && d.version && d.badMiss.length === 0, JSON.stringify([d.archived, d.badMiss]));
+    ok('ragdata test set of about 8 with an out-of-scope, a version and a multi question', d.split && d.test.n >= 7 && d.test.n <= 9 && d.test.oos >= 1 && d.test.version >= 1 && d.test.multi >= 1 && d.dev >= 20, JSON.stringify(d.test));
+    ok('ragdata example chips and the challenge question stay in the tuning set', d.chips && d.firstOos);
+    ok('ragdata no em-dash and no straight or English quotes in the Polish documents', !d.dash && d.plQuotes);
+    ok('ragdata rqGood: all facts required, an archived value is wrong', d.good && d.rule.cur === true && d.rule.old === false && d.rule.both === false && d.rule.one === false && d.rule.all === true && d.rule.empty === false && d.rule.oos === false, JSON.stringify(d.rule));
+    // Calibration on the tuning set, both languages: the literal baseline clearly weakest, TF-IDF in the middle, the sliders matter, nothing is perfect.
+    const cal = await p.evaluate(() => { const out = {}, keep = S.lang; for (const lang of ['pl', 'en']) { S.lang = lang; const def = ragEval({ k: 2, chunk: 1, min: .12 }), grid = [];
+        for (const k of [1, 2, 3, 4, 5]) for (const chunk of [1, 2, 3, 4]) for (const min of [.05, .12, .2]) grid.push(ragEval({ k, chunk, min }).ok);
+        const bt = def.byType || {}, inScope = Object.entries(bt).filter(([t]) => t !== 'oos');
+        out[lang] = { n: def.n, nOos: def.nOos, ok: def.ok, base: def.baseOk, ref: def.ref, best: Math.max(...grid), worst: Math.min(...grid), byType: bt, sumN: inScope.reduce((a, [, v]) => a + v.n, 0), sumOk: inScope.reduce((a, [, v]) => a + v.ok, 0), sumBase: inScope.reduce((a, [, v]) => a + v.baseOk, 0), oosT: bt.oos || null,
+          rowTypes: def.rows.every((r, i) => r.type === RQ_DEV[i].type), multiHit: def.rows.filter(r => r.type === 'multi').every((r, i) => { const q = RQ_DEV.filter(x => x.type === 'multi')[i]; return r.h === q.doc.every(id => r.got.includes(id)) && typeof r.doc === 'string'; }),
+          multiK1: ragEval({ k: 1, chunk: 1, min: .12 }).rows.filter(r => r.type === 'multi').every(r => r.h === false), multiOk: bt.multi ? bt.multi.ok : -1, llmShape: null }; }
+      S.lang = keep; return out; });
+    for (const lang of ['pl', 'en']) { const c = cal[lang], pc = x => Math.round(1000 * x / c.n) / 10, tag = `ragdata ${lang}:`;
+      ok(`${tag} literal baseline at most 40%`, c.base / c.n <= .4, `${c.base}/${c.n}`);
+      ok(`${tag} TF-IDF extractive at defaults between 40% and 65%, above the baseline`, c.ok / c.n >= .4 && c.ok / c.n <= .65 && c.ok > c.base, `${c.ok}/${c.n} vs ${c.base}`);
+      ok(`${tag} slider grid: best minus worst at least 15 points, no setting perfect`, pc(c.best) - pc(c.worst) >= 15 && c.best < c.n, `${c.best}..${c.worst}/${c.n}`);
+      ok(`${tag} byType sums to the totals`, c.sumN === c.n && c.sumOk === c.ok && c.sumBase === c.base && !!c.oosT && c.oosT.n === c.nOos && c.oosT.ok === c.ref, JSON.stringify(c.byType));
+      ok(`${tag} rows carry the type; a multi question is retrieved only with both documents; one sentence never holds both facts`, c.rowTypes && c.multiHit && c.multiK1 && c.multiOk === 0); }
+    console.log('  calibration', JSON.stringify(Object.fromEntries(Object.entries(cal).map(([l, c]) => [l, { base: `${c.base}/${c.n}`, tfidf: `${c.ok}/${c.n}`, best: c.best, worst: c.worst, refusals: `${c.ref}/${c.nOos}`, byType: c.byType }]))));
+    // The model path: reference passages cover every listed document, the judge prompt names them, and byType is reported (mock Worker echoes the first passage).
+    const m = await p.evaluate(async () => { S.ai.code = 'test-code'; const multi = RQ.find(r => r.type === 'multi'), ver = RQ.find(r => r.type === 'version'), ref = refPassage(multi), arch = DOCS.find(x => /WERSJA ARCHIWALNA/.test(x.p[0][0]));
+      const r = await ragEvalLLM({ k: 2, chunk: 1, min: .12, judge: false }, RQ_DEV, { onProgress() {} }), bt = r.res.byType || {}, inScope = Object.entries(bt).filter(([t]) => t !== 'oos');
+      const archRow = r.rows.find(x => x.type === 'version' && x.src.some(s => s.doc === arch.id));
+      return { refBoth: multi.ok.every(re => re.test(ref)), refCur: ver.ok.test(refPassage(ver)) && !ver.bad.test(refPassage(ver)), failed: r.failed, n: r.res.n, sumN: inScope.reduce((a, [, v]) => a + v.n, 0), sumOk: inScope.reduce((a, [, v]) => a + v.ok, 0), ok: r.res.ok, ext: inScope.every(([, v]) => 'extOk' in v && 'baseOk' in v), sumExt: inScope.reduce((a, [, v]) => a + v.extOk, 0), extOk: r.res.extOk, types: r.rows.every((x, i) => x.type === RQ_DEV[i].type), docStr: r.rows.every(x => typeof x.doc === 'string'), cites: r.rows.some(x => x.src.some(s => !/^PROCES-/.test(s.doc))), archRow: archRow ? { good: archRow.good, a: archRow.a } : null }; });
+    ok('ragdata reference passage holds every fact of a multi question and only the current version', m.refBoth && m.refCur);
+    ok('ragdata model run reports byType with model, extractive and baseline counts', !m.failed && m.sumN === m.n && m.sumOk === m.ok && m.ext && m.sumExt === m.extOk && m.types && m.docStr, JSON.stringify(m));
+    ok('ragdata model citations of the new document ids are kept', m.cites);
+    ok('ragdata an answer taken from the archived version is wrong', !!m.archRow && m.archRow.good === false, JSON.stringify(m.archRow));
+    // A team file saved with the old data: chat messages, a model run and log entries without types must still render, also in the report and after a language switch.
+    await seed(p, () => { const t = team(); t.track = 'rag'; const L = lab().rag; L.gen = 'llm';
+      L.msgs = [{ q: 'Jak często kontroluje się szew puszki?', a: 'Szew puszki kontroluje się co 30 minut na każdej zamykarce.', src: [{ doc: 'PROCES-01', par: '1' }, { doc: 'PROCES-09', par: '7' }], sim: .5, refused: false, lang: 'pl' }, { q: 'Ile kosztuje puszka?', a: 'Nie znalazłem tej informacji w opisach procesów.', src: [], sim: .05, refused: true, lang: 'pl' }];
+      L.mrun = { sig: 'old', set: 'dev', judge: false, failed: 0, rows: [{ q: 'Jak długo trwa sterylizacja?', doc: 'PROCES-02', oos: false, a: '40 minut', good: true, refused: false, src: [{ doc: 'PROCES-02', par: '1' }], judge: null }, { q: 'Ile kosztuje puszka?', doc: '', oos: true, a: 'Nie wiem.', good: true, refused: true, src: [], judge: null }], res: { hit: 12, ok: 11, ref: 3, n: 12, nOos: 3, prec: .9, baseOk: 9, extOk: 10 }, sum: { calls: 15, cost: .001, ms: 800, in: 3000, out: 400, model: 'deepseek' }, judgeN: null, agree: null };
+      t.log = [{ id: 'o1', ts: '2026-11-10T10:00:00Z', track: 'rag', cfg: { base: true, set: 'dev', lang: 'pl' }, res: { ok: 9, ref: 1, n: 12, nOos: 3, baseOk: 9, primary: { m: 'x', v: .75, base: .75, hi: true, test: false } }, note: '', testViews: 0, base: true },
+        { id: 'o2', ts: '2026-11-10T10:05:00Z', track: 'rag', cfg: { k: 2, chunk: 1, min: .12, lang: 'pl' }, res: { hit: 12, ok: 10, ref: 2, n: 12, nOos: 3, baseOk: 9, prec: .8, test: false, primary: { m: 'x', v: .83, base: .75, hi: true, test: false } }, note: 'stare dane', testViews: 0 }]; });
+    await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRes .recap');
+    ok('ragdata old saved chat, model run and log render in the lab', await p.$$eval('#chat .msg.a', e => e.length) === 2 && await p.$$eval('#ragModelOut tbody tr', e => e.length) === 2 && !p.errs.length, p.errs.join('|'));
+    await p.click('#chat .linkbtn[data-doc="PROCES-09"]'); await p.waitForTimeout(100);
+    ok('ragdata a citation of a document that no longer exists opens the data view without an error', await p.evaluate(() => S.view === 'data') && !p.errs.length, p.errs.join('|'));
+    for (const v of ['log', 'report']) { await p.evaluate(v => go(v), v); await p.waitForTimeout(100); }
+    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRes .recap');
+    ok('ragdata old saved data survives the log, the report and a language switch', !p.errs.length && await p.$$eval('#ragRes tbody tr', e => e.length) === await p.evaluate(() => RQ_DEV.length), p.errs.join('|'));
+    ok('ragdata the lab states the real set sizes', await p.evaluate(() => { const t = document.querySelector('#proto').textContent; return t.includes(`Tuning: ${RQ_DEV.length} questions`) && t.includes(`Test: ${RQ_TEST.length} hidden questions`) && !/5 short documents/.test(t); }));
+    await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
