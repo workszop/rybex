@@ -1,5 +1,5 @@
 {
- "commit": "32f3ba5",
+ "commit": "04d7f8b",
  "shots": [
   {
    "id": "site-home",
@@ -80,7 +80,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami."
+   "alt": "Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami."
   },
   {
    "id": "test-reveal",
