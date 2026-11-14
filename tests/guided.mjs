@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata ragtypes)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -1953,7 +1953,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     const before = await p.evaluate(() => JSON.stringify(lab().rag.mrun));
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready')); await p.waitForSelector('#ragModelOut tbody tr');
     const sv = await p.evaluate(before => { const m = lab().rag.mrun, b = JSON.parse(before), rt = normTeam(JSON.parse(JSON.stringify(team()))).lab.rag.mrun, bad = cleanRagRun({ ...b, res: { ...b.res, byType: { para: { n: 'x', ok: -5, baseOk: 1e9, extOk: 2.6 }, evil: { n: 1 } } }, rows: [{ ...b.rows[0], type: '<img>' }] });
-      return { rows: m.rows.length, dev: RQ_DEV.length, types: m.rows.every((r, i) => r.type === RQ_DEV[i].type), byType: JSON.stringify(m.res.byType) === JSON.stringify(b.res.byType) && Object.keys(m.res.byType).length === 6, same: m.rows.every((r, i) => r.q === b.rows[i].q && r.a === b.rows[i].a && r.good === b.rows[i].good && r.doc === b.rows[i].doc) && m.res.ok === b.res.ok && m.res.n === b.res.n, trip: JSON.stringify(rt) === JSON.stringify(m), shown: document.querySelectorAll('#ragModelOut tbody tr').length, stale: document.querySelector('#ragModelRes').dataset.stale,
+      return { rows: m.rows.length, dev: RQ_DEV.length, types: m.rows.every((r, i) => r.type === RQ_DEV[i].type), byType: JSON.stringify(m.res.byType) === JSON.stringify(b.res.byType) && Object.keys(m.res.byType).length === 6, same: m.rows.every((r, i) => r.q === b.rows[i].q && r.a === b.rows[i].a && r.good === b.rows[i].good && r.doc === b.rows[i].doc) && m.res.ok === b.res.ok && m.res.n === b.res.n, trip: JSON.stringify(rt) === JSON.stringify(m), shown: document.querySelectorAll('#ragModelOut .tscroll.tall tbody tr').length, stale: document.querySelector('#ragModelRes').dataset.stale,
         clean: JSON.stringify(bad.res.byType) === '{"para":{"n":0,"ok":0,"baseOk":99,"extOk":3}}' && !('type' in bad.rows[0]), oldShape: !('byType' in cleanRagRun({ ...b, res: { ...b.res, byType: undefined } }).res) }; }, before);
     ok('ragdata a saved model run keeps all tuning rows, their types and byType after a reload and through normTeam', sv.rows === sv.dev && sv.rows > 25 && sv.types && sv.byType && sv.same && sv.trip && sv.shown === sv.dev && sv.stale === 'false', JSON.stringify(sv));
     ok('ragdata saved per-type counts are sanitised; unknown types are dropped', sv.clean && sv.oldShape, JSON.stringify(sv));
@@ -1965,13 +1965,60 @@ ok('story site preview is a still picture with one working button', await p.$eva
       t.log = [{ id: 'o1', ts: '2026-11-10T10:00:00Z', track: 'rag', cfg: { base: true, set: 'dev', lang: 'pl' }, res: { ok: 9, ref: 1, n: 12, nOos: 3, baseOk: 9, primary: { m: 'x', v: .75, base: .75, hi: true, test: false } }, note: '', testViews: 0, base: true },
         { id: 'o2', ts: '2026-11-10T10:05:00Z', track: 'rag', cfg: { k: 2, chunk: 1, min: .12, lang: 'pl' }, res: { hit: 12, ok: 10, ref: 2, n: 12, nOos: 3, baseOk: 9, prec: .8, test: false, primary: { m: 'x', v: .83, base: .75, hi: true, test: false } }, note: 'stare dane', testViews: 0 }]; });
     await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRes .recap');
-    ok('ragdata old saved chat, model run and log render in the lab', await p.$$eval('#chat .msg.a', e => e.length) === 2 && await p.$$eval('#ragModelOut tbody tr', e => e.length) === 2 && !p.errs.length, p.errs.join('|'));
+    ok('ragdata old saved chat, model run and log render in the lab', await p.$$eval('#chat .msg.a', e => e.length) === 2 && await p.$$eval('#ragModelOut .tscroll.tall tbody tr', e => e.length) === 2 && !p.errs.length, p.errs.join('|'));
     await p.click('#chat .linkbtn[data-doc="PROCES-09"]'); await p.waitForTimeout(100);
     ok('ragdata a citation of a document that no longer exists opens the data view without an error', await p.evaluate(() => S.view === 'data') && !p.errs.length, p.errs.join('|'));
     for (const v of ['log', 'report']) { await p.evaluate(v => go(v), v); await p.waitForTimeout(100); }
     await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRes .recap');
-    ok('ragdata old saved data survives the log, the report and a language switch', !p.errs.length && await p.$$eval('#ragRes tbody tr', e => e.length) === await p.evaluate(() => RQ_DEV.length), p.errs.join('|'));
+    ok('ragdata old saved data survives the log, the report and a language switch', !p.errs.length && await p.$$eval('#ragRes .tscroll.tall tbody tr', e => e.length) === await p.evaluate(() => RQ_DEV.length), p.errs.join('|'));
     ok('ragdata the lab states the real set sizes', await p.evaluate(() => { const t = document.querySelector('#proto').textContent; return t.includes(`Tuning: ${RQ_DEV.length} questions`) && t.includes(`Test: ${RQ_TEST.length} hidden questions`) && !/5 short documents/.test(t); }));
+    await p.close(); }
+  if (run('ragtypes')) { const p = await fresh('#/lab/rag');
+    // Results by question type: one table per evaluation, visible without opening "More metrics", in the order of RAG_TYPES, with counts that match the engine.
+    const NAMES = { pl: ['pytanie wprost', 'inne słowa', 'dwa dokumenty', 'wersje procedury', 'kontekst w długim dokumencie', 'spoza dokumentów'], en: ['direct question', 'other words', 'two documents', 'procedure versions', 'context in a long document', 'out of scope'] };
+    const readTable = (sel, set) => p.evaluate(([sel, set]) => { const t = document.querySelector(sel); if (!t) return null; const L = lab().rag, e = ragEval(L, set === 'test' ? RQ_TEST : RQ_DEV);
+      const rows = [...t.querySelectorAll('tbody tr')].map(tr => ({ type: tr.dataset.type, name: tr.querySelector('th,td').textContent, cells: [...tr.querySelectorAll('td.num')].map(td => td.textContent.trim()) }));
+      const hidden = !!t.closest('details:not([open])') || !t.offsetParent, leg = t.closest('.rag-types'), legend = leg && leg.querySelector('.rag-legend') ? leg.querySelector('.rag-legend').textContent : '';
+      return { rows, hidden, legend, want: RAG_TYPES.filter(k => e.byType[k]).map(k => ({ type: k, cells: [String(e.byType[k].n), `${e.byType[k].ok}/${e.byType[k].n}`, `${e.byType[k].baseOk}/${e.byType[k].n}`] })) }; }, [sel, set]);
+    const sameCounts = t => t && t.rows.length === t.want.length && t.rows.every((r, i) => r.type === t.want[i].type && JSON.stringify(r.cells) === JSON.stringify(t.want[i].cells));
+    const named = (t, lang) => t && t.rows.length === 6 && t.rows.every((r, i) => r.name.includes(NAMES[lang][i])) && NAMES[lang].every(n => t.legend.includes(n));
+    await p.evaluate(() => { const L = lab().rag; L.k = 2; L.chunk = 1; L.min = .12; L.gen = 'extract'; save(); render(); }); await p.waitForSelector('#ragRes .recap');
+    let t = await readTable('#ragTypes', 'dev');
+    ok('ragtypes extractive run: per-type table with method and baseline counts', sameCounts(t), JSON.stringify(t));
+    ok('ragtypes PL type names and a legend, visible without opening more metrics', named(t, 'pl') && !t.hidden, JSON.stringify(t && [t.rows.map(r => r.name), t.legend, t.hidden]));
+    await p.evaluate(() => { const L = lab().rag; L.chunk = 3; save(); render(); }); await p.waitForSelector('#ragRes .recap');
+    ok('ragtypes the table follows the sliders', sameCounts(await readTable('#ragTypes', 'dev')));
+    await p.evaluate(() => { const L = lab().rag; L.chunk = 1; L.revealed = true; save(); render(); }); await p.waitForSelector('#ragRes .recap');
+    t = await readTable('#ragTypes', 'test');
+    ok('ragtypes test set: the table counts the test questions', sameCounts(t) && t.rows.reduce((a, r) => a + +r.cells[0], 0) === await p.evaluate(() => RQ_TEST.length), JSON.stringify(t));
+    await p.evaluate(() => { lab().rag.revealed = false; save(); render(); });
+    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRes .recap');
+    t = await readTable('#ragTypes', 'dev');
+    ok('ragtypes after PL→EN: English names, English counts', sameCounts(t) && named(t, 'en') && !p.errs.length, JSON.stringify([t && t.rows, p.errs]));
+    // Model run through the mock Worker: the same table with model, extractive and baseline columns; it survives a language switch (the run is then shown as outdated).
+    await p.click('#langSeg button[data-l=pl]'); await p.evaluate(() => { S.ai.code = 'test-code'; const L = lab().rag; L.gen = 'llm'; L.judge = false; L.mrun = null; save(); go('lab', 'rag'); });
+    await p.click('#ragRun'); await p.waitForSelector('#ragModelRes[data-ai-run="done"]', { timeout: 20000 });
+    const readModel = () => p.evaluate(() => { const t = document.querySelector('#ragModelTypes'); if (!t) return null; const bt = lab().rag.mrun.res.byType;
+      return { rows: [...t.querySelectorAll('tbody tr')].map(tr => ({ type: tr.dataset.type, name: tr.querySelector('th,td').textContent, cells: [...tr.querySelectorAll('td.num')].map(td => td.textContent.trim()) })), hidden: !!t.closest('details:not([open])') || !t.offsetParent, legend: (t.closest('.rag-types').querySelector('.rag-legend') || {}).textContent || '',
+        want: RAG_TYPES.filter(k => bt[k]).map(k => ({ type: k, cells: [String(bt[k].n), `${bt[k].ok}/${bt[k].n}`, `${bt[k].extOk}/${bt[k].n}`, `${bt[k].baseOk}/${bt[k].n}`] })) }; });
+    t = await readModel();
+    ok('ragtypes model run: per-type table with model, extractive and baseline counts', sameCounts(t) && named(t, 'pl') && !t.hidden, JSON.stringify(t));
+    await p.click('#langSeg button[data-l=en]'); await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragModelOut tbody tr');
+    t = await readModel();
+    ok('ragtypes model table after PL→EN', sameCounts(t) && named(t, 'en') && !p.errs.length, JSON.stringify([t && t.rows.map(r => r.name), p.errs]));
+    await seed(p, () => { const L = lab().rag; L.mrun = { ...L.mrun, res: { ...L.mrun.res, byType: undefined } }; });
+    await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragModelOut tbody tr');
+    ok('ragtypes an old saved run without byType renders without the table', !(await p.$('#ragModelTypes')) && !p.errs.length, p.errs.join('|'));
+    // Passages sent to the model carry the document title, so an archived passage is visibly archived; the mock Worker and ragClean still parse the citations.
+    const pm = await p.evaluate(async () => { const arch = DOCS.find(x => /WERSJA ARCHIWALNA/.test(x.p[0][0])), q = 'Co ile minut kontroluje się szew puszki?', sc = ragAsk(q, 1), c = sc.find(x => x.c.doc === arch.id), m = ragMessages(q, [c]);
+      const L = lab().rag, r = await ragLLMAsk(q, { ...L, k: 2, chunk: 1, min: .12 });
+      return { label: m[1].content.includes(`[${arch.id} §${c.c.par} · ${arch.t[langIx()]}]`), src: r.src.length > 0 && r.src.every(s => DOC_IDS.has(s.doc) && /^\d/.test(s.par)), refused: r.refused }; });
+    ok('ragtypes passages carry the document title; citations still parse', pm.label && pm.src && !pm.refused, JSON.stringify(pm));
+    // The document set's names: nothing in the app or the README still describes five documents.
+    const fs = await import('node:fs'), src = fs.readFileSync(path.join(HERE, '..', 'rybex-ai-workshop.html'), 'utf8'), readme = fs.readFileSync(path.join(HERE, '..', 'README.md'), 'utf8');
+    ok('ragtypes no text says PROCES-01…05', !/PROCES-01(…|\.\.\.|-)0?5\b/.test(src + readme));
+    const bio = await p.evaluate(() => [0, 1].map(i => { S.lang = i ? 'en' : 'pl'; return PERSONAS().piotr.bio; }));
+    ok('ragtypes Piotr Zielak owns what the documents say he owns', bio.every(b => /PROCES-01/.test(b) && /PROCES-06/.test(b) && !/PROCES-0[45]/.test(b)), JSON.stringify(bio));
     await p.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
