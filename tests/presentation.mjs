@@ -1,4 +1,6 @@
 // Probes for the workshop presentation. Usage: node tests/presentation.mjs [section...]   (sections: shots, ai, deck, facts)
+// With no section it runs shots, deck and facts. The ai section is opt-in (name it explicitly): it makes one /status call
+// to the class server with a wrong code (spends nothing) and checks the committed AI images.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,9 +8,24 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIR = path.join(ROOT, 'assets', 'presentation');
 const want = process.argv.slice(2);
-const run = s => !want.length || want.includes(s);
+const run = s => want.length ? want.includes(s) : s !== 'ai';
 let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
+
+// Starts the mock server on a port and waits for its first line, with a timeout and a clear error if it exits (port busy).
+const startServer = async (spawn, port) => {
+  const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(port)], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let err = ''; srv.stderr.on('data', d => { err += d; });
+  try {
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error(`mock server on port ${port} did not start within 10 s`)), 10000);
+      srv.once('error', e => { clearTimeout(t); rej(e); });
+      srv.once('exit', c => { clearTimeout(t); rej(new Error(`mock server on port ${port} exited (${c})${/EADDRINUSE/.test(err) ? ': the port is busy, stop the other process' : ''}`)); });
+      srv.stdout.once('data', () => { clearTimeout(t); res(); });
+    });
+  } catch (e) { srv.kill(); console.log('  FAIL mock server', e.message); console.log(`\n${pass} passed, ${fail + 1} failed`); process.exit(1); }
+  return srv;
+};
 
 const BASE_IDS = ['site-home', 'site-news', 'start', 'path-bar', 'cycle', 'brief-memo', 'data', 'demos', 'baseline', 'test-reveal', 'risk', 'golive', 'arch', 'report-gaps', 'badges', 'example', 'team-file'];
 
@@ -68,8 +85,7 @@ if (run('deck')) {
   const PORT = 8795, URL_ = `http://127.0.0.1:${PORT}/prezentacja.html`;
   const mfp = path.join(DIR, 'manifest.json');
   const ids = new Set((fs.existsSync(mfp) ? JSON.parse(fs.readFileSync(mfp, 'utf8')).shots : []).map(s => s.id));
-  const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise(r => srv.stdout.once('data', r));
+  const srv = await startServer(spawn, PORT);
   let browser;
   try {
     browser = await chromium.launch();
@@ -140,6 +156,21 @@ if (run('deck')) {
       const r = el && el.getBoundingClientRect();
       return { shown: !!el && r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden', current: Reveal.getCurrentSlide() === sl, hasQr: !!q.querySelector('svg') };
     });
+    // Phones: portrait gets the normal deck (not reveal's scroll view), landscape shows a full screenshot at least 350 px wide.
+    const P = await open({ width: 390, height: 844 });
+    const pv = await P.page.evaluate(() => ({ scroll: (Reveal.isScrollView ? Reveal.isScrollView() : false) || document.querySelector('.reveal-scroll, .reveal.scroll-view') !== null }));
+    ok('deck phone portrait 390x844 is not in scroll view', !pv.scroll, JSON.stringify(pv));
+    await P.ctx.close();
+    const W = await open({ width: 844, height: 390 });
+    const pw = await W.page.evaluate(async () => {
+      Reveal.configure({ transition: 'none' });
+      const s = document.querySelector('[data-slide=join]'); Reveal.slide(...Object.values(Reveal.getIndices(s)).slice(0, 2));
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const im = s.querySelector('img[data-shot=start]'); await im.decode().catch(() => null);
+      return Math.round(im.getBoundingClientRect().width);
+    });
+    ok('deck phone landscape 844x390 shows a full screenshot at least 350 px wide', pw >= 350, pw + ' px');
+    await W.ctx.close();
     // Legibility floor: a screenshot exists to be read, so at 1920x1080 each one is at least 260 px tall or 900 px wide
     // (wide strips such as path-bar and team-file pass by width).
     const L = await open({ width: 1920, height: 1080 });
@@ -171,8 +202,7 @@ if (run('facts')) {
   const { spawn, execFileSync } = await import('node:child_process');
   const { chromium } = await import('./node_modules/playwright/index.mjs');
   const PORT = 8794, BASE = `http://127.0.0.1:${PORT}`;
-  const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise(r => srv.stdout.once('data', r));
+  const srv = await startServer(spawn, PORT);
   let browser;
   try {
     browser = await chromium.launch();
@@ -232,7 +262,7 @@ if (run('facts')) {
     ok(`facts badges slide states ${A.badges}`, new RegExp(`(^|\\D)${A.badges}(\\D|$)`).test(D.badges), D.badges.slice(0, 120));
     for (const name of A.senders) ok(`facts memo slide names ${name}`, D.memos.includes(name));
     ok('facts no em-dash in the deck', !html.includes(String.fromCharCode(0x2014)));
-    ok('facts four placeholders left for the facilitator', D.fills.length === 4, String(D.fills.length));
+    ok('facts at most four placeholders (filling them in is fine)', D.fills.length <= 4, String(D.fills.length));
     console.log('  INFO placeholders:'); D.fills.forEach(f => console.log(`    slide ${f.n}: ${f.t}`));
     const mf = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8'));
     let head = '';

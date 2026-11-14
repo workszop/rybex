@@ -26,7 +26,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu."
+   "alt": "Strona startowa aplikacji Rybex przed rozpoczęciem: karta „Zanim zaczniecie” z przyciskiem „Zaczynamy” i karta strony firmy."
   },
   {
    "id": "path-bar",
@@ -35,7 +35,7 @@
    "h": 92,
    "ai": false,
    "full": false,
-   "alt": "Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”."
+   "alt": "Pasek ścieżki na początku pracy: krok 1 z 9, podpowiedź, żeby podać nazwę zespołu, i przycisk następnego kroku."
   },
   {
    "id": "cycle",

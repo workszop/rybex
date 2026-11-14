@@ -9,6 +9,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { redact, fillSecret, maskSecretField, assertMasked } from './shot-secrets.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'assets', 'presentation');
@@ -51,12 +52,13 @@ const SHOTS = [
   { id: 'site-news', hash: '#/rybex/news', ai: false, el: null,
     seed: p => seedTeam(p, {}),
     alt: 'Strona firmy Rybex z aktualnością o partii konserw zwróconej przez sieć handlową.' },
+  // start and path-bar show what a team sees on arrival (slides 8 and 9): fresh slot, no name, not onboarded, no task.
   { id: 'start', hash: '#/home', ai: false, el: null,
-    seed: p => seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']),
-    alt: 'Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu.' },
+    seed: p => seedTeam(p, { name: '', onboardedAt: '' }),
+    alt: 'Strona startowa aplikacji Rybex przed rozpoczęciem: karta „Zanim zaczniecie” z przyciskiem „Zaczynamy” i karta strony firmy.' },
   { id: 'path-bar', hash: '#/home', ai: false, el: '#pathBar',
-    seed: p => seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']),
-    alt: 'Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”.' },
+    seed: p => seedTeam(p, { name: '', onboardedAt: '' }),
+    alt: 'Pasek ścieżki na początku pracy: krok 1 z 9, podpowiedź, żeby podać nazwę zespołu, i przycisk następnego kroku.' },
   { id: 'cycle', hash: '#/demos/life', ai: false, el: null,
     seed: p => seedTeam(p, { site: { newsRead: true } }),
     alt: 'Demonstracja cyklu projektu AI: etapy od problemu biznesowego do wdrożenia i monitoringu.' },
@@ -72,7 +74,7 @@ const SHOTS = [
   { id: 'baseline', hash: '#/lab/rag', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'rag', goal: GOAL.rag, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok', 'rag']);
       await p.click('#runBase'); await settle(p); await p.evaluate(() => document.querySelector('#baseOut').scrollIntoView({ block: 'start' })); },
-    alt: 'Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami.' },
+    alt: 'Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami.' },
   { id: 'test-reveal', hash: '#/lab/complaints', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok']);
       await baselineAndGate(p); await p.click('#rv'); await settle(p); await p.evaluate(() => { document.querySelector('#rv').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
@@ -100,7 +102,7 @@ const SHOTS = [
     alt: 'Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić.' },
   { id: 'example', hash: '#/home', ai: false, el: null,
     seed: async p => { await seedTeam(p, { name: 'Moja praca', track: 'vision', site: { newsRead: true } }); await p.click('#showExample'); await settle(p); },
-    alt: 'Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem.' },
+    alt: 'Podgląd przykładowego, nieidealnego projektu prognozy popytu z banerem „To podgląd” i raportem.' },
   { id: 'team-file', hash: '#/home', ai: false, el: '#teamBar',
     seed: p => seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']),
     alt: 'Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu.' },
@@ -144,7 +146,8 @@ async function aiShots(wanted) {
       S.teams[8] = t; S.ai.code = ''; save(); render(); go('lab', 'complaints');
     }, [{ track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }]);
     await p.waitForSelector('#aiBar', { timeout: 10000 });
-    await p.fill('#aiCode', CC);
+    await fillSecret(p, '#aiCode', CC);
+    await maskSecretField(p);   // style-based mask: survives a re-render of the AI card that recreates the field as type="text"
     await p.click('#aiConnect');
     const state = await p.waitForFunction(() => { const s = document.querySelector('#aiBar').dataset.aiState; return s === 'ready' || s === 'error' || s === 'offline' ? s : false; }, null, { timeout: 30000 }).then(h => h.jsonValue());
     const err = await p.$eval('#aiBar', e => e.dataset.aiError);
@@ -166,9 +169,9 @@ async function aiShots(wanted) {
     if (/z pamięci podręcznej|from cache/.test(await p.$eval('#cRes', e => e.closest('.card').innerText + ' ' + (document.querySelector('.ai-cost.mt') || e).innerText))) throw new Error('the run came from the server cache (no real time shown): change the prompt sentence in aiShots');
     const res = await p.$eval('#cRes', e => ({ calls: +e.dataset.calls, failed: +e.dataset.failed, cost: +e.dataset.cost, model: e.dataset.model }));
     if (!(res.calls > 0) || res.failed) throw new Error(`run incomplete: ${JSON.stringify(res)}`);
-    // The class code must never reach a committed image: mask the field (type=password) and check it before any shot.
-    await p.evaluate(() => { document.querySelector('#aiCode').type = 'password'; const t = document.querySelector('#toast'); if (t) { t.hidden = true; t.textContent = ''; } });
-    if ((await p.$eval('#aiCode', e => e.type)) !== 'password') throw new Error('class code field is not masked');
+    // The class code must never reach a committed image: the field is masked by the injected style (maskSecretField)
+    // and assertMasked runs right before every screenshot below; nothing is written to disk until all shots passed it.
+    await p.evaluate(() => { const t = document.querySelector('#toast'); if (t) { t.hidden = true; t.textContent = ''; } });
     await settle(p);
     if (errs.length) throw new Error('page errors: ' + errs.join(' | '));
     const spend = await p.$eval('#aiSpend', e => e.textContent);
@@ -180,9 +183,12 @@ async function aiShots(wanted) {
       else await p.evaluate(() => scrollTo(0, 0));
       await settle(p);
       if (s.el) await p.addStyleTag({ content: '.edu-header,.pathbar,.casebar,.teambar,.subnav,.tabs,[class*=sticky]{position:static!important}' });
+      await assertMasked(p, CC);
       const png = s.el ? await p.locator(s.el).screenshot() : await p.screenshot();
       out.push({ s, ...(await toWebp(png)) });
     }
+    // Blank the field in the DOM before the context closes (the screenshots are already taken).
+    await p.evaluate(() => { const f = document.querySelector('#aiCode'); if (f) f.value = ''; }).catch(() => {});
     return out.map(({ s, b64, w, h }) => {
       const file = s.id + '.webp'; fs.writeFileSync(path.join(OUT, file), Buffer.from(b64, 'base64'));
       console.log(`ok ${s.id} ${w}x${h}`);
@@ -247,6 +253,10 @@ try {
   const commit = execFileSync('git', ['log', '-1', '--format=%h', '--', 'rybex-ai-workshop.html'], { cwd: ROOT, encoding: 'utf8' }).trim();
   fs.writeFileSync(manifestPath, JSON.stringify({ commit, shots }, null, 1) + '\n');
   console.log(`manifest: ${shots.length} shots, app commit ${commit}`);
+} catch (e) {
+  // Any error (including Playwright call logs) is printed with the class code removed, never as an uncaught stack.
+  console.error('Error: ' + redact(e && e.message || e, CC));
+  process.exitCode = 1;
 } finally {
   if (browser) await browser.close().catch(() => {});
   srv.kill();
