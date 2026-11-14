@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rybex AI – prezentacja warsztatu</title>
+<title>Rybex AI – prezentacja warsztatów</title>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
 
@@ -148,6 +148,8 @@ html, body { background: var(--paper); }
 .reveal .progress { color: var(--accent); }
 .reveal .controls { color: var(--accent); }
 .reveal .slide-number { background: transparent; color: var(--ink-3); font-family: var(--font-mono); }
+/* bottom-left, clear of the navigation arrows in the bottom-right corner */
+.reveal .slide-number { right: auto; left: 12px; bottom: 10px; }
 
 /* ============================================================
    3) VERTICAL FILL (template structural CSS, kept as is)
@@ -194,6 +196,9 @@ html, body { background: var(--paper); }
 .t-title h1 { font-size: 2.7em; } .t-title .sub { font-size: 1.1em; color: var(--ink-2); }
 .reveal .qr { display: flex; justify-content: center; margin: var(--sp-4) 0; }
 .reveal .qr svg { width: 280px; height: 280px; display: block; }
+.reveal .phone-hint { font-size: .62em; color: var(--ink-3); margin: var(--sp-6) 0 0; }
+/* phone held upright: reveal scales the slide to about a quarter, so the hint grows to stay readable */
+@media (orientation: portrait) and (max-width: 600px) { .reveal .phone-hint { font-size: 2.3em; font-weight: 600; color: var(--ink); line-height: 1.2; } }
 .reveal .url { font-family: var(--font-mono); font-size: .8em; color: var(--ink); margin: 0; }
 
 .reveal .tracks { list-style: none; padding: 0; margin: 0; gap: var(--sp-3); }
@@ -210,7 +215,7 @@ html, body { background: var(--paper); }
   align-items: center; justify-content: center; }
 .reveal .shots img { display: block; margin: 0; width: auto; height: auto;
   max-width: 100%;
-  max-height: min(72vh, calc(var(--slide-h) * .72));  /* 72 vh, and never taller than 72 % of the slide */
+  max-height: calc(var(--slide-h) * .8);  /* in slide units only: reveal already scales the slide to the window */
   border-radius: var(--r-md); border: 1px solid var(--line-2); box-shadow: var(--shadow-lg);
   background: var(--surface); }
 /* two shots side by side: each gets half the column */
@@ -290,6 +295,7 @@ html, body { background: var(--paper); }
       <p class="sub">Warsztaty na przykładzie firmy Rybex – producenta konserw rybnych</p>
       <p class="sub"><span class="fill">[uzupełnij: data warsztatów]</span></p>
       <p class="url"><a href="rybex-ai-workshop.html">rybex.warsztaty-ai.com</a></p>
+      <p class="phone-hint">Na telefonie obróćcie ekran poziomo.</p>
     </div>
     <aside class="notes">Dzień dobry. Przez najbliższe dwadzieścia minut pokażę, jak wyglądają dzisiejsze warsztaty: co robicie, w jakiej kolejności i co oddajecie na koniec. Potem pracujecie w zespołach w aplikacji pod tym adresem. Tę prezentację dostaniecie po wszystkim, więc wracajcie do niej, kiedy zgubicie się w którymś kroku.</aside>
   </section>
@@ -371,22 +377,22 @@ html, body { background: var(--paper); }
   <section data-slide="pathbar" class="tight">
     <p class="eyebrow">Nawigacja</p>
     <h2>Pasek ścieżki pokazuje, gdzie jesteście</h2>
-    <div class="shots push"><figure><img data-shot="path-bar" src="assets/presentation/path-bar.webp" alt="Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”." loading="eager"></figure></div>
+    <div class="shots push"><figure><img data-shot="path-bar" src="assets/presentation/path-bar.webp" alt="Pasek ścieżki na początku pracy: krok 1 z 9, podpowiedź, żeby podać nazwę zespołu, i przycisk następnego kroku." loading="eager"></figure></div>
     <ul class="under pull">
       <li>„Jesteś tutaj: krok 1 z 9” i orientacyjny czas kroku</li>
-      <li>podpowiedź, co zrobić w następnym kroku</li>
-      <li>przycisk „Dalej” prowadzi do następnego kroku</li>
+      <li>„Następny krok”: co teraz zrobić</li>
+      <li>żółty przycisk prowadzi dalej albo pokazuje, co kliknąć</li>
       <li>pasek tylko podpowiada: menu i klawisze 1–7 działają zawsze</li>
     </ul>
-    <aside class="notes">Pod nagłówkiem aplikacji jest pasek ścieżki. Kropki to dziewięć kroków, zielone są zrobione. Żółty przycisk „Dalej” zabiera was do następnego kroku, a jeśli już tam jesteście, pokazuje, co kliknąć. Pasek niczego nie blokuje: możecie chodzić po menu, jak chcecie, ale gdy nie wiecie, co dalej, patrzcie na pasek.</aside>
+    <aside class="notes">Pod nagłówkiem aplikacji jest pasek ścieżki. Kropki to dziewięć kroków, zielone są zrobione. Żółty przycisk po prawej, „Dalej: …”, zabiera was do następnego kroku, a jeśli już tam jesteście, pokazuje, co kliknąć. Na samym początku, jak na zrzucie, mówi „Podajcie nazwę zespołu”. Pasek niczego nie blokuje: możecie chodzić po menu, jak chcecie, ale gdy nie wiecie, co dalej, patrzcie na pasek.</aside>
   </section>
 
   <section data-slide="join" data-step="join" data-min="10">
     <p class="eyebrow">Krok 1 z 9 · ok. 10 min</p>
     <h2>Krok 1 – Przydział i strona firmy</h2>
     <p class="where"><span><b>Gdzie</b>Start, potem strona firmy Rybex</span><span><b>Gotowe, gdy</b>kliknęliście „Zaczynamy” i przeczytaliście aktualność o zwrocie partii</span></p>
-    <div class="shots"><figure><img data-shot="start" src="assets/presentation/start.webp" alt="Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu." loading="eager"></figure></div>
-    <aside class="notes">Aplikacja ma osiem miejsc na zespoły. Wybierzcie swój numer w polu „Zespół”, wpiszcie nazwę i kliknijcie „Zaczynamy”. Nazwa nie blokuje dalszej pracy, ale bez niej raport będzie miał puste miejsce. Potem otwórzcie stronę firmy Rybex i przeczytajcie aktualność o zwrocie partii. Duży żółty przycisk na stronie startowej zawsze prowadzi do następnego kroku.</aside>
+    <div class="shots"><figure><img data-shot="start" src="assets/presentation/start.webp" alt="Strona startowa aplikacji Rybex przed rozpoczęciem: karta „Zanim zaczniecie” z przyciskiem „Zaczynamy” i karta strony firmy." loading="eager"></figure></div>
+    <aside class="notes">Aplikacja ma osiem miejsc na zespoły. Wybierzcie swój numer w polu „Zespół”, wpiszcie nazwę w karcie „Zanim zaczniecie” i kliknijcie „Zaczynamy”, tak jak na zrzucie. Nazwa nie blokuje dalszej pracy, ale bez niej raport będzie miał puste miejsce. Potem otwórzcie stronę firmy Rybex z karty obok i przeczytajcie aktualność o zwrocie partii. Od tej chwili duży żółty przycisk na stronie startowej prowadzi do następnego kroku.</aside>
   </section>
 
   <section data-slide="cycle" data-step="cycle" data-min="10">
@@ -418,15 +424,15 @@ html, body { background: var(--paper); }
     <h2>Krok 5 – Demonstracje</h2>
     <p class="where"><span><b>Gdzie</b>Demonstracje, zakładki oznaczone „do zrobienia”</span><span><b>Gotowe, gdy</b>pytania pod demonstracjami waszego zadania są zaliczone</span></p>
     <div class="shots"><figure><img data-shot="demos" src="assets/presentation/demos.webp" alt="Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek." loading="eager"></figure></div>
-    <aside class="notes">Każde zadanie wymaga trochę innych demonstracji. Wszystkie mają podział danych i miary jakości, zadania z modelem językowym dochodzą tokeny i koszt, a asystent wiedzy ma jeszcze „Jak działa RAG”. Po każdej demonstracji są dwa pytania. Tu uczycie się pojęć potrzebnych w laboratorium, ta prezentacja ich nie tłumaczy. Zrzut pokazuje demonstrację miar jakości z suwakiem progu.</aside>
+    <aside class="notes">Każde zadanie wymaga trochę innych demonstracji. Wszystkie mają podział danych i miary jakości, w zadaniach z modelem językowym dochodzą „Tokeny i koszt”, a asystent wiedzy ma jeszcze „Jak działa RAG”. Po każdej demonstracji są dwa pytania. Tu uczycie się pojęć potrzebnych w laboratorium, ta prezentacja ich nie tłumaczy. Zrzut pokazuje demonstrację miar jakości z suwakiem progu.</aside>
   </section>
 
   <section data-slide="base" data-step="base" data-min="25">
     <p class="eyebrow">Krok 6 z 9 · ok. 25 min</p>
     <h2>Krok 6 – Laboratorium, runda 1</h2>
     <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>metoda odniesienia jest zapisana w dzienniku</span></p>
-    <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami." loading="eager"></figure></div>
-    <aside class="notes">W laboratorium zaczynacie od metody odniesienia, czyli najprostszej metody, która w ogóle rozwiązuje zadanie. Klikacie „Uruchomcie metodę odniesienia”, a potem zapisujecie wynik w dzienniku. Wynik ma dwie główne liczby i krótkie omówienie, pozostałe miary są pod „Więcej miar”. Ten wynik pochodzi z asystenta wiedzy firmowej, który szuka po słowach kluczowych. Z tym wynikiem porównujecie każdy następny eksperyment.</aside>
+    <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami." loading="eager"></figure></div>
+    <aside class="notes">W laboratorium zaczynacie od metody odniesienia, czyli najprostszej metody, która w ogóle rozwiązuje zadanie. Klikacie „Uruchomcie metodę odniesienia”, a potem zapisujecie wynik w dzienniku. Wynik ma dwie główne liczby i krótkie omówienie, pozostałe miary są pod „Więcej miar”. Ten wynik pochodzi z asystenta wiedzy firmowej, a jego metoda odniesienia to wyszukiwanie dosłowne. Z tym wynikiem porównujecie każdy następny eksperyment.</aside>
   </section>
 
   <section data-slide="iterate" data-step="iterate" data-min="30">
@@ -470,7 +476,7 @@ html, body { background: var(--paper); }
       </div>
       <div class="shots"><figure><img data-shot="golive" src="assets/presentation/golive.webp" alt="Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją." loading="eager"></figure></div>
     </div>
-    <aside class="notes">W zakładce Architektura składacie schemat blokowy z komponentów, od źródeł danych do integracji i utrzymania, i eksportujecie go jako SVG lub PNG. Na tej samej stronie są cztery decyzje: gdzie działa model, kto decyduje o zatrzymaniu linii, co oglądacie po wdrożeniu i jak często wracacie do oceny modelu. Nie ma tu dobrych ani złych odpowiedzi, każda ma swoją cenę, którą widać od razu. Po prawej zadanie awarii maszyn: zespół zdecydował, że maszynę zatrzymuje operator, ale nie dodał do schematu „Weryfikacji przez człowieka”, więc aplikacja ostrzega, że schemat i decyzja mówią co innego.</aside>
+    <aside class="notes">W zakładce Architektura składacie schemat blokowy z komponentów, od źródeł danych do integracji i utrzymania, i eksportujecie go jako SVG lub PNG. Na tej samej stronie są cztery decyzje: gdzie działa model, kto decyduje o zatrzymaniu linii, co oglądacie po wdrożeniu i jak często wracacie do oceny modelu. Nie ma tu dobrych ani złych odpowiedzi, każda ma swoją cenę, którą widać od razu. Schemat po lewej pochodzi z zadania analizy reklamacji, a decyzje po prawej z zadania awarii maszyn: zespół zdecydował, że maszynę zatrzymuje operator, ale nie dodał do schematu „Weryfikacji przez człowieka”, więc aplikacja ostrzega, że schemat i decyzja mówią co innego.</aside>
   </section>
 
   <section data-slide="report" data-step="report" data-min="15" class="tight">
@@ -536,7 +542,7 @@ html, body { background: var(--paper); }
   <section data-slide="example">
     <p class="eyebrow">Przykład</p>
     <h2>Tak wygląda skończony projekt</h2>
-    <div class="shots"><figure><img data-shot="example" src="assets/presentation/example.webp" alt="Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem." loading="eager"></figure></div>
+    <div class="shots"><figure><img data-shot="example" src="assets/presentation/example.webp" alt="Podgląd przykładowego, nieidealnego projektu prognozy popytu z banerem „To podgląd” i raportem." loading="eager"></figure></div>
     <aside class="notes">Przycisk „Pokażcie przykład zespołu” na stronie Wyniki i raport otwiera podgląd gotowego projektu prognozy popytu. Ten przykład celowo nie jest idealny, więc szukajcie w nim, co zrobilibyście lepiej. W tym czasie wasza praca zostaje nietknięta, model nie działa, a eksport raportu jest wyłączony.</aside>
   </section>
 
@@ -591,7 +597,7 @@ html, body { background: var(--paper); }
       <li><b>Ryzyka i wdrożenie</b> · odpowiedzcie na co najmniej cztery karty ryzyk i podejmijcie cztery decyzje wdrożeniowe</li>
       <li><b>Raport i wystąpienie</b> · uzupełnijcie listę i wyeksportujcie raport</li>
     </ol>
-    <p class="cta pull">Aplikacja: <a href="rybex-ai-workshop.html">rybex.warsztaty-ai.com/rybex-ai-workshop.html</a></p>
+    <p class="cta pull">Aplikacja: <a href="rybex-ai-workshop.html">rybex.warsztaty-ai.com/rybex-ai-workshop.html</a> · Klawisz S otwiera notatki ze szczegółami do każdego slajdu.</p>
     <aside class="notes">To ta sama ścieżka w jednym miejscu. Polecenia przy krokach to podpowiedzi z paska ścieżki w aplikacji. Teraz jest czas na pytania do całości. Potem otwórzcie aplikację i zaczynamy.</aside>
   </section>
 
@@ -618,6 +624,7 @@ html, body { background: var(--paper); }
     transition: 'slide',
     width: 1360, height: 765, margin: 0.035,
     minScale: 0.2, maxScale: 2.0,
+    scrollActivationWidth: null,   // phones get the normal deck with swipe, not the scroll view
     plugins: [RevealNotes],
   }).then(() => {
     const DECK_FONTS = ['400 1em "Outfit"', '700 1em "Outfit"', '400 1em "IBM Plex Sans"', '400 1em "Roboto Mono"'];

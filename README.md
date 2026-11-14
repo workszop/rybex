@@ -75,7 +75,7 @@ Open the app with `?trainer=1` (for example `rybex-ai-workshop.html?trainer=1#/t
 
 ## Presentation
 
-The Polish workshop deck is `prezentacja.html`, served at `https://rybex.warsztaty-ai.com/prezentacja.html`. Press `F` for full screen and `S` for the speaker view.
+The Polish workshop deck is `prezentacja.html`, served at `https://rybex.warsztaty-ai.com/prezentacja.html`. Press `F` for full screen and `S` for the speaker view. The deck loads reveal.js from a CDN (jsDelivr), so open it once on the venue network before class: if jsDelivr is blocked there, it falls back to one long page.
 
 Four `[uzupełnij: …]` placeholders on slides 1, 23, 25 and 27 must be filled in before each workshop; `node tests/presentation.mjs facts` lists them.
 
@@ -85,12 +85,12 @@ The screenshots in `assets/presentation/` come from the real app. Refresh them w
 
 ```bash
 cd tests && npm install
-npm test                   # all four suites below, one after another
+npm test                   # the five suites below, one after another (presentation.mjs without `ai`)
 node ai.mjs                # app probes against a mock Worker (no real calls)
 node vision-realistic.mjs  # photo asset loading and fallback
 node worker.mjs            # Worker contract against a mock OpenRouter
 node guided.mjs [section]  # guided path probes; run one or more sections by name
-node presentation.mjs [section]  # slide deck probes (shots ai deck facts); `ai` spends class budget and needs CC=<class code>
+node presentation.mjs [section]  # slide deck probes; no section runs shots, deck and facts. `ai` runs only when named: it makes one /status call with a wrong code and spends nothing (the paid part is `presentation-shots.mjs ai`)
 ```
 
 `guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
