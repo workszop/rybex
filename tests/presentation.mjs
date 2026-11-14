@@ -1,4 +1,4 @@
-// Probes for the workshop presentation. Usage: node tests/presentation.mjs [section...]   (sections: shots, ai, deck)
+// Probes for the workshop presentation. Usage: node tests/presentation.mjs [section...]   (sections: shots, ai, deck, facts)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,10 +140,106 @@ if (run('deck')) {
       const r = el && el.getBoundingClientRect();
       return { shown: !!el && r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden', current: Reveal.getCurrentSlide() === sl, hasQr: !!q.querySelector('svg') };
     });
+    // Legibility floor: a screenshot exists to be read, so at 1920x1080 each one is at least 260 px tall or 900 px wide
+    // (wide strips such as path-bar and team-file pass by width).
+    const L = await open({ width: 1920, height: 1080 });
+    const small = await L.page.evaluate(async () => {
+      const out = [], n = Reveal.getTotalSlides();
+      Reveal.configure({ transition: 'none' });
+      for (let i = 0; i < n; i++) {
+        Reveal.slide(i);
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const s = Reveal.getCurrentSlide();
+        for (const im of s.querySelectorAll('img[data-shot]')) {
+          await im.decode().catch(() => null);
+          const r = im.getBoundingClientRect();
+          if (!(r.height >= 260 || r.width >= 900)) out.push(`${i + 1} ${im.dataset.shot} ${Math.round(r.width)}x${Math.round(r.height)}`);
+        }
+      }
+      return out;
+    });
+    ok('deck every screenshot is at least 260 px tall or 900 px wide at 1920x1080', small.length === 0, small.join('; '));
+    await L.ctx.close();
     ok('deck URL text visible on the QR slide with the qrcode request blocked', vis.shown && vis.current && !vis.hasQr, JSON.stringify(vis));
     ok('deck blocked qrcode leaves no page errors besides the failed request', !B.errors.some(e => /ReferenceError|TypeError/.test(e)), B.errors.join(' | '));
     await B.ctx.close();
   } catch (e) { ok('deck probe ran', false, String(e && e.message)); }
+  finally { if (browser) await browser.close(); srv.kill(); }
+}
+if (run('facts')) {
+  // Every fact on a slide comes from the app: step names and minutes, task names, badge count, memo senders.
+  const { spawn, execFileSync } = await import('node:child_process');
+  const { chromium } = await import('./node_modules/playwright/index.mjs');
+  const PORT = 8794, BASE = `http://127.0.0.1:${PORT}`;
+  const srv = spawn('node', [path.join(ROOT, 'tests', 'mock-server.mjs'), String(PORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
+  await new Promise(r => srv.stdout.once('data', r));
+  let browser;
+  try {
+    browser = await chromium.launch();
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const app = await ctx.newPage();
+    await app.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(BASE + '/mock')}`, { waitUntil: 'load' });
+    await app.waitForFunction(() => typeof PATH_STEPS === 'function' && typeof trMeta === 'function');
+    const A = await app.evaluate(() => {
+      S.lang = 'pl';
+      return {
+        steps: PATH_STEPS().map(s => ({ id: s.id, label: s.label, min: s.min })),
+        tracks: Object.fromEntries(Object.entries(trMeta()).map(([k, v]) => [k, v.title])),
+        badges: BADGES().length,
+        senders: [...new Set(Object.values(TASK_MEMOS()).map(m => m.sender.split(',')[0].trim()))],
+      };
+    });
+    const deck = await ctx.newPage();
+    await deck.goto(`${BASE}/prezentacja.html`, { waitUntil: 'load' });
+    await deck.waitForSelector('html.deck-ready', { timeout: 15000 });
+    const D = await deck.evaluate(() => {
+      const sl = [...document.querySelectorAll('.slides > section[data-slide]')];
+      const txt = e => (e ? e.textContent : '').replace(/\s+/g, ' ');
+      const bySlide = k => sl.find(s => s.dataset.slide === k);
+      const tot = bySlide('path') && bySlide('path').querySelector('[data-total]');
+      return {
+        steps: sl.filter(s => s.dataset.step).map(s => ({ id: s.dataset.step, min: s.dataset.min, h: txt(s.querySelector('h2')) })),
+        tracks: [...document.querySelectorAll('[data-track]')].map(e => ({ k: e.dataset.track, t: txt(e) })),
+        total: tot ? tot.dataset.total : null, totalText: txt(tot),
+        pathItems: [...document.querySelectorAll('[data-slide=path] [data-path-step]')].map(e => ({ id: e.dataset.pathStep, min: e.dataset.min, t: txt(e) })),
+        recap: txt(bySlide('recap')),
+        badges: txt(bySlide('badges')), memos: txt(bySlide('memos')),
+        fills: [...document.querySelectorAll('.fill')].map(f => ({ n: sl.indexOf(f.closest('section[data-slide]')) + 1, t: txt(f) })),
+      };
+    });
+    const html = fs.readFileSync(path.join(ROOT, 'prezentacja.html'), 'utf8');
+    ok('facts app exposes nine steps', A.steps.length === 9, String(A.steps.length));
+    for (const s of A.steps) {
+      const d = D.steps.find(x => x.id === s.id);
+      ok(`facts step ${s.id} has a slide`, !!d);
+      if (!d) continue;
+      ok(`facts step ${s.id} heading names „${s.label}”`, d.h.includes(s.label), d.h);
+      ok(`facts step ${s.id} data-min is ${s.min}`, +d.min === s.min, String(d.min));
+      const p = D.pathItems.find(x => x.id === s.id);
+      ok(`facts path diagram shows ${s.id} with ${s.min} min`, !!p && p.t.includes(s.label) && +p.min === s.min && p.t.includes(`${s.min} min`), JSON.stringify(p));
+      ok(`facts recap names ${s.id}`, D.recap.includes(s.label));
+    }
+    ok('facts step slides run in path order', D.steps.map(x => x.id).join() === A.steps.map(x => x.id).join(), D.steps.map(x => x.id).join());
+    const sum = A.steps.reduce((a, s) => a + s.min, 0);
+    ok(`facts path total is the sum of minutes (${sum})`, +D.total === sum, String(D.total));
+    const hm = `${Math.floor(sum / 60)} h ${sum % 60} min`;
+    ok(`facts path total shows „${hm}”`, D.totalText.includes(hm), D.totalText);
+    for (const [k, title] of Object.entries(A.tracks)) {
+      const items = D.tracks.filter(x => x.k === k);
+      ok(`facts track ${k} listed with „${title}”`, items.length > 0 && items.every(x => x.t.includes(title)), JSON.stringify(items));
+    }
+    ok('facts no unknown data-track keys', D.tracks.every(x => x.k in A.tracks));
+    ok(`facts badges slide states ${A.badges}`, new RegExp(`(^|\\D)${A.badges}(\\D|$)`).test(D.badges), D.badges.slice(0, 120));
+    for (const name of A.senders) ok(`facts memo slide names ${name}`, D.memos.includes(name));
+    ok('facts no em-dash in the deck', !html.includes(String.fromCharCode(0x2014)));
+    ok('facts four placeholders left for the facilitator', D.fills.length === 4, String(D.fills.length));
+    console.log('  INFO placeholders:'); D.fills.forEach(f => console.log(`    slide ${f.n}: ${f.t}`));
+    const mf = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8'));
+    let head = '';
+    try { head = execFileSync('git', ['log', '-1', '--format=%h', '--', 'rybex-ai-workshop.html'], { cwd: ROOT, encoding: 'utf8' }).trim(); } catch { /* no git */ }
+    if (head && !head.startsWith(mf.commit) && !mf.commit.startsWith(head)) console.log(`  WARN screenshots are from ${mf.commit}, the app was last changed in ${head}: retake them if the UI moved`);
+    else console.log(`  INFO screenshots match the app commit (${mf.commit})`);
+  } catch (e) { ok('facts probe ran', false, String(e && e.message)); }
   finally { if (browser) await browser.close(); srv.kill(); }
 }
 console.log(`\n${pass} passed, ${fail} failed`);

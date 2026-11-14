@@ -133,6 +133,7 @@
   --r-link-color: var(--accent);
 }
 html, body { background: var(--paper); }
+.reveal a { color: var(--accent); }
 
 .reveal { font-family: var(--font-sans); color: var(--ink-2); font-size: var(--deck-font);
   font-variant-numeric: lining-nums; }
@@ -215,6 +216,63 @@ html, body { background: var(--paper); }
 /* two shots side by side: each gets half the column */
 .reveal .shots figure:only-child { flex-basis: 100%; }
 
+/* lists span the content column: reveal's default 1em left margin would push a 100 % wide list past the slide edge */
+.reveal .slides section > ul, .reveal .slides section > ol { margin: 0; padding-left: 1.2em; box-sizing: border-box; }
+.reveal .slides section > ul.tracks, .reveal .slides section > ol.path { padding-left: 0; }
+
+/* stacked shots: a wide strip above a full screenshot */
+.reveal .shots.stack { flex-direction: column; gap: var(--sp-4); }
+.reveal .shots.stack figure { flex: 0 0 auto; width: 100%; }
+.reveal .shots.stack figure.grow { flex: 1 1 0; min-height: 0; }
+.reveal .shots.stack figure.grow img { max-height: 100%; }
+.reveal .shots.stack figure:first-child img { max-width: 60%; }
+
+/* step slides: one line saying where in the app and when the step counts as done */
+.reveal .where { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-8); margin: -8px 0 var(--sp-4); font-size: .74em; color: var(--ink-2); }
+.reveal .where b { font-family: var(--font-mono); font-weight: 500; font-size: .84em; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-right: .45em; }
+
+/* screenshot with a short list beside it */
+.reveal .split { display: grid; grid-template-columns: 1.45fr 1fr; gap: var(--sp-8); align-items: center; flex: 1 1 0; min-height: 0; width: 100%; }
+.reveal .split .shots { height: 100%; }
+.reveal .split .col { display: flex; flex-direction: column; gap: var(--sp-6); min-width: 0; }
+.reveal .split .col .shots { height: auto; flex: 0 0 auto; }
+.reveal .split.arch-golive { grid-template-columns: 1.5fr 1fr; }
+.reveal .split ul { margin: 0; padding-left: 1.1em; font-size: .86em; }
+.reveal .split li + li { margin-top: var(--sp-4); }
+.reveal .pts { font-size: .92em; }
+.reveal .pts li + li { margin-top: var(--sp-4); }
+.reveal .slides section:not(.centerme):not(:has(> section)) > ul.under { flex: 0 0 auto; margin: var(--sp-6) 0 0; padding-left: 1.1em; font-size: .84em;
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3) var(--sp-10); }
+
+/* slide 5: five tasks */
+.reveal .tracks li { display: grid; grid-template-columns: 13em 1fr; gap: var(--sp-5); align-items: baseline; font-size: .9em; }
+.reveal .tracks li b { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+
+/* slide 7: the nine steps */
+.reveal .slides section:not(.centerme):not(:has(> section)) > ol.path, .reveal .path { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); flex: 1 1 auto; align-content: center; width: 100%; }
+.reveal .path li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-sm);
+  padding: 14px 18px 16px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; row-gap: 4px; align-items: center; }
+.reveal .path .n { grid-row: span 2; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--yellow); color: var(--ink);
+  font-family: var(--font-display); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.reveal .path .lb { font-family: var(--font-display); font-weight: 600; color: var(--ink); font-size: .92em; line-height: 1.2; }
+.reveal .path .mn { font-family: var(--font-mono); font-size: .66em; color: var(--ink-3); display: flex; align-items: center; gap: 10px; }
+.reveal .path .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--blue); }
+.reveal .total { margin: var(--sp-5) 0 0; font-size: .92em; }
+.reveal .total b { font-family: var(--font-display); color: var(--ink); }
+
+/* slide 28: cheat sheet */
+.reveal .slides section:not(.centerme):not(:has(> section)) > ol.recap { display: block; margin: 0; padding-left: 1.4em; columns: 2; column-gap: var(--sp-10); font-size: .74em; }
+.reveal .recap li { break-inside: avoid; margin: 0 0 var(--sp-4); }
+.reveal .recap b { color: var(--ink); font-family: var(--font-display); font-weight: 600; }
+.reveal .cta { margin: var(--sp-4) 0 0; font-size: .8em; }
+.reveal .start-steps { font-size: .8em; margin: 0 0 var(--sp-3); }
+
+/* tight slides: the content block sits together in the middle instead of spreading over the free height.
+   Kept last so it wins over the list and shot rules above. */
+.reveal .slides section:not(.centerme):not(:has(> section)).tight > .shots, .reveal .slides section:not(.centerme):not(:has(> section)).tight > ol, .reveal .slides section:not(.centerme):not(:has(> section)).tight > ul { flex: 0 0 auto; }
+.reveal .slides section:not(.centerme):not(:has(> section)).tight > .push { margin-top: auto; }
+.reveal .slides section:not(.centerme):not(:has(> section)).tight > .pull { margin-bottom: auto; }
+
 .reveal .fragment.dim { opacity: 1; visibility: visible; }
 .reveal .fragment.dim.visible { opacity: .32; filter: grayscale(.4); }
 </style>
@@ -223,163 +281,318 @@ html, body { background: var(--paper); }
 
 <div class="reveal"><div class="slides">
 
+  <!-- ===================== Otwarcie ===================== -->
+
   <section data-slide="title" class="centerme">
-    <div class="t-title"><p class="eyebrow">Warsztat</p><h1>Warsztat Rybex AI</h1><p class="sub">Podtytuł <span class="fill">[uzupełnij: data warsztatów]</span></p></div>
-    <aside class="notes">TODO</aside>
+    <div class="t-title">
+      <p class="eyebrow">Warsztaty Rybex AI</p>
+      <h1>Jak prowadzić projekt AI w&nbsp;firmie</h1>
+      <p class="sub">Warsztaty na przykładzie firmy Rybex – producenta konserw rybnych</p>
+      <p class="sub"><span class="fill">[uzupełnij: data warsztatów]</span></p>
+      <p class="url"><a href="rybex-ai-workshop.html">rybex.warsztaty-ai.com</a></p>
+    </div>
+    <aside class="notes">Dzień dobry. Przez najbliższe dwadzieścia minut pokażę, jak wyglądają dzisiejsze warsztaty: co robicie, w jakiej kolejności i co oddajecie na koniec. Potem pracujecie w zespołach w aplikacji pod tym adresem. Tę prezentację dostaniecie po wszystkim, więc wracajcie do niej, kiedy zgubicie się w którymś kroku.</aside>
   </section>
 
   <section data-slide="why">
-    <p class="eyebrow">02</p><h2>Dlaczego ten warsztat</h2>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Po co</p>
+    <h2>Po co te warsztaty</h2>
+    <ul class="pts">
+      <li>Prowadzicie jeden projekt AI od problemu do raportu.</li>
+      <li>Od wyboru zadania i danych, przez architekturę i prototyp, po ocenę działania i plan wdrożenia.</li>
+      <li>Firma Rybex jest fikcyjna, ale decyzje podejmujecie tak, jakby dotyczyły prawdziwego zakładu.</li>
+      <li>Na koniec każdy zespół ma raport i krótkie wystąpienie.</li>
+    </ul>
+    <aside class="notes">Dziś przejdziecie cały projekt AI w małej skali: od sprawy w firmie, przez dane i eksperymenty, po decyzję, czy system może działać w zakładzie. Nie trzeba umieć programować, wszystko robicie w przeglądarce. Firma jest wymyślona, ale ma swoje dane, ludzi i problemy, więc traktujcie ją poważnie. Na koniec pokażecie, co wyszło, i uczciwie powiecie, czego nie wiecie.</aside>
   </section>
 
   <section data-slide="company">
-    <p class="eyebrow">03</p><h2>Firma Rybex</h2>
+    <p class="eyebrow">Firma</p>
+    <h2>Firma Rybex</h2>
     <div class="shots"><figure><img data-shot="site-home" src="assets/presentation/site-home.webp" alt="Strona główna fikcyjnej firmy Rybex, producenta konserw rybnych, w ramce przeglądarki." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Rybex to fikcyjny producent konserw rybnych z Mirszyc: pakuje szprota, makrelę, śledzia i tuńczyka. Firma ma własną stronę, którą otworzycie z aplikacji, z karty „Strona firmy Rybex” na stronie startowej. Wszystkie dane, które dziś zobaczycie, pochodzą z tego zakładu.</aside>
   </section>
 
   <section data-slide="incident">
-    <p class="eyebrow">04</p><h2>Zwrot partii konserw</h2>
+    <p class="eyebrow">Sprawa</p>
+    <h2>Zwrot partii RYB-261031-L2</h2>
     <div class="shots"><figure><img data-shot="site-news" src="assets/presentation/site-news.webp" alt="Strona firmy Rybex z aktualnością o partii konserw zwróconej przez sieć handlową." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Wszystko zaczyna się od jednej sprawy. Sieć handlowa zwróciła paletę „Szprota w oleju” z partii RYB-261031-L2. Przeczytajcie tę aktualność na stronie firmy, bo to część pierwszego kroku i daje odznakę „Aktualność przeczytana”. Każde z pięciu zadań patrzy na tę sprawę z innej strony.</aside>
   </section>
 
   <section data-slide="tasks">
-    <p class="eyebrow">05</p><h2>Pięć zadań do wyboru</h2>
-    <ul class="tracks"><li data-track="vision">Wizja</li><li data-track="rag">Wiedza firmowa</li><li data-track="complaints">Reklamacje</li><li data-track="forecast">Prognoza</li><li data-track="maint">Awarie maszyn</li></ul>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Zadania</p>
+    <h2>Pięć zadań, każdy zespół wybiera jedno</h2>
+    <ul class="tracks">
+      <li data-track="vision"><b>Wizyjna kontrola jakości</b><span>zdjęcie puszki z kamery na linii → OK / wada</span></li>
+      <li data-track="rag"><b>Asystent wiedzy firmowej</b><span>pytanie pracownika → odpowiedź + numer dokumentu i paragrafu</span></li>
+      <li data-track="complaints"><b>Analiza reklamacji</b><span>treść zgłoszenia klienta → kategoria + projekt odpowiedzi</span></li>
+      <li data-track="forecast"><b>Prognozowanie popytu</b><span>miesięczna historia sprzedaży → prognoza na kolejne miesiące</span></li>
+      <li data-track="maint"><b>Przewidywanie awarii maszyn</b><span>odczyty czujników: temperatura, ciśnienie, drgania → alarm anomalii</span></li>
+    </ul>
+    <aside class="notes">Zadanie wybieracie w kroku 3. Strzałka pokazuje, co system dostaje na wejściu i co ma oddać. W wizji, asystencie wiedzy i reklamacjach możecie użyć prawdziwego modelu językowego, w pozostałych dwóch laboratorium działa bez niego. Niezależnie od wyboru przechodzicie te same dziewięć kroków.</aside>
   </section>
 
   <section data-slide="memos">
-    <p class="eyebrow">06</p><h2>Notatki służbowe</h2>
-    <div class="shots"><figure><img data-shot="brief-memo" src="assets/presentation/brief-memo.webp" alt="Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Notatki</p>
+    <h2>Każde zadanie ma swoją notatkę</h2>
+    <div class="split">
+      <div class="shots"><figure><img data-shot="brief-memo" src="assets/presentation/brief-memo.webp" alt="Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy." loading="eager"></figure></div>
+      <ul>
+        <li><b>Wizja i prognoza:</b> Hanna Marek, dyrektor zakładu</li>
+        <li><b>Asystent wiedzy:</b> Piotr Zielak, kierownik ds. jakości i bezpieczeństwa żywności</li>
+        <li><b>Reklamacje:</b> Magda Kruk, obsługa reklamacji i klienta</li>
+        <li><b>Awarie maszyn:</b> Anna Bór, utrzymanie ruchu</li>
+      </ul>
+    </div>
+    <aside class="notes">Po wyborze zadania w Opisie projektu pojawia się notatka służbowa od osoby z firmy. Zrzut pokazuje notatkę Magdy Kruk do zadania „Analiza reklamacji”. Notatka mówi, co się stało i co macie sprawdzić, a na końcu zawsze prosi o uczciwą ocenę, czy taki system może działać w zakładzie. Do tej oceny wrócicie we wnioskach raportu.</aside>
   </section>
 
-  <section data-slide="path">
-    <p class="eyebrow">07</p><h2>Ścieżka warsztatu</h2>
-    <aside class="notes">TODO</aside>
+  <!-- ===================== Jak biegnie dzień ===================== -->
+
+  <section data-slide="path" class="tight">
+    <p class="eyebrow">Plan</p>
+    <h2>Ścieżka w 9 krokach</h2>
+    <ol class="path push">
+      <li data-path-step="join" data-min="10"><span class="n">1</span><span class="lb">Przydział i strona firmy</span><span class="mn"><span class="bar" style="width:20px"></span>10 min</span></li>
+      <li data-path-step="cycle" data-min="10"><span class="n">2</span><span class="lb">Cykl projektu</span><span class="mn"><span class="bar" style="width:20px"></span>10 min</span></li>
+      <li data-path-step="task" data-min="10"><span class="n">3</span><span class="lb">Wybór zadania</span><span class="mn"><span class="bar" style="width:20px"></span>10 min</span></li>
+      <li data-path-step="data" data-min="15"><span class="n">4</span><span class="lb">Dane zadania</span><span class="mn"><span class="bar" style="width:30px"></span>15 min</span></li>
+      <li data-path-step="demos" data-min="20"><span class="n">5</span><span class="lb">Demonstracje</span><span class="mn"><span class="bar" style="width:40px"></span>20 min</span></li>
+      <li data-path-step="base" data-min="25"><span class="n">6</span><span class="lb">Laboratorium, runda 1</span><span class="mn"><span class="bar" style="width:50px"></span>25 min</span></li>
+      <li data-path-step="iterate" data-min="30"><span class="n">7</span><span class="lb">Rundy 2–3 i test</span><span class="mn"><span class="bar" style="width:60px"></span>30 min</span></li>
+      <li data-path-step="risk" data-min="20"><span class="n">8</span><span class="lb">Ryzyka i wdrożenie</span><span class="mn"><span class="bar" style="width:40px"></span>20 min</span></li>
+      <li data-path-step="report" data-min="15"><span class="n">9</span><span class="lb">Raport i wystąpienie</span><span class="mn"><span class="bar" style="width:30px"></span>15 min</span></li>
+    </ol>
+    <p class="total pull" data-total="155">Razem <b>155 min, czyli 2 h 35 min</b></p>
+    <aside class="notes">Całe warsztaty to dziewięć kroków, w tej kolejności. Minuty pochodzą z aplikacji i są orientacyjne, na pasku ścieżki zobaczycie na przykład „ok. 10 min”. Najdłużej siedzicie w laboratorium: kroki 6 i 7 to razem 55 minut. Wszystko razem daje 2 godziny 35 minut.</aside>
   </section>
 
-  <section data-slide="pathbar">
-    <p class="eyebrow">08</p><h2>Pasek ścieżki</h2>
-    <div class="shots"><figure><img data-shot="path-bar" src="assets/presentation/path-bar.webp" alt="Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+  <section data-slide="pathbar" class="tight">
+    <p class="eyebrow">Nawigacja</p>
+    <h2>Pasek ścieżki pokazuje, gdzie jesteście</h2>
+    <div class="shots push"><figure><img data-shot="path-bar" src="assets/presentation/path-bar.webp" alt="Pasek ścieżki z napisem o aktualnym kroku, podpowiedzią na następny i przyciskiem „Dalej”." loading="eager"></figure></div>
+    <ul class="under pull">
+      <li>„Jesteś tutaj: krok 1 z 9” i orientacyjny czas kroku</li>
+      <li>podpowiedź, co zrobić w następnym kroku</li>
+      <li>przycisk „Dalej” prowadzi do następnego kroku</li>
+      <li>pasek tylko podpowiada: menu i klawisze 1–7 działają zawsze</li>
+    </ul>
+    <aside class="notes">Pod nagłówkiem aplikacji jest pasek ścieżki. Kropki to dziewięć kroków, zielone są zrobione. Żółty przycisk „Dalej” zabiera was do następnego kroku, a jeśli już tam jesteście, pokazuje, co kliknąć. Pasek niczego nie blokuje: możecie chodzić po menu, jak chcecie, ale gdy nie wiecie, co dalej, patrzcie na pasek.</aside>
   </section>
 
   <section data-slide="join" data-step="join" data-min="10">
-    <p class="eyebrow">09 · join · 10 min</p><h2>Krok: Dołącz</h2>
+    <p class="eyebrow">Krok 1 z 9 · ok. 10 min</p>
+    <h2>Krok 1 – Przydział i strona firmy</h2>
+    <p class="where"><span><b>Gdzie</b>Start, potem strona firmy Rybex</span><span><b>Gotowe, gdy</b>zespół ma nazwę i przeczytał aktualność o zwrocie partii</span></p>
     <div class="shots"><figure><img data-shot="start" src="assets/presentation/start.webp" alt="Strona startowa aplikacji Rybex: przycisk następnego kroku, plan warsztatu i karty z opisem projektu." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Aplikacja ma osiem miejsc na zespoły. Wybierzcie swój numer w polu „Zespół”, wpiszcie nazwę i kliknijcie „Zaczynamy”. Potem otwórzcie stronę firmy Rybex i przeczytajcie aktualność o zwrocie partii. Duży żółty przycisk na stronie startowej zawsze prowadzi do następnego kroku.</aside>
   </section>
 
   <section data-slide="cycle" data-step="cycle" data-min="10">
-    <p class="eyebrow">10 · cycle · 10 min</p><h2>Krok: Cykl projektu AI</h2>
+    <p class="eyebrow">Krok 2 z 9 · ok. 10 min</p>
+    <h2>Krok 2 – Cykl projektu</h2>
+    <p class="where"><span><b>Gdzie</b>Demonstracje → Cykl projektu</span><span><b>Gotowe, gdy</b>odpowiecie poprawnie na pytania pod demonstracją</span></p>
     <div class="shots"><figure><img data-shot="cycle" src="assets/presentation/cycle.webp" alt="Demonstracja cyklu projektu AI: etapy od problemu biznesowego do wdrożenia i monitoringu." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">To krótka demonstracja etapów projektu AI, od problemu biznesowego do wdrożenia i monitoringu. Pod nią są dwa pytania sprawdzające i krok jest zaliczony, gdy odpowiecie na oba poprawnie. Nie musicie nic wiedzieć wcześniej, demonstracja wszystko pokazuje. Ten cykl to też plan waszego dnia.</aside>
   </section>
 
   <section data-slide="task" data-step="task" data-min="10">
-    <p class="eyebrow">11 · task · 10 min</p><h2>Krok: Zadanie</h2>
+    <p class="eyebrow">Krok 3 z 9 · ok. 10 min</p>
+    <h2>Krok 3 – Wybór zadania</h2>
+    <p class="where"><span><b>Gdzie</b>Opis projektu</span><span><b>Gotowe, gdy</b>zadanie jest wybrane, a kryterium sukcesu wpisane</span></p>
     <div class="shots"><figure><img data-shot="brief-memo" src="assets/presentation/brief-memo.webp" alt="Notatka służbowa o zwróconej partii konserw: nadawca, adresat, data, temat i opis sprawy." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">W Opisie projektu wybieracie jedno z pięciu zadań i wtedy pojawia się notatka od osoby z firmy. Przeczytajcie ją uważnie, bo mówi, na czym tej osobie zależy. Potem wpiszcie kryterium sukcesu: jedno zdanie, po którym poznacie, że projekt się udał. W reklamacjach notatka podpowiada na przykład, że najważniejsze są zgłoszenia o bezpieczeństwie żywności.</aside>
   </section>
 
   <section data-slide="data" data-step="data" data-min="15">
-    <p class="eyebrow">12 · data · 15 min</p><h2>Krok: Dane</h2>
+    <p class="eyebrow">Krok 4 z 9 · ok. 15 min</p>
+    <h2>Krok 4 – Dane zadania</h2>
+    <p class="where"><span><b>Gdzie</b>Dane</span><span><b>Gotowe, gdy</b>otworzycie plik danych swojego zadania</span></p>
     <div class="shots"><figure><img data-shot="data" src="assets/presentation/data.webp" alt="Strona danych zadania „Awarie maszyn”: lista plików i karta danych z odczytami czujników." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">W zakładce Dane jest folder z plikami wszystkich zadań. Otwórzcie plik swojego zadania, a przycisk „Dalej” na pasku sam go wskaże. Tu widać dane zadania „Przewidywanie awarii maszyn”, czyli odczyty czujników. Zanim zaczniecie cokolwiek liczyć, przyjrzyjcie się, co w tych danych jest i czego brakuje.</aside>
   </section>
 
   <section data-slide="demos" data-step="demos" data-min="20">
-    <p class="eyebrow">13 · demos · 20 min</p><h2>Krok: Demonstracje</h2>
+    <p class="eyebrow">Krok 5 z 9 · ok. 20 min</p>
+    <h2>Krok 5 – Demonstracje</h2>
+    <p class="where"><span><b>Gdzie</b>Demonstracje, zakładki oznaczone „do zrobienia”</span><span><b>Gotowe, gdy</b>pytania pod demonstracjami waszego zadania są zaliczone</span></p>
     <div class="shots"><figure><img data-shot="demos" src="assets/presentation/demos.webp" alt="Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Każde zadanie wymaga trochę innych demonstracji. Wszystkie mają podział danych i miary jakości, zadania z modelem językowym dochodzą tokeny i koszt, a asystent wiedzy ma jeszcze „Jak działa RAG”. Po każdej demonstracji są dwa pytania. Tu uczycie się pojęć potrzebnych w laboratorium, ta prezentacja ich nie tłumaczy. Zrzut pokazuje demonstrację miar jakości z suwakiem progu.</aside>
   </section>
 
   <section data-slide="base" data-step="base" data-min="25">
-    <p class="eyebrow">14 · base · 25 min</p><h2>Krok: Metoda odniesienia</h2>
+    <p class="eyebrow">Krok 6 z 9 · ok. 25 min</p>
+    <h2>Krok 6 – Laboratorium, runda 1</h2>
+    <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>metoda odniesienia jest zapisana w dzienniku</span></p>
     <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie słów kluczowych) z dwiema głównymi liczbami." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">W laboratorium zaczynacie od metody odniesienia, czyli najprostszej metody, która w ogóle rozwiązuje zadanie. Klikacie „Uruchomcie metodę odniesienia”, a potem zapisujecie wynik w dzienniku. Wynik ma dwie główne liczby i krótkie omówienie, pozostałe miary są pod „Więcej miar”. Ten wynik pochodzi z asystenta wiedzy firmowej, który szuka po słowach kluczowych. Z tym wynikiem porównujecie każdy następny eksperyment.</aside>
   </section>
 
   <section data-slide="iterate" data-step="iterate" data-min="30">
-    <p class="eyebrow">15 · iterate · 30 min</p><h2>Krok: Ulepszanie</h2>
+    <p class="eyebrow">Krok 7 z 9 · ok. 30 min</p>
+    <h2>Krok 7 – Rundy 2–3 i test</h2>
+    <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>są co najmniej 3 eksperymenty, a wynik testu jest w dzienniku</span></p>
     <div class="shots"><figure><img data-shot="test-reveal" src="assets/presentation/test-reveal.webp" alt="Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Teraz próbujecie pobić metodę odniesienia. Zmieniajcie jedną rzecz naraz i zapiszcie co najmniej trzy eksperymenty. W wizji, asystencie wiedzy i reklamacjach jest ukryty zbiór testowy: odsłonicie go dopiero po zapisaniu metody odniesienia, zaznaczeniu metody w tabeli i krótkim uzasadnieniu wyboru. Odsłaniacie go raz, na końcu, i od razu zapisujecie wynik, bo samo odsłonięcie nie zalicza kroku. Na zrzucie laboratorium reklamacji tuż po odsłonięciu testu.</aside>
   </section>
 
   <section data-slide="model">
-    <p class="eyebrow">16</p><h2>Model językowy</h2>
-    <div class="shots"><figure><img data-shot="ai-run" src="assets/presentation/ai-run.webp" alt="Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas." loading="eager"></figure><figure><img data-shot="ai-bar" src="assets/presentation/ai-bar.webp" alt="Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Laboratorium</p>
+    <h2>Model językowy w laboratorium</h2>
+    <div class="shots stack">
+      <figure><img data-shot="ai-bar" src="assets/presentation/ai-bar.webp" alt="Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi." loading="eager"></figure>
+      <figure class="grow"><img data-shot="ai-run" src="assets/presentation/ai-run.webp" alt="Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas." loading="eager"></figure>
+    </div>
+    <aside class="notes">W wizji, asystencie wiedzy i reklamacjach możecie wywołać prawdziwy model językowy. Łączycie się w karcie „Model językowy przez API” kodem zajęć, który podam na sali. Wywołania idą przez serwer zajęć, więc klucz API nie trafia do przeglądarki. Każdy przebieg pokazuje tokeny, koszt i średni czas odpowiedzi. Na dole jeden przebieg na zestawie deweloperskim reklamacji, z promptem zmienionym przez zespół. Bez połączenia laboratorium działa na regułach.</aside>
   </section>
 
   <section data-slide="risk" data-step="risk" data-min="20">
-    <p class="eyebrow">17 · risk · 20 min</p><h2>Krok: Ryzyko</h2>
-    <div class="shots"><figure><img data-shot="risk" src="assets/presentation/risk.webp" alt="Karty ryzyk projektu AI (dane osobowe, halucynacje) z wybraną odpowiedzią i widocznym uzasadnieniem." loading="eager"></figure><figure><img data-shot="golive" src="assets/presentation/golive.webp" alt="Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Krok 8 z 9 · ok. 20 min</p>
+    <h2>Krok 8 – Ryzyka i wdrożenie</h2>
+    <p class="where"><span><b>Gdzie</b>Demonstracje → Ryzyka, potem Architektura</span><span><b>Gotowe, gdy</b>co najmniej 4 karty ryzyk i 4 decyzje wdrożeniowe</span></p>
+    <div class="shots"><figure><img data-shot="risk" src="assets/presentation/risk.webp" alt="Karty ryzyk projektu AI (dane osobowe, halucynacje) z wybraną odpowiedzią i widocznym uzasadnieniem." loading="eager"></figure></div>
+    <aside class="notes">Karty ryzyk to krótkie sytuacje z Rybexu: dane osobowe, halucynacja, AI Act, stronniczość i prompt injection. Każdą opowiada ktoś z firmy, a wy wybieracie, co robicie. Po wyborze widzicie komentarz. Zespół ze zrzutu wybrał odpowiedź A, a komentarz pokazuje, czego ona nie załatwia. Odpowiedzcie na co najmniej cztery karty, potem przejdźcie do Architektury.</aside>
   </section>
 
   <section data-slide="architecture">
-    <p class="eyebrow">18</p><h2>Architektura rozwiązania</h2>
-    <div class="shots"><figure><img data-shot="arch" src="assets/presentation/arch.webp" alt="Schemat blokowy architektury rozwiązania złożony z wybranych komponentów." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Architektura</p>
+    <h2>Architektura i cztery decyzje przed wdrożeniem</h2>
+    <div class="split arch-golive">
+      <div class="col">
+        <div class="shots"><figure><img data-shot="arch" src="assets/presentation/arch.webp" alt="Schemat blokowy architektury rozwiązania złożony z wybranych komponentów." loading="eager"></figure></div>
+        <ul>
+          <li>Gdzie ma działać model: w zakładzie czy w chmurze?</li>
+          <li>Kto decyduje o zatrzymaniu linii albo maszyny?</li>
+          <li>Co oglądacie co tydzień po wdrożeniu?</li>
+          <li>Jak często wracacie do oceny modelu?</li>
+        </ul>
+      </div>
+      <div class="shots"><figure><img data-shot="golive" src="assets/presentation/golive.webp" alt="Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją." loading="eager"></figure></div>
+    </div>
+    <aside class="notes">W zakładce Architektura składacie schemat blokowy z komponentów, od źródeł danych do integracji i utrzymania, i eksportujecie go jako SVG lub PNG. Na tej samej stronie są cztery decyzje: gdzie działa model, kto decyduje o zatrzymaniu linii, co oglądacie po wdrożeniu i jak często wracacie do oceny modelu. Nie ma tu dobrych ani złych odpowiedzi, każda ma swoją cenę, którą widać od razu. Po prawej zadanie awarii maszyn: zespół zdecydował, że maszynę zatrzymuje operator, ale nie dodał do schematu „Weryfikacji przez człowieka”, więc aplikacja ostrzega, że schemat i decyzja mówią co innego.</aside>
   </section>
 
-  <section data-slide="report" data-step="report" data-min="15">
-    <p class="eyebrow">19 · report · 15 min</p><h2>Krok: Raport</h2>
-    <div class="shots"><figure><img data-shot="report-gaps" src="assets/presentation/report-gaps.webp" alt="Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+  <section data-slide="report" data-step="report" data-min="15" class="tight">
+    <p class="eyebrow">Krok 9 z 9 · ok. 15 min</p>
+    <h2>Krok 9 – Raport i wystąpienie</h2>
+    <p class="where"><span><b>Gdzie</b>Wyniki i raport</span><span><b>Gotowe, gdy</b>raport jest wyeksportowany (HTML albo Markdown)</span></p>
+    <div class="shots push"><figure><img data-shot="report-gaps" src="assets/presentation/report-gaps.webp" alt="Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem." loading="eager"></figure></div>
+    <ul class="under pull">
+      <li>lista kontrolna i notatki do każdej części</li>
+      <li>„W raporcie brakuje jeszcze”: odnośniki do pustych miejsc</li>
+      <li>„Wyeksportujcie raport (HTML)” albo Markdown</li>
+      <li>eksport działa zawsze, puste miejsca zostają puste</li>
+    </ul>
+    <aside class="notes">Na stronie Wyniki i raport odhaczacie listę kontrolną i dopisujecie notatki. Przycisk „Odhaczcie pozycje widoczne już w waszej pracy” zaznacza to, co aplikacja widzi sama. Nad przyciskami eksportu jest lista „W raporcie brakuje jeszcze”, a każda pozycja prowadzi do miejsca, które trzeba uzupełnić. Na zrzucie zespół nie wpisał nawet nazwy, dlatego lista jest długa.</aside>
   </section>
+
+  <!-- ===================== Zasady ===================== -->
 
   <section data-slide="rules">
-    <p class="eyebrow">20</p><h2>Zasady pracy</h2>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Zasady</p>
+    <h2>Zasady uczciwego eksperymentu</h2>
+    <ul class="pts">
+      <li>Najpierw metoda odniesienia, potem eksperymenty.</li>
+      <li>Zbiór testowy odsłaniacie raz, na końcu. Każde odsłonięcie się liczy.</li>
+      <li>Od trzeciego eksperymentu zapis w dzienniku wymaga jednozdaniowego wniosku.</li>
+      <li>„Porównajcie dwa przebiegi”: zaznaczcie dwa zapisy i zobaczcie, co się zmieniło i o ile.</li>
+    </ul>
+    <aside class="notes">Tych zasad pilnuje aplikacja. Licznik „Test oglądany” pokazuje, ile razy zespół zajrzał do testu, i ta liczba trafia do raportu. Wnioski z eksperymentów też idą do raportu, więc piszcie je tak, żeby zrozumiał je ktoś z firmy. Porównanie dwóch przebiegów działa dla zapisów z tego samego zadania.</aside>
   </section>
 
   <section data-slide="badges">
-    <p class="eyebrow">21</p><h2>Odznaki</h2>
+    <p class="eyebrow">Odznaki</p>
+    <h2>9 odznak i jedno wyzwanie na zadanie</h2>
     <div class="shots"><figure><img data-shot="badges" src="assets/presentation/badges.webp" alt="Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Odznaki to kamienie milowe projektu. Aplikacja przyznaje je sama na podstawie tego, co zrobiliście, na przykład za zapisaną metodę odniesienia, za wynik lepszy od niej albo za uczciwy test. Przy brakujących widać, co jeszcze trzeba zrobić. Do tego w każdym zadaniu czeka jedno wyzwanie, na przykład „Najtrudniejsze puszki” w wizji albo pytanie spoza dokumentów w asystencie wiedzy. Zdobyte odznaki trafiają do raportu.</aside>
   </section>
 
-  <section data-slide="teamfile">
-    <p class="eyebrow">22</p><h2>Plik zespołu</h2>
-    <div class="shots"><figure><img data-shot="team-file" src="assets/presentation/team-file.webp" alt="Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+  <section data-slide="teamfile" class="tight">
+    <p class="eyebrow">Zapis pracy</p>
+    <h2>Praca zapisuje się tylko w tej przeglądarce</h2>
+    <div class="shots push"><figure><img data-shot="team-file" src="assets/presentation/team-file.webp" alt="Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu." loading="eager"></figure></div>
+    <ul class="under pull">
+      <li>Zanim zmienicie komputer: „Pobierzcie plik zespołu”.</li>
+      <li>Na nowym komputerze: „Wczytajcie plik zespołu”.</li>
+    </ul>
+    <aside class="notes">Stan zespołu zapisuje się tylko w przeglądarce, w której pracujecie. Jeśli przesiądziecie się do innego komputera albo innej przeglądarki, nie będzie tam waszego zespołu. Dlatego przed zmianą komputera pobierzcie plik zespołu i wczytajcie go na nowym. W tym samym pasku widzicie postęp na ścieżce, listę kontrolną i odznaki.</aside>
   </section>
 
-  <section data-slide="handin">
-    <p class="eyebrow">23</p><h2>Oddanie pracy</h2>
-    <aside class="notes">TODO</aside>
+  <!-- ===================== Efekt ===================== -->
+
+  <section data-slide="handin" class="tight">
+    <p class="eyebrow">Oddanie</p>
+    <h2>Co oddajecie</h2>
+    <p class="callout key push"><span class="fill">[uzupełnij: gdzie, w jakiej formie i do kiedy oddajecie raport]</span></p>
+    <ul class="pts pull">
+      <li>Raport z aplikacji: HTML albo Markdown, ze strony Wyniki i raport.</li>
+      <li>Na górze: zadanie, kryterium sukcesu, wybrana metoda z uzasadnieniem, najlepszy wynik, zbiór testowy, odznaki.</li>
+      <li>Dalej: lista kontrolna z notatkami, schemat architektury, decyzje wdrożeniowe, ryzyka i dziennik eksperymentów.</li>
+    </ul>
+    <aside class="notes">Raport robi aplikacja, wy dbacie o to, żeby nie miał pustych miejsc. Podsumowanie na górze bierze się z tego, co zapisaliście w laboratorium i w Opisie projektu. Schemat architektury jest wklejony w raport jako obrazek. Szczegóły oddania podam teraz, a w udostępnionej wersji są w żółtym polu.</aside>
   </section>
 
   <section data-slide="example">
-    <p class="eyebrow">24</p><h2>Przykładowy projekt</h2>
+    <p class="eyebrow">Przykład</p>
+    <h2>Tak wygląda skończony projekt</h2>
     <div class="shots"><figure><img data-shot="example" src="assets/presentation/example.webp" alt="Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem." loading="eager"></figure></div>
-    <aside class="notes">TODO</aside>
+    <aside class="notes">Przycisk „Pokażcie przykład zespołu” na stronie Wyniki i raport otwiera podgląd gotowego projektu prognozy popytu. Ten przykład celowo nie jest idealny, więc szukajcie w nim, co zrobilibyście lepiej. W tym czasie wasza praca zostaje nietknięta, model nie działa, a eksport raportu jest wyłączony.</aside>
   </section>
 
   <section data-slide="talk">
-    <p class="eyebrow">25</p><h2>Rozmowa o wynikach</h2>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Wystąpienie</p>
+    <h2>Wystąpienie na koniec</h2>
+    <ul class="pts">
+      <li>Czas na zespół: <span class="fill">[uzupełnij: czas wystąpienia jednego zespołu]</span></li>
+      <li>Idziecie za raportem: problem i kryterium sukcesu, dane, metoda i architektura.</li>
+      <li>Potem wyniki: metoda odniesienia, najlepszy eksperyment, wynik testu.</li>
+      <li>Kończycie odpowiedzią na pytanie z notatki: czy taki system może działać w zakładzie?</li>
+    </ul>
+    <aside class="notes">Opierajcie wystąpienie na raporcie, wtedy niczego nie zgubicie. Mówcie o liczbach, które zapisaliście, i o tym, czego system jeszcze nie umie. Notatka z kroku 3 prosiła o uczciwą ocenę, więc „jeszcze nie” też jest dobrą odpowiedzią, jeśli umiecie ją uzasadnić.</aside>
   </section>
 
   <section data-slide="learn">
-    <p class="eyebrow">26</p><h2>Czego się nauczyliście</h2>
-    <aside class="notes">TODO</aside>
+    <p class="eyebrow">Efekt</p>
+    <h2>Z czym wyjdziecie z warsztatów</h2>
+    <ul class="pts">
+      <li>Kryterium sukcesu i metoda wybrana z uzasadnieniem.</li>
+      <li>Metoda odniesienia, eksperymenty i uczciwy test na odłożonych danych.</li>
+      <li>Schemat architektury, ryzyka i cztery decyzje przed wdrożeniem.</li>
+      <li>Raport, który pokazuje to wszystko komuś z firmy.</li>
+    </ul>
+    <aside class="notes">Te cztery punkty to dokładnie to, co powstaje w kolejnych krokach ścieżki. Każdy z nich jest w raporcie, więc po warsztatach macie go na piśmie. Ten sam porządek przyda się przy każdym projekcie AI, także poza Rybexem.</aside>
   </section>
+
+  <!-- ===================== Zamknięcie ===================== -->
 
   <section data-slide="start" class="centerme">
-    <div class="t-title"><h1>Zaczynamy</h1><div id="qr" class="qr" data-url="https://rybex.warsztaty-ai.com/rybex-ai-workshop.html"></div><p class="url">https://rybex.warsztaty-ai.com/rybex-ai-workshop.html</p></div>
-    <aside class="notes">TODO</aside>
+    <div class="t-title">
+      <h1>Zaczynamy</h1>
+      <p class="start-steps">Otwórzcie link, wybierzcie numer zespołu, wpiszcie nazwę i kliknijcie „Zaczynamy”.</p>
+      <p class="start-steps"><span class="fill">[uzupełnij: jak przydzielamy numery zespołów]</span></p>
+      <div id="qr" class="qr" data-url="https://rybex.warsztaty-ai.com/rybex-ai-workshop.html"></div>
+      <p class="url"><a href="https://rybex.warsztaty-ai.com/rybex-ai-workshop.html">https://rybex.warsztaty-ai.com/rybex-ai-workshop.html</a></p>
+    </div>
+    <aside class="notes">Zeskanujcie kod albo wpiszcie adres. Każdy zespół pracuje na jednym numerze, od 1 do 8, więc najpierw ustalmy, kto ma który. Potem wpiszcie nazwę zespołu, kliknijcie „Zaczynamy” i idźcie za paskiem ścieżki. Jestem na sali, jeśli coś nie działa.</aside>
   </section>
 
-  <section data-slide="recap">
-    <p class="eyebrow">28</p><h2>Podsumowanie</h2>
-    <aside class="notes">TODO</aside>
+  <section data-slide="recap" class="tight">
+    <p class="eyebrow">Ściąga</p>
+    <h2>Ściąga: 9 kroków</h2>
+    <ol class="recap push">
+      <li><b>Przydział i strona firmy</b> · podajcie nazwę zespołu i przeczytajcie aktualność na stronie firmy</li>
+      <li><b>Cykl projektu</b> · przejdźcie etapy cyklu projektu AI i odpowiedzcie na pytania</li>
+      <li><b>Wybór zadania</b> · wybierzcie zadanie i wpiszcie kryterium sukcesu</li>
+      <li><b>Dane zadania</b> · otwórzcie dane wybranego zadania</li>
+      <li><b>Demonstracje</b> · obejrzyjcie demonstracje wymagane dla waszego zadania</li>
+      <li><b>Laboratorium, runda 1</b> · uruchomcie metodę odniesienia i zapiszcie wynik</li>
+      <li><b>Rundy 2–3 i test</b> · zapiszcie co najmniej 3 eksperymenty, zmieniając jedną rzecz naraz; odsłońcie test raz i zapiszcie wynik</li>
+      <li><b>Ryzyka i wdrożenie</b> · odpowiedzcie na co najmniej cztery karty ryzyk i podejmijcie cztery decyzje wdrożeniowe</li>
+      <li><b>Raport i wystąpienie</b> · uzupełnijcie listę i wyeksportujcie raport</li>
+    </ol>
+    <p class="cta pull">Aplikacja: <a href="rybex-ai-workshop.html">rybex.warsztaty-ai.com/rybex-ai-workshop.html</a></p>
+    <aside class="notes">To ta sama ścieżka w jednym miejscu. Polecenia przy krokach to podpowiedzi z paska ścieżki w aplikacji. Teraz jest czas na pytania do całości. Potem otwórzcie aplikację i zaczynamy.</aside>
   </section>
 
 </div></div>
