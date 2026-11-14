@@ -805,6 +805,7 @@ function buildComplaints(){const r=rng(21);return C_PLAN.map((k,i)=>{const[c,h,t
 const DATA={sales:buildSales(),sensors:buildSensors(),compl:buildComplaints()};
 
 // Knowledge-assistant corpus: current procedures, a workstation instruction, a quality FAQ, a change memo and one archived procedure version (ARCH-01)
+// Kept in folder (alphabetical) order: the literal baseline and TF-IDF give ties to the earlier document, so reordering changes the results
 const DOCS=[
 {id:'ARCH-01',t:['Kontrola szwu puszki, wersja 2 (archiwalna)','Can seam inspection, version 2 (archived)'],p:[[
 'WERSJA ARCHIWALNA, NIEOBOWIĄZUJĄCA. Wersja 2 obowiązywała od 1 marca 2024 do 31 sierpnia 2026 i została zastąpiona wersją 3 (PROCES-01). Dokument zostaje w archiwum tylko do wglądu podczas audytów.',
@@ -874,7 +875,7 @@ const DOCS=[
 {id:'NOTATKA-01',t:['Komunikat 7/2026: zmiana procedury kontroli szwu','Notice 7/2026: change to the seam inspection procedure'],p:[[
 'Mirszyce, 25 sierpnia 2026. Od: Piotr Zielak, kierownik działu jakości i bezpieczeństwa żywności. Do: operatorzy zamykarek, brygadziści, kierownicy zmian, utrzymanie ruchu.',
 'Od 1 września 2026 obowiązuje wersja 3 procedury PROCES-01 „Kontrola szwu puszki”. Wersja 2 traci ważność z końcem sierpnia i trafia do archiwum jako ARCH-01.',
-'Powód zmiany: w drugim kwartale trzy razy wykryliśmy za niski szew dopiero po godzinie produkcji. Za każdym razem trzeba było wstrzymać i przejrzeć ponad 7000 puszek.',
+'Powód zmiany: w drugim kwartale trzy razy wykryliśmy za niski szew dopiero po godzinie produkcji. Za każdym razem trzeba było wstrzymać i przejrzeć około 18 000 puszek.',
 'Najważniejsza zmiana to częstsza kontrola. Szew kontrolujemy teraz co 30 minut, czyli dwa razy częściej niż w wersji 2, i z takiego samego okresu izolujemy puszki po złym wyniku.',
 'Rozbiórka szwu przestaje być czynnością „na początek zmiany” i ma teraz własny rytm w ciągu zmiany. Węższa jest też tolerancja grubości szwu; obie wartości podaje wersja 3.',
 'Zmienia się zasada ponownego uruchomienia linii. Brygadzista nie rusza już linii sam: decyduje kierownik zmiany po zgodzie działu jakości.',
@@ -882,7 +883,7 @@ const DOCS=[
 'Stare karty kontrolne z nagłówkiem „wersja 2” należy oddać brygadziście do 31 sierpnia. Pytania proszę kierować do działu jakości, numer wewnętrzny 214.'],[
 'Mirszyce, 25 August 2026. From: Piotr Zielak, quality and food safety manager. To: seamer operators, foremen, shift managers, maintenance.',
 'From 1 September 2026 version 3 of procedure PROCES-01 “Can seam inspection” is in force. Version 2 expires at the end of August and goes to the archive as ARCH-01.',
-'Reason for the change: in the second quarter we found a seam that was too low three times, each time only after an hour of production. Every time more than 7000 cans had to be held and looked through.',
+'Reason for the change: in the second quarter we found a seam that was too low three times, each time only after an hour of production. Every time about 18,000 cans had to be held and looked through.',
 'The main change is more frequent inspection. We now inspect the seam every 30 minutes, twice as often as in version 2, and after a bad result we isolate cans from the same period.',
 'The seam teardown stops being a “start of shift” job and now has its own rhythm during the shift. The seam thickness tolerance is narrower too; both values are given in version 3.',
 'The rule for restarting the line changes. The foreman no longer restarts the line alone: the shift manager decides once the quality department agrees.',
@@ -1054,20 +1055,20 @@ const RQ=[
  {q:['Co ile minut kontroluje się szew puszki?','How often is the can seam inspected?'],doc:'PROCES-01',type:'version',ok:/co 30 min|every 30 min/,bad:/60 min/},
  {q:['Ile minut sterylizuje się puszki 300 g?','For how many minutes are 300 g cans sterilized?'],doc:'PROCES-02',type:'context',ok:/55 min/,bad:/40 min/},
  {q:['Klient zgłasza wybrzuszoną puszkę. Ile mam czasu na przekazanie sprawy i co dzieje się z partią?','A customer reports a bulging can. How much time do I have to pass the case on, and what happens to the batch?'],doc:['PROCES-04','PROCES-06'],type:'multi',ok:[/24 godz|24 hours/,/wstrzym|hold|held/]},
- {q:['Co ile zmieniać rękawiczki?','How often do I swap gloves?'],doc:'PROCES-07',type:'para',ok:/\b2 godzin|\b2 hours/},
+ {q:['Co ile zmieniać rękawiczki?','How often do I swap gloves?'],doc:'PROCES-07',type:'para',ok:/co 2 godzin|every 2 hours/},
  {q:['Jaki format ma kod partii?','What is the batch code format?'],doc:'PROCES-03',type:'direct',ok:/RYB-(RRMMDD|YYMMDD)/},
  {q:['Co ile godzin smaruje się zamykarkę?','How often is the seamer lubricated?'],doc:'PROCES-05',type:'direct',ok:/\b8 godzin|\b8 hours/},
  {q:['O ile milimetrów może być przesunięta etykieta?','How far may the label be shifted from the can axis?'],doc:'PROCES-03',type:'direct',ok:/2 mm/},
  {q:['W ciągu ilu dni odpowiadamy na reklamację?','Within how many days is a complaint answered?'],doc:'PROCES-04',type:'direct',ok:/14 dni|14 days/},
  {q:['Powyżej jakich drgań konieczny jest natychmiastowy przegląd maszyny?','Above what vibration must the machine be inspected immediately?'],doc:'PROCES-05',type:'direct',ok:/powyżej 4 mm\/s|above 4 mm\/s/},
- {q:['Ile ma stygnąć puszka po wyjęciu z retorty?','How long do cans cool down once they come out of the retort?'],doc:'PROCES-02',type:'para',ok:/20 min/},
+ {q:['Ile ma stygnąć puszka w retorcie?','How long do cans cool down in the retort?'],doc:'PROCES-02',type:'para',ok:/20 min/},
  {q:['Klient pisze, że ryba śmierdzi. Komu to dać i jak szybko?','A customer writes that the fish stinks. Who gets it and how fast?'],doc:'PROCES-04',type:'para',ok:/24 godz|24 hours/},
  {q:['Kod na puszce się rozmazał, co z taką puszką?','The code on a can is smudged, what happens to that can?'],doc:'PROCES-03',type:'para',ok:/ponown\w* znakow|znakow\w* ponown|re-?mark|marked again/},
  {q:['Ile dekli ma zostać w magazynku, zanim dołożę nowe?','How many lids should be left in the magazine before I top it up?'],doc:'INSTR-01',type:'para',ok:/jedna czwarta|jednej czwartej|one quarter/},
- {q:['Puszka spadła na ziemię. Mogę ją wrzucić z powrotem na taśmę?','A can dropped on the ground. Can I throw it back on the belt?'],doc:'FAQ-01',type:'para',ok:/odpad|waste/},
- {q:['Ile ważna jest konserwa w pomidorach?','How long is a can in tomato sauce good for?'],doc:'PROCES-03',type:'para',ok:/24 mies|24 months/},
+ {q:['Puszka spadła na ziemię. Mogę ją wrzucić z powrotem na taśmę?','A can dropped on the ground. Can I throw it back on the belt?'],doc:'FAQ-01',type:'para',ok:/(podłog|ziemi)[^.]*odpad|(floor|ground)[^.]*waste/},
+ {q:['Jak długo ważna jest konserwa w pomidorach?','How long is a can in tomato sauce good for?'],doc:'PROCES-03',type:'para',ok:/24 mies|24 months/},
  {q:['Po ilu puszkach zmieniamy rolki?','How many cans until the rollers are replaced?'],doc:'PROCES-05',type:'para',ok:/500/},
- {q:['Czyj podpis zwalnia wstrzymaną partię?','Whose signature releases a held batch?'],doc:'PROCES-06',type:'para',ok:/kierownik\w* działu jakości|quality manager/},
+ {q:['Czyj podpis zwalnia wstrzymaną partię?','Whose signature releases a held batch?'],doc:'PROCES-06',type:'para',ok:/zwalnia[^.]*kierownik\w* działu jakości|released?[^.]*quality manager|quality manager[^.]*releases?/},
  {q:['Do jakiej kwoty mogę sama zatwierdzić zwrot?','Up to what amount can I approve a refund myself?'],doc:'PROCES-04',type:'para',ok:/200 zł/},
  {q:['Ile kosze mają stać na suszeniu?','How long does a basket stay in drying?'],doc:'PROCES-02',type:'para',ok:/\b6 godzin|\b6 hours/},
  {q:['Jak często wykonuje się rozbiórkę szwu?','How often is a seam teardown done?'],doc:'PROCES-01',type:'version',ok:/\b4 godz|\b4 hours/,bad:/raz na zmian|once per shift|once a shift/},
@@ -1076,7 +1077,7 @@ const RQ=[
  {q:['Ile minut spłukiwać linię po sosie musztardowym?','For how many minutes is the line rinsed after mustard sauce?'],doc:'PROCES-07',type:'context',ok:/25 min/,bad:/10 min/},
  {q:['Jaką temperaturę musi mieć ryba mrożona przy przyjęciu?','What temperature must frozen fish have on receipt?'],doc:'PROCES-08',type:'context',ok:/18 ?°C/,bad:/0 do 2|0 to 2/},
  {q:['Z jaką prędkością pracuje zamykarka po przezbrojeniu?','At what speed is the seamer run after a changeover?'],doc:'INSTR-01',type:'context',ok:/120/,bad:/300/},
- {q:['Po zaniku prądu w retorcie: ile razy wolno powtórzyć cykl i na jakim formularzu zwalnia się potem partię?','After a power cut in the retort: how many times may the cycle be repeated, and on which form is the batch released afterwards?'],doc:['PROCES-02','PROCES-06'],type:'multi',ok:[/\braz\b|jednokrotn|once|one time/,/F-12/]},
+ {q:['Po zaniku prądu w retorcie: ile razy wolno powtórzyć cykl i na jakim formularzu zwalnia się potem partię?','After a power cut in the retort: how many times may the cycle be repeated, and on which form is the batch released afterwards?'],doc:['PROCES-02','PROCES-06'],type:'multi',ok:[/tylko raz|jeden raz|jednokrotn|only once|one time/,/F-12/]},
  {q:['Ile dni mamy na odpowiedź na reklamację i jak długo zakład trzyma próbkę archiwalną z partii?','How many days do we have to answer a complaint, and how long does the plant keep the retention sample of a batch?'],doc:['PROCES-04','PROCES-06'],type:'multi',ok:[/14 dni|14 days/,/3 mies|3 months|three months|trzy mies/]},
  {q:['Kto przezbraja zamykarkę i co ile minut kontroluje się potem szew?','Who does a seamer changeover, and how often is the seam inspected afterwards?'],doc:['INSTR-01','PROCES-01'],type:'multi',ok:[/mechanik|mechanic/,/10 min/]},
  {q:['Ile kosztuje puszka?','How much does a can cost?'],type:'oos',oos:1},
@@ -1269,9 +1270,11 @@ function cleanComplRun(o){if(!isObj(o)||!Array.isArray(o.ids)||!Array.isArray(o.
 function cleanVisRun(o){if(!isObj(o)||!isObj(o.m)||!Array.isArray(o.preds)||!(o.preds.length===60))return null;const M=o.m,n=k=>clampInt(M[k],0,60,0),f=k=>clampNum(M[k],0,1,0);return{id:String(o.id||'').slice(0,20),ts:String(o.ts||''),...(typeof o.ver==='string'&&o.ver?{ver:o.ver.slice(0,12)}:{}),...(typeof o.ph==='string'&&o.ph?{ph:o.ph.slice(0,20)}:{}),model:String(o.model||''),datasetKey:typeof o.datasetKey==='string'?o.datasetKey.slice(0,160):'',shots:VSHOTS.includes(o.shots)?o.shots:0,set:o.set==='test'?'test':'val',failed:clampInt(o.failed,0,60,0),n:60-clampInt(o.failed,0,60,0),m:{tp:n('tp'),fp:n('fp'),fn:n('fn'),tn:n('tn'),p:f('p'),r:f('r'),f1:f('f1'),acc:f('acc')},types:Array.isArray(o.types)?o.types.filter(Array.isArray).slice(0,3).map(t=>[String(t[0]),clampInt(t[1],0,60,0),clampInt(t[2],0,60,0),clampInt(t[3],0,60,0)]):[],ruleF1:clampNum(o.ruleF1,0,1,0),sum:cleanSum(o.sum)||cleanSum({}),preds:o.preds.map(x=>isObj(x)?{d:['ok','dent','label','code'].includes(x.d)?x.d:'ok',r:typeof x.r==='string'?x.r.slice(0,200):'',bad:!!x.bad,err:!!x.err}:{d:'ok',r:'',bad:true})}}
 function cleanCurve(o){if(!isObj(o)||!Array.isArray(o.points))return null;return{model:String(o.model||''),ver:String(o.ver||'').slice(0,12),ruleAcc:clampNum(o.ruleAcc,0,1,0),cost:clampNum(o.cost,0,1e4,0),points:o.points.filter(isObj).slice(0,SHOTS.length).map(x=>({shots:SHOTS.includes(x.shots)?x.shots:0,acc:clampNum(x.acc,0,1,0),macro:clampNum(x.macro,0,1,0),safety:clampNum(x.safety,0,1,0),cost:clampNum(x.cost,0,1e4,0)}))}}
 function cleanCmp(o){if(!isObj(o)||!Array.isArray(o.rows))return null;return{ver:String(o.ver||'').slice(0,12),shots:SHOTS.includes(o.shots)?o.shots:0,set:['dev','dev16','test'].includes(o.set)?o.set:'dev',rows:o.rows.filter(isObj).slice(0,4).map(x=>({model:String(x.model||''),acc:clampNum(x.acc,0,1,0),macro:clampNum(x.macro,0,1,0),safety:clampNum(x.safety,0,1,0),safetyFalse:clampInt(x.safetyFalse,0,99,0),cost:clampNum(x.cost,0,1e4,0),calls:clampInt(x.calls,0,1e6,0),ms:x.ms==null?null:clampNum(x.ms,0,1e7,0)}))}}
+// Question types of the knowledge-assistant set; runs saved before the types existed have none
+const RAG_TYPES=['direct','para','multi','version','context','oos'];
 function cleanRagRun(o){if(!isObj(o)||!Array.isArray(o.rows)||!isObj(o.res)||!isObj(o.sum))return null;const R=o.res;return{sig:String(o.sig||''),set:o.set==='test'?'test':'dev',judge:!!o.judge,sum:cleanSum(o.sum),judgeN:o.judgeN==null?null:clampInt(o.judgeN,0,99,0),failed:clampInt(o.failed,0,99,0),agree:o.agree==null?null:clampNum(o.agree,0,1,0),
- res:{hit:clampInt(R.hit,0,99,0),ok:clampInt(R.ok,0,99,0),ref:clampInt(R.ref,0,99,0),n:clampInt(R.n,0,99,0),nOos:clampInt(R.nOos,0,99,0),prec:clampNum(R.prec,0,1,0),baseOk:clampInt(R.baseOk,0,99,0),extOk:clampInt(R.extOk,0,99,0)},
- rows:o.rows.slice(0,25).filter(isObj).map(r=>({q:String(r.q||''),doc:String(r.doc||''),oos:!!r.oos,a:String(r.a||'').slice(0,600),good:!!r.good,refused:!!r.refused,err:!!r.err,src:Array.isArray(r.src)?r.src.filter(isObj).map(x=>({doc:String(x.doc||''),par:String(x.par||'')})):[],judge:isObj(r.judge)?{correct:!!r.judge.correct,grounded:!!r.judge.grounded,reason:String(r.judge.reason||'').slice(0,200)}:null}))}}
+ res:{hit:clampInt(R.hit,0,99,0),ok:clampInt(R.ok,0,99,0),ref:clampInt(R.ref,0,99,0),n:clampInt(R.n,0,99,0),nOos:clampInt(R.nOos,0,99,0),prec:clampNum(R.prec,0,1,0),baseOk:clampInt(R.baseOk,0,99,0),extOk:clampInt(R.extOk,0,99,0),...(isObj(R.byType)?{byType:Object.fromEntries(Object.keys(R.byType).filter(t=>RAG_TYPES.includes(t)&&isObj(R.byType[t])).map(t=>[t,Object.fromEntries(['n','ok','baseOk','extOk'].map(k=>[k,clampInt(R.byType[t][k],0,99,0)]))]))}:{})},
+ rows:o.rows.slice(0,40).filter(isObj).map(r=>({q:String(r.q||''),doc:String(r.doc||''),...(RAG_TYPES.includes(r.type)?{type:r.type}:{}),oos:!!r.oos,a:String(r.a||'').slice(0,600),good:!!r.good,refused:!!r.refused,err:!!r.err,src:Array.isArray(r.src)?r.src.filter(isObj).map(x=>({doc:String(x.doc||''),par:String(x.par||'')})):[],judge:isObj(r.judge)?{correct:!!r.judge.correct,grounded:!!r.judge.grounded,reason:String(r.judge.reason||'').slice(0,200)}:null}))}}
 function cleanLog(l){if(!isObj(l))return null;const o={id:String(l.id||Math.random().toString(36).slice(2)),ts:String(l.ts||''),track:String(l.track||''),note:String(l.note||'').slice(0,1000),testViews:clampInt(l.testViews,0,1e6,0)};if(typeof l.text==='string')o.text=l.text;if(isObj(l.cfg))o.cfg=l.cfg;if(isObj(l.res))o.res=l.res;if(l.base===true)o.base=true;return o}
 // Copies the entries of a plain object whose key is a short string and whose value passes keep (returns the stored value or undefined).
 function cleanMap(o,keep,keyOk=k=>k.length<=40){const r={};if(isObj(o))for(const k in o){if(k==='__proto__'||!keyOk(k))continue;const v=keep(o[k]);if(v!==undefined)r[k]=v}return r}
@@ -2582,7 +2585,9 @@ const JUDGE_SYS=()=>T('Jesteś sędzią oceniającym odpowiedzi asystenta wiedzy
 const DOC_IDS=new Set(DOCS.map(d=>d.id));
 const RAG_NOT_FOUND=()=>T('Nie znalazłem tej informacji w opisach procesów.','I could not find this in the process documents.');
 const ragMessages=(q,ps)=>[{role:'system',content:RAG_SYS()},{role:'user',content:`${T('Fragmenty','Passages')}:\n${ps.map(x=>`[${x.c.doc} §${x.c.par}] ${x.c.text}`).join('\n')}\n\n${T('Pytanie','Question')}: ${q}`}];
-const ragSig=(L,set)=>JSON.stringify([L.k,L.chunk,L.min,set,S.ai.model,S.lang,!!L.judge]);
+// A saved model run is current only for the same settings and the same documents and questions
+const RAG_DATA_VER=[DOCS.length,DOCS.reduce((a,d)=>a+d.p[0].length,0),RQ.length].join('/');
+const ragSig=(L,set)=>JSON.stringify([L.k,L.chunk,L.min,set,S.ai.model,S.lang,!!L.judge,RAG_DATA_VER]);
 function ragClean(d){if(!isObj(d))return null;const answer=typeof d.answer==='string'?d.answer.trim().slice(0,600):'',refused=!!d.refused||!answer;
  return{answer:answer||T('Nie wiem.','I don’t know.'),refused,src:(Array.isArray(d.sources)?d.sources:[]).filter(x=>isObj(x)&&DOC_IDS.has(String(x.doc))).slice(0,6).map(x=>({doc:String(x.doc),par:String(x.par==null?'':x.par).slice(0,8)}))}}
 // Retrieval decides what the model sees: only passages above min similarity, at most k. None left = refuse without a call.
