@@ -101,8 +101,10 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.click('#onboardGo');
     ok('onboarding sets name and timestamp', await p.evaluate(() => team().name === 'Zespół Szprot' && !!team().onboardedAt));
     ok('onboarding closes, site preview stays', !(await p.$('#onboard')) && !!(await p.$('#sitePreview')));
+    ok('workshop description stays after onboarding', /Pracujecie jako zespół AI/.test(await p.$eval('#about', e => e.textContent)));
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     ok('onboarding gone after reload', !(await p.$('#onboard')) && !!(await p.$('#sitePreview')));
+    ok('workshop description still there after reload', !!(await p.$('#about')) && /Pasek u góry strony/.test(await p.$eval('#about', e => e.textContent)));
     await p.evaluate(() => go('brief')); ok('brief shows no memo before a task is chosen and keeps requirements', await p.$eval('#main', e => !e.querySelector('#memo, #memoWait, .memo') && !/Notatk[aęi] służbow|Internal memo/i.test(e.textContent) && e.querySelectorAll('#briefReq .card').length === SEC().length));
     ok('brief task choice before the criterion, requirements open on desktop', await p.evaluate(() => { const t = document.querySelector('#main [data-t]'), g = document.querySelector('#goal'), r = document.querySelector('#briefReq'); return !!t && !!(t.compareDocumentPosition(g) & 4) && !!(g.compareDocumentPosition(r) & 4) && r.open; }));
     ok('brief file starts with the story', await p.evaluate(() => BRIEF_PL.startsWith('>') && BRIEF_PL.includes(STORY().lot) && BRIEF_PL.includes('Celem projektu') && BRIEF_EN.includes(STORY().lot) && BRIEF_EN.includes('# Final project')));
@@ -851,9 +853,9 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('compare disabled until two are picked', await p.$eval('#cmpGo', e => e.disabled));
     for (const c of await p.$$('#labExp input[data-cmp]')) await c.check(); await p.click('#cmpGo');
     ok('comparison rendered on the tuning set', await p.$eval('#cmp', e => e.dataset.a && e.dataset.b && e.dataset.a !== e.dataset.b && e.dataset.set !== 'test'));
-    ok('difference in percentage points shown', /pkt proc\./.test(await p.$eval('#cmp', e => e.textContent)));
+    ok('difference in percentage points shown', /punktu procentowego/.test(await p.$eval('#cmp', e => e.textContent)));
     const mt = await p.$eval('#cmp', e => e.textContent);
-    ok('one sentence says which version scores higher, or that they tie', /Wersja [AB] ma wyższy F1 na ocenianych minutach o [\d,]+ pkt proc\.|Obie wersje/.test(mt), mt);
+    ok('one sentence says which version scores higher, or that they tie', /Wersja [AB] ma wyższy F1 na ocenianych minutach o [\d,]+ punktu procentowego|Obie wersje/.test(mt), mt);
     ok('what changed is named', /próg: 3,0 → 5,0/.test(mt), mt);
     await p.evaluate(() => { $('#labExp').dataset.mark = '1'; $('#expNote').value = 'n'; logAdd('maint', { f: { ...lab().mt.f }, thr: 9, win: 1, keys: ['x'] }, { f1: .1, p: .1, r: .1, base: .2 }, { m: 'F1', v: .1, base: .2, hi: true, test: true }); });
     ok('the list refreshes after a save without a full render', await p.evaluate(() => $('#labExp').dataset.mark === '1' && $$('#labExp input[data-cmp]').length === 3));
@@ -875,7 +877,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('forecast fixture: best method is not the moving average, its value ties, the moving average error changes', c.same === 'true' && Number(c.diff) === 0 && !fx.best.includes('ma') && Math.abs(fx.ma[0] - fx.ma[1]) >= 5e-4, JSON.stringify(fx));
     ok('forecast columns name the best method and list the moving average error', fx.cols.length === 2 && fx.cols.every((t, i) => t.includes(`Błąd najlepszej metody (${fx.names[i]}): `) && t.includes(`${fx.maName}: ${fx.maPct[i]}`)), fx.cols.join(' | '));
     ok('forecast, window only: the sentence names the moving average change, not only "same result"', /^Najlepsza metoda ma w obu wersjach ten sam błąd; zmienił się błąd średniej ruchomej: z [\d,]+% do [\d,]+%\.$/.test(fx.s.trim()) && !/Obie wersje/.test(fx.s), fx.s);
-    ok('forecast per-method differences are reported', new RegExp(`${fx.maName}: [+−][\\d,]+ pkt proc\\.`).test(c.t), c.t);
+    ok('forecast per-method differences are reported', new RegExp(`${fx.maName}: [+−][\\d,]+ punktu procentowego`).test(c.t), c.t);
     c = await pick(f, [0, 1]);
     ok('forecast, different products: no winner, a plain note on different data', c.same === 'false' && c.diff === undefined && /różnych danych/.test(c.t) && !/ma niższy/.test(c.t), c.t);
     const k = await fresh('#/lab/complaints');
@@ -885,7 +887,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('cost appears only when both entries carry it, in the 4.9 sentence form', await k.evaluate(() => { const mk = (id, acc, cost) => ({ id, ts: '2026-11-12T10:00', track: 'complaints', cfg: { mode: 'llm', model: 'x', ver: id === 'p' ? 'v1' : 'v2', shots: id === 'p' ? 0 : 5, set: 'dev' }, res: { acc, macro: acc, safety: 1, safetyFalse: 0, base: .4, test: null, ai: { model: 'x', calls: 36, inTok: 1, outTok: 1, cost }, run: id, maj: .3, primary: { m: 'x', v: acc, base: .4, hi: true, test: false } }, note: '', testViews: 0 });
       const a = mk('p', .5, .01), b = mk('q', .58, .02), d = document.createElement('div'); d.innerHTML = renderCompare(a, b, 'complaints'); const t = d.textContent;
       const noCost = renderCompare(a, { ...b, res: { ...b.res, ai: undefined } }, 'complaints');
-      return /Wersja A \(prompt v1, 0 przykładów\)/.test(t) && /Wersja B ma wyższą trafność na zestawie deweloperskim o 8,0 pkt proc\., ale koszt przebiegu rośnie z \$0,0100 do \$0,0200/.test(t) && !/koszt przebiegu/.test(noCost); }));
+      return /Wersja A \(prompt v1, 0 przykładów\)/.test(t) && /Wersja B ma wyższą trafność na zestawie deweloperskim o 8,0 punktu procentowego, ale koszt przebiegu rośnie z \$0,0100 do \$0,0200/.test(t) && !/koszt przebiegu/.test(noCost); }));
     const v = await fresh('#/lab/vision', '&trainer=1');
     // Real shapes: rules entries keep val and test side by side (primary.v is the test F1 once revealed); model entries saved on the test keep only test.
     await v.evaluate(() => { const mk = (id, f1, tf1) => ({ id, ts: '2026-11-12', track: 'vision', cfg: { th: { d: 1, s: 2, c: 3 } }, res: { val: { p: f1, r: f1, f1 }, test: { f1: tf1, p: tf1, r: tf1 }, primary: { v: tf1, m: 'F1 (test)', base: 0, hi: true, test: true } }, note: '', testViews: 1 });
@@ -899,7 +901,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const d = document.createElement('div'); d.innerHTML = renderCompare(mk('m', .5), mk('n', .5002), 'maint'); const t = d.textContent;
       const th = (id, x) => ({ id, ts: '2026-11-12', track: 'vision', cfg: { th: { d: x, s: 2, c: 3 } }, res: { val: { p: .5, r: .5, f1: .5 }, test: null, primary: { v: .5, m: 'F1', base: 0, hi: true, test: false } }, note: '', testViews: 0 });
       const e = document.createElement('div'); e.innerHTML = renderCompare(th('t1', 12.3), th('t2', 12.34), 'vision');
-      return /Różnica \(B wobec A\): 0,0 pkt proc\./.test(t) && !/[+−]0,0 pkt/.test(t) && /próg d: 12,30 → 12,34/.test(e.textContent); }));
+      return /Różnica \(B wobec A\): 0,0 punktu procentowego/.test(t) && !/[+−]0,0 punktu/.test(t) && /próg d: 12,30 → 12,34/.test(e.textContent); }));
     ok('the RAG recap inside a comparison has a full contour', await v.evaluate(() => { const mk = (id, ok) => ({ id, ts: '2026-11-12', track: 'rag', cfg: { k: 3, chunk: 1, min: .1, lang: 'pl' }, res: { hit: ok, ok, ref: 2, n: 12, nOos: 3, baseOk: 5, prec: .5, test: false, primary: { m: 'x', v: ok / 12, base: 5 / 12, hi: true, test: false } }, note: '', testViews: 0 });
       const box = document.createElement('div'); box.id = 'cmpProbe'; box.innerHTML = renderCompare(mk('r1', 7), mk('r2', 9), 'rag'); document.body.append(box); const r = box.querySelector('.cmp .recap'), s = r && getComputedStyle(r), res = !!s && s.borderLeftWidth === s.borderRightWidth && s.borderLeftColor === s.borderRightColor && parseFloat(s.borderTopWidth) > 0; box.remove(); return res; }));
     for (const pg of [p, f, k, v]) ok('no page errors (compare)', !pg.errs.length, pg.errs.join(' | ')); }
@@ -2047,6 +2049,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.evaluate(() => { team().track = 'maint'; save(); go('lab', 'maint'); });
     const mt = await p.evaluate(() => { const R = mtCompute(lab().mt); return { ev: R.m.ev, head: [...document.querySelectorAll('#mtRes .headline .stat')].map(s => s.textContent), recap: document.querySelector('#mtRes .recap').textContent }; });
     ok('persona maint headline counts whole breakdowns', mt.ev.total >= 1 && mt.head.length === 2 && mt.head[0].includes(`${mt.ev.caught} z ${mt.ev.total}`) && /Wykryte awarie \(całe awarie/.test(mt.head[0]), JSON.stringify(mt.head));
+    ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: z-score/.test($('#mtRes').textContent)));
     ok('persona maint recap names breakdowns and alarm timing', new RegExp(`wykrył ${mt.ev.caught} z ${mt.ev.total}`).test(mt.recap) && /nie przed nią|nie wykrył/.test(mt.recap), mt.recap);
     // Knowledge assistant: an FAQ entry's own question is never returned as the answer; the example in the field gets a real answer.
     const ra = await p.evaluate(() => { const L = lab().rag, a = q => ragAnswer(q, ragAsk(q, L.chunk), L).a; return [a('Co zrobić, gdy puszka jest wybrzuszona?'), a('Klient zgłasza wybrzuszoną puszkę. Co robię?')]; });
