@@ -1533,7 +1533,7 @@ function scaledVisionDataUrl(url,type,q){return new Promise((resolve,reject)=>{c
 // centre = label centre row (turned into a shift from the training median); code = horizontal edge energy of the print.
 const PF_W=160,PF_H=200;
 function photoFeatureRaw(px){const n=PF_W*PF_H,L=new Float32Array(n),blue=new Uint8Array(n);
- for(let i=0;i<n;i++){const r=px[i*4],g=px[i*4+1],b=px[i*4+2];L[i]=.299*r+.587*g+.114*b;blue[i]=b>r+50&&b>100?1:0}
+ for(let i=0;i<n;i++){const r=px[i*4],g=px[i*4+1],b=px[i*4+2];L[i]=.299*r+.587*g+.114*b;blue[i]=b>r+25&&g>r+20&&b>55?1:0}
  let top=-1,bot=-1;for(let y=0;y<PF_H;y++){let k=0;for(let x=50;x<110;x++)k+=blue[y*PF_W+x];if(k/60>.4){if(top<0)top=y;bot=y}}
  if(top<0)top=bot=PF_H/2;
  let out=0,cnt=0;const y0=24,y1=Math.max(26,top-3);
@@ -1542,7 +1542,7 @@ function photoFeatureRaw(px){const n=PF_W*PF_H,L=new Float32Array(n),blue=new Ui
  return{dent:cnt?out/cnt*1000:0,center:(top+bot)/2,code:m?e/m:0}}
 function photoPixels(url){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=PF_W;c.height=PF_H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0,PF_W,PF_H);res(x.getImageData(0,0,PF_W,PF_H).data)}catch(e){rej(e)}};im.onerror=()=>rej(new Error('image_decode'));im.src=url})}
 // Slider ranges and calibrated thresholds follow the features currently in use.
-function visRanges(){const all=visionItems();VIS.rng={};['dent','shift','code'].forEach(k=>{const v=all.map(i=>i.f[k]);VIS.rng[k]=[Math.min(...v),Math.max(...v)]});VIS.calib=visCalib()}
+function visRanges(){const all=VIS.train;VIS.rng={};['dent','shift','code'].forEach(k=>{const v=all.map(i=>i.f[k]);VIS.rng[k]=[Math.min(...v),Math.max(...v)]});VIS.calib=visCalib()}
 // The rules switch to photo features only when every photo loaded, so one threshold scale covers all images.
 function applyPhotoFeatures(){const all=visionItems(),ok=all.length>0&&all.every(i=>i.source==='photo'&&i.pf);
  if(!ok){all.forEach(i=>{if(i.synF)i.f=i.synF});VIS.featureSource='synthetic'}
@@ -1586,7 +1586,7 @@ const visPred=(f,t)=>f.dent>t.d||f.shift>t.s||f.code<t.c;
 function visEval(set,t){let tp=0,fp=0,fn=0,tn=0;set.forEach(i=>{const p=visPred(i.f,t);if(p&&i.bad)tp++;else if(p)fp++;else if(i.bad)fn++;else tn++});return prf(tp,fp,fn,tn)}
 function visCalib(){const off={d:VIS.rng.dent[1],s:VIS.rng.shift[1],c:VIS.rng.code[0]},t={...off},map={d:'dent',s:'shift',c:'code'},own={d:'dent',s:'label',c:'code'};
  const cands=k=>{const v=[...new Set(VIS.train.map(i=>i.f[map[k]]))].sort((a,b)=>a-b),o=[];for(let i=0;i<v.length;i++)o.push(i?(v[i]+v[i-1])/2:v[0]-1e-6);o.push(v[v.length-1]+1e-6);return o};
- const search=(k,set,base)=>{let best=-1,bv=base[k];cands(k).forEach(cv=>{const f=visEval(set,{...base,[k]:cv}).f1||0;if(f>best){best=f;bv=cv}});return bv};
+ const search=(k,set,base)=>{let best=-Infinity,bv=base[k];cands(k).forEach(cv=>{const m=visEval(set,{...base,[k]:cv}),f=(m.tp/(m.tp+m.fn||1)+m.tn/(m.tn+m.fp||1))/2;if(f>best){best=f;bv=cv}});return bv};
  for(const k of['d','s','c'])t[k]=search(k,VIS.train.filter(i=>i.type==='ok'||i.type===own[k]),off);
  for(let pass=0;pass<3;pass++)for(const k of['d','s','c'])t[k]=search(k,VIS.train,t);
  return t}
@@ -1600,7 +1600,7 @@ const visThFromSens=s=>{const c=VIS.calib,R=VIS.rng,q=(Math.min(100,Math.max(0,s
  const cd=q>0?c.c+q*(R.code[1]-c.c):c.c+q*(c.c-R.code[0]);
  return{d:dn,s:sh,c:cd}};
 // The baseline is a person's visual check: no knobs, it flags only the clear defects (a loosened operating point).
-const visHumanTh=()=>{const c=VIS.calib,R=VIS.rng,to=(v,span)=>v+0.45*span;return{d:to(c.d,R.dent[1]-c.d),s:to(c.s,R.shift[1]-c.s),c:c.c+0.45*(R.code[0]-c.c)}};
+const visHumanTh=()=>{const c=VIS.calib,R=VIS.rng,to=(v,span)=>v+0.2*span;return{d:to(c.d,R.dent[1]-c.d),s:to(c.s,R.shift[1]-c.s),c:c.c+0.2*(R.code[0]-c.c)}};
 const visHumanEval=(set=VIS.val)=>visEval(set,visHumanTh());
 const visTh=()=>{const u=lab().vision.th;if(!u||u.fk!==VIS.featureSource)return VIS.calib;
  if(typeof u.sens==='number')return visThFromSens(u.sens);
