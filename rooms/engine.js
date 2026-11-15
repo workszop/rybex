@@ -384,6 +384,107 @@
     },
   });
 
+  // ---- kit: office and warehouse materials and props (Task 3) ----
+  Object.assign(tex, {
+    // Carpet tiles, 0.5 m each, 2x2 per image (1 m): fibre lines quarter-turned tile to tile, as laid in offices.
+    carpet: (color = '#3e4a57') => cachedTex('carpet:' + css(color), 512, 512, (g, w, h) => {
+      const r = rng(83), s = w / 2;
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        g.fillStyle = shade(color, 0.94 + r() * 0.1); g.fillRect(i * s, j * s, s, s);
+        const along = (i + j) % 2 === 0;
+        for (let k = 0; k < 900; k++) {
+          const a = r() * s, b = r() * s, len = 4 + r() * 10, v = r() < 0.5 ? 0 : 255;
+          g.strokeStyle = `rgba(${v},${v},${v},${0.04 + r() * 0.07})`; g.lineWidth = 1.2; g.beginPath();
+          if (along) { g.moveTo(i * s + a, j * s + b); g.lineTo(i * s + a + len, j * s + b); } else { g.moveTo(i * s + a, j * s + b); g.lineTo(i * s + a, j * s + b + len); }
+          g.stroke();
+        }
+        g.fillStyle = 'rgba(0,0,0,.16)'; g.fillRect(i * s, j * s, s, 1.5); g.fillRect(i * s, j * s, 1.5, s);
+      }
+      blotches(g, w, h, r, 24, [30, 110], ['0,0,0', '255,255,255']);
+      grain(g, w, h, 26, r);
+    }),
+    // Smooth painted plaster (office walls): very soft mottling only. One image is about 2 m.
+    plaster: (color = '#f1efe9') => cachedTex('plaster:' + css(color), 256, 256, (g, w, h) => {
+      const r = rng(89);
+      g.fillStyle = css(color); g.fillRect(0, 0, w, h);
+      blotches(g, w, h, r, 30, [30, 90], ['120,115,105', '255,255,255']);
+      grain(g, w, h, 6, r);
+    }),
+    // Suspended ceiling: 600 mm mineral tiles in a white T-bar grid, 2x2 per image (1.2 m).
+    ceiling: () => cachedTex('ceiling', 512, 512, (g, w, h) => {
+      const r = rng(97), s = w / 2;
+      g.fillStyle = '#ecebe6'; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 2600; k++) { g.fillStyle = `rgba(90,88,80,${0.08 + r() * 0.16})`; g.fillRect(r() * w, r() * h, 1 + r() * 2.5, 1 + r()); }
+      blotches(g, w, h, r, 12, [30, 90], ['150,148,140', '255,255,255']);
+      for (let i = 0; i < 2; i++) { g.fillStyle = '#f7f7f4'; g.fillRect(i * s, 0, 7, h); g.fillRect(0, i * s, w, 7); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(i * s + 7, 0, 2, h); g.fillRect(0, i * s + 7, w, 2); }
+      grain(g, w, h, 8, r);
+    }),
+    // Wood veneer (desks, tables, doors): wavy grain along u. One image is about 1 m.
+    wood: (color = '#c89a62') => cachedTex('wood:' + css(color), 512, 512, (g, w, h) => {
+      const r = rng(101);
+      g.fillStyle = css(color); g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 140; k++) {
+        const y0 = r() * h, amp = 2 + r() * 6, f = 0.004 + r() * 0.01, ph = r() * 6, a = 0.04 + r() * 0.1, dark = r() < 0.7;
+        g.strokeStyle = dark ? `rgba(90,55,25,${a})` : `rgba(255,235,200,${a * 0.8})`; g.lineWidth = 1 + r() * 2.5; g.beginPath();
+        for (let x = 0; x <= w; x += 8) { const y = y0 + Math.sin(x * f * Math.PI * 2 + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+        g.stroke();
+      }
+      blotches(g, w, h, r, 10, [40, 120], ['120,80,40', '240,210,170']);
+      grain(g, w, h, 10, r);
+    }),
+    // Sheet vinyl with coloured chips (service rooms, corridors). One image is about 2 m.
+    vinyl: (color = '#a7aeb0') => cachedTex('vinyl:' + css(color), 512, 512, (g, w, h) => {
+      const r = rng(107);
+      g.fillStyle = css(color); g.fillRect(0, 0, w, h);
+      blotches(g, w, h, r, 40, [30, 120], ['60,64,66', '235,238,240']);
+      const chips = ['250,250,248', '70,74,78', '120,128,132', '200,190,170'];
+      for (let k = 0; k < 3200; k++) { g.fillStyle = `rgba(${chips[Math.floor(r() * chips.length)]},${0.3 + r() * 0.4})`; g.fillRect(r() * w, r() * h, 1 + r() * 2.2, 1 + r() * 1.6); }
+      grain(g, w, h, 10, r);
+    }),
+    // Cork pinboard.
+    cork: () => cachedTex('cork', 256, 256, (g, w, h) => {
+      const r = rng(109);
+      g.fillStyle = '#b8895a'; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 4200; k++) { const v = r(); g.fillStyle = v < 0.5 ? `rgba(110,70,35,${0.2 + r() * 0.3})` : `rgba(225,190,140,${0.2 + r() * 0.3})`; g.fillRect(r() * w, r() * h, 1 + r() * 2.5, 1 + r() * 2.5); }
+      grain(g, w, h, 12, r);
+    }),
+  });
+
+  // Local placement helper for props: a point (lx, y, lz) in a frame at (x, z) turned rotY.
+  const frameAt = (x, z, rotY) => { const c = Math.cos(rotY), s = Math.sin(rotY); return (lx, y, lz) => [x + lx * c + lz * s, y, z - lx * s + lz * c]; };
+  Object.assign(kit, { frameAt });
+  Object.assign(kit.prop, {
+    // Office swivel chair into batches: b.dark (seat, back, arms) and b.metal (column, star base). Faces +z at rotY 0.
+    chair(b, [x, z], rotY = 0) {
+      const at = frameAt(x, z, rotY), r = [0, rotY, 0];
+      b.dark.box([0.5, 0.08, 0.48], at(0, 0.48, 0), r);
+      const back = new window.THREE.BoxGeometry(0.46, 0.56, 0.06); back.rotateX(-0.12); back.rotateY(rotY); b.dark.add(back, at(0, 0.86, -0.25));
+      for (const sx of [-0.26, 0.26]) b.dark.box([0.05, 0.03, 0.26], at(sx, 0.67, 0.02), r).box([0.03, 0.18, 0.03], at(sx, 0.58, -0.04), r);
+      b.metal.cyl(0.028, 0.028, 0.34, at(0, 0.28, 0)).cyl(0.04, 0.04, 0.08, at(0, 0.14, 0));
+      for (let k = 0; k < 5; k++) { const a = rotY + k * Math.PI * 2 / 5, ex = Math.sin(a) * 0.28, ez = Math.cos(a) * 0.28; b.metal.rod([x, 0.09, z], [x + ex, 0.06, z + ez], 0.018, 6).cyl(0.025, 0.025, 0.03, [x + ex, 0.025, z + ez], [Math.PI / 2, a, 0], 8); }
+    },
+    // Potted plant: b.pot and b.leaf batches. h = overall height.
+    plant(b, [x, z], h = 1.1, seed = 1) {
+      const r = rng(seed * 7919);
+      b.pot.cyl(0.2, 0.16, 0.36, [x, 0.18, z], [0, 0, 0], 16).cyl(0.205, 0.205, 0.03, [x, 0.36, z], [0, 0, 0], 16);
+      const T = window.THREE;
+      for (let k = 0; k < 9; k++) {
+        const a = k * 2.39 + r(), lean = 0.25 + r() * 0.5, len = (h - 0.35) * (0.55 + r() * 0.45);
+        const geo = new T.SphereGeometry(1, 8, 6); geo.scale(0.07, len / 2, 0.16);
+        b.leaf.add(geo, [x + Math.sin(a) * Math.sin(lean) * len * 0.5, 0.36 + Math.cos(lean) * len * 0.5, z + Math.cos(a) * Math.sin(lean) * len * 0.5], [Math.cos(a) * lean, 0, -Math.sin(a) * lean]);
+      }
+    },
+    // A desk monitor: bezel and stand into batch bDark, the screen as a self-lit plane (drawFn). Faces +z at rotY 0.
+    // Returns the screen mesh. [x, y, z] is the desk-top point under the stand.
+    monitor(parent, bDark, [x, y, z], rotY, drawFn, [w, h] = [0.56, 0.33]) {
+      const at = frameAt(x, z, rotY), r = [0, rotY, 0];
+      bDark.box([0.22, 0.015, 0.16], at(0, y + 0.008, 0), r).box([0.05, 0.16, 0.03], at(0, y + 0.09, -0.02), r);
+      bDark.box([w + 0.03, h + 0.03, 0.03], at(0, y + 0.17 + h / 2, 0), r);
+      const p = at(0, y + 0.17 + h / 2, 0.0155);
+      return kit.screenPlane(parent, [w, h], p, rotY, drawFn);
+    },
+  });
+
   function el(tag, attrs = {}, kids = []) {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) { if (v === true) e.setAttribute(k, ''); else if (v !== false && v != null) e.setAttribute(k, v); }

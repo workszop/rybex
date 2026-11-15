@@ -1,5 +1,6 @@
 // Probes for the walk-in 3D rooms. Serves the worktree root itself (port 8798).
 // Usage: cd tests && node rooms.mjs [section...]   (sections: engine look integration file)
+// ROOMS_TRACKS=rag,forecast limits the look section to those rooms (default: all five).
 // WebGL in headless Chromium: ANGLE on the machine's OpenGL driver (real GPU). ROOMS_GL=swiftshader uses the
 // software renderer instead (no GPU needed, about 10x slower).
 import { chromium } from 'playwright';
@@ -190,7 +191,8 @@ try {
     // Frame time is always logged. SwiftShader: logged only (a software renderer is far too slow for any bound);
     // GPU: only a loose sanity bound.
     const SOFT = process.env.ROOMS_GL === 'swiftshader';
-    for (const track of ['vision', 'maint']) {
+    const TRACKS = (process.env.ROOMS_TRACKS || 'vision,maint,rag,complaints,forecast').split(',');
+    for (const track of TRACKS) {
       const w0 = warns.length, e0 = errs.length;
       let p = await fresh('', undefined, track);
       const st = await p.evaluate(() => ({ status: window.__room.status, track: document.querySelector('.room-root').dataset.roomTrack }));
@@ -201,6 +203,11 @@ try {
       console.log(`    ${track}: ${calls} draw calls, mean frame ${ms.toFixed(1)} ms (${(1000 / ms).toFixed(0)} fps)`);
       ok(`look.${track} draw calls between 20 and 600`, calls >= 20 && calls <= 600, String(calls));
       if (!SOFT) ok(`look.${track} mean frame time < 60 ms (sanity bound)`, ms < 60, ms.toFixed(1));
+      // Labels at the door: none covers another (the engine lifts a farther label above a nearer one).
+      const labs = await p.evaluate(() => window.__room._debug.labels().filter(l => l.visible));
+      const clash = [];
+      for (let i = 0; i < labs.length; i++) for (let j = i + 1; j < labs.length; j++) { const a = labs[i], b = labs[j]; if (Math.abs(a.x - b.x) * 2 < a.w + b.w - 2 && Math.abs(a.y - b.y) * 2 < a.h + b.h - 2) clash.push(`${a.key}/${b.key}`); }
+      ok(`look.${track} station labels at the door do not overlap`, labs.length >= 3 && !clash.length, clash.join(', ') + ' ' + JSON.stringify(labs));
       const shot = await p.screenshot({ path: path.join(SHOTS, `${track}-spawn.png`) });
       const luma = await lumaOf(p, shot);
       console.log(`    ${track}: spawn luminance ${luma.toFixed(3)}`);

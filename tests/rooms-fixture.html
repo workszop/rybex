@@ -17,8 +17,8 @@
 <script src="../vendor/three/three.global.js"></script>
 <script src="../rooms/engine.js"></script>
 <script>
-  // ?track=vision|maint|...: load that room's script (synchronously, before the mount below).
-  (function () { const t = new URLSearchParams(location.search).get('track'); if (/^(vision|maint)$/.test(t || '')) document.write('<script src="../rooms/room-' + t + '.js"><\/script>'); })();
+  // ?track=vision|maint|rag|complaints|forecast: load that room's script (synchronously, before the mount below).
+  (function () { const t = new URLSearchParams(location.search).get('track'); if (/^(vision|maint|rag|complaints|forecast)$/.test(t || '')) document.write('<script src="../rooms/room-' + t + '.js"><\/script>'); })();
 </script>
 </head>
 <body>
@@ -71,7 +71,17 @@
   // Fake room data, as the app will pass it (?nodata=1: none at all).
   const PHOTOS = [1, 2, 3, 4, 5, 6].map(n => `../assets/vision-realistic/web/test_00${n}.jpg`);
   const SERIES = Array.from({ length: 96 }, (_, i) => +(2.1 + 0.25 * Math.sin(i * 0.9) + 0.18 * Math.sin(i * 2.3) + (i > 62 ? (i - 62) * 0.07 : 0)).toFixed(2));
-  const DATA = q.get('nodata') === '1' ? {} : { vision: { photos: PHOTOS, brand: 'Rybex' }, maint: { series: SERIES } }[track] || {};
+  const PRODUCTS = ['Makrela w pomidorach', 'Śledź po kaszubsku', 'Szprot w oleju', 'Tuńczyk w sosie własnym'];
+  const PACKSHOTS = ['makrela-w-pomidorach', 'sledz-po-kaszubsku', 'szprot-w-oleju', 'tunczyk-w-sosie-wlasnym'].map(n => `../assets/products/${n}.webp`);
+  // 24 months of sales (thousand cans): a seasonal pattern with a slow rise.
+  const MONTHLY = Array.from({ length: 24 }, (_, i) => Math.round(118 + i * 1.6 + 22 * Math.sin((i - 2) * Math.PI / 6) + (i % 5 === 2 ? 9 : 0)));
+  const DATA = q.get('nodata') === '1' ? {} : {
+    vision: { photos: PHOTOS, brand: 'Rybex' },
+    maint: { series: SERIES },
+    rag: { docs: ['PROCES-01', 'PROCES-02', 'PROCES-03', 'PROCES-04', 'PROCES-05', 'PROCES-06'] },
+    complaints: { categories: ['Uszkodzone opakowanie', 'Smak/zapach', 'Ciało obce', 'Etykieta', 'Dostawa'] },
+    forecast: { products: PRODUCTS, monthly: MONTHLY, packshots: PACKSHOTS },
+  }[track] || {};
   const host = document.querySelector('#host');
   window.__fxNode = document.querySelector('#fxInput');
   window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: DATA, titles: titles(), panels: { ...PANELS }, onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
