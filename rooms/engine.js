@@ -7,6 +7,8 @@
 //   room.open('data'); room.setPanels({ data: el }); room.dispose();
 //
 // Panels are MOVED into the room (append), never cloned, so ids, listeners and typed values stay.
+// dispose() takes them out of the slots again and leaves them detached (not in the document) for the app to reuse.
+// Titles and labels may be strings or { pl, en }.
 // handle.open(station) opens at once and glides the camera meanwhile (for jump links); a click on a station mesh or
 // toolbar button glides first and opens on arrival.
 (function () {
@@ -25,7 +27,8 @@
     if (supportedCache !== null) return supportedCache;
     try {
       const c = document.createElement('canvas');
-      const g = c.getContext('webgl2') || c.getContext('webgl');
+      // WebGL2 only: Three.js r170 refuses WebGL1, so offering 3D there would only end in an error and the fallback.
+      const g = c.getContext('webgl2');
       supportedCache = !!g;
       const lose = g && g.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
     } catch (e) { supportedCache = false; }
@@ -79,6 +82,8 @@
     const { host, track, data, onOpen, onClose, onExit2d } = opts;
     const lang = opts.lang === 'en' ? 'en' : 'pl', L = TXT[lang], id = 'room' + (++uid);
     const titles = opts.titles || {};
+    // Copy may be a plain string or { pl, en }.
+    const tr = v => (v && typeof v === 'object') ? (v[lang] ?? v.pl ?? v.en) : v;
     if (live.has(host)) live.get(host).dispose();
     host.replaceChildren();
     const reducedMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -89,7 +94,7 @@
     const liveEl = el('div', { class: 'room-live', 'aria-live': 'polite', role: 'status' });
     const btns = {};
     const bar = el('div', { class: 'room-toolbar', role: 'toolbar', 'aria-label': L.bar });
-    for (const s of STATIONS) { btns[s] = el('button', { type: 'button', class: 'room-btn', 'data-station': s }, titles[s] || s); bar.append(btns[s]); }
+    for (const s of STATIONS) { btns[s] = el('button', { type: 'button', class: 'room-btn', 'data-station': s }, tr(titles[s]) || s); bar.append(btns[s]); }
     const exitBtn = el('button', { type: 'button', class: 'room-btn room-2d', 'data-room-2d': true, title: L.exitTitle }, L.exit);
     bar.append(exitBtn);
     const titleEl = el('h2', { class: 'room-panel-title', id: id + '-title', tabindex: '-1' });
@@ -109,7 +114,7 @@
     const handle = { open, close, setPanels, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null } };
     live.set(host, handle);
     const setStatus = s => { handle.status = s; rootEl.dataset.roomStatus = s; };
-    const titleOf = s => titles[s] || (g3 && g3.byKey[s] && g3.byKey[s].label) || s;
+    const titleOf = s => tr(titles[s]) || (g3 && g3.byKey[s] && g3.byKey[s].label) || s;
 
     function show(s) {
       clearTimeout(pendingOpen);
@@ -177,7 +182,7 @@
       setStatus('fallback');
     }
     if (g3) setStatus('ready');
-    if (g3) for (const s of STATIONS) if (!titles[s] && g3.byKey[s]) btns[s].textContent = g3.byKey[s].label;
+    if (g3) for (const s of STATIONS) if (!tr(titles[s]) && g3.byKey[s]) btns[s].textContent = g3.byKey[s].label;
 
     // A throw half-way (shader compile, bad spec) must not leave a WebGL context, listeners or a frame loop behind.
     function create3d(T, spec) {
@@ -237,10 +242,11 @@
             mats.push(o.material);
           }
         });
-        const lab = kit.label(st.label || st.key);
+        const text = tr(st.label) || st.key;
+        const lab = kit.label(text);
         lab.position.set(st.anchor[0], st.anchor[1] + 0.55, st.anchor[2]);
         spec.scene.add(lab); hitKey.set(lab, st.key);
-        api.byKey[st.key] = { ...st, mats, lab };
+        api.byKey[st.key] = { ...st, label: text, mats, lab };
       }
       spec.scene.traverse(o => { if (o.isMesh || o.isSprite) pickables.push(o); });
 
@@ -257,6 +263,7 @@
         if (dz && !blocked(pos.x, pos.z + dz)) { pos.z += dz; moved = true; }
         return moved;
       };
+      for (const k of STATIONS) { const st = api.byKey[k]; if (st && st.view && blocked(st.view.pos[0], st.view.pos[2])) console.warn(`Rooms: "${track}" station "${k}" view position is blocked by a collider or the walls.`); }
       const keys = new Set();
       const MOVE = { w: 'f', arrowup: 'f', s: 'b', arrowdown: 'b', a: 'l', arrowleft: 'l', d: 'r', arrowright: 'r' };
       lon(window, 'keydown', e => {
@@ -409,6 +416,9 @@
       if (g3) { try { g3.dispose(); } catch (e) { console.warn('Rooms: dispose failed', e); } g3 = null; }
       domOff.forEach(f => f()); domOff.length = 0;
       if (live.get(host) === handle) live.delete(host);
+      // The panels belong to the app: take them out of the slots first, so they survive (detached, listeners and
+      // typed values intact) instead of going away with the room.
+      for (const s of STATIONS) slots[s].replaceChildren();
       rootEl.remove();
       handle.status = 'disposed';
     }

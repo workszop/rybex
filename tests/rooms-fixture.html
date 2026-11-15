@@ -31,9 +31,13 @@
   'use strict';
   const q = new URLSearchParams(location.search), track = q.get('track') || 'test', lang = q.get('lang') === 'en' ? 'en' : 'pl';
   // Colliders [x0,z0,x1,z1]: the crate in front of the door and the five station blocks.
-  const ST = { brief: [-4, 2.5], data: [-4, -1.5], method: [0, -4.2], experiment: [4, -1.5], results: [2.5, -0.5] };
+  const ST = { brief: [-4, 2.5], data: [-4, -1.5], method: [0, -4.2], experiment: [4, -1.5], results: [2.5, 0.3] };
   const COLORS = { brief: 0x1E8FC2, data: 0x00A651, method: 0x7A5AC2, experiment: 0xE5322D, results: 0xF0C800 };
   const LABELS = { pl: { brief: 'Tablica z notatką', data: 'Monitor z danymi', method: 'Biurko jakości', experiment: 'Konsola kamery', results: 'Wydruk wyników' }, en: { brief: 'Memo board', data: 'Data monitor', method: 'QA desk', experiment: 'Camera console', results: 'Results printout' } };
+  // ?i18n=1: one title and one label passed as { pl, en } instead of a string.
+  const i18n = q.get('i18n') === '1', LABELS_BOTH = { pl: 'Monitor z danymi', en: 'Data monitor' };
+  window.__fxLabels = [];
+  const kitLabel = Rooms.kit.label; Rooms.kit.label = text => { window.__fxLabels.push(text); return kitLabel(text); };
   const SW = 0.9, SD = 0.6, SH = 1.1;
   window.__fxColliders = [[-0.6, 0.5, 0.6, 1.5], ...Object.values(ST).map(([x, z]) => [x - SW / 2, z - SD / 2, x + SW / 2, z + SD / 2])];
 
@@ -52,16 +56,17 @@
     const stations = Object.entries(ST).map(([key, [x, z]]) => {
       const m = kit.box(g, [SW, SH, SD], [x, SH / 2, z], kit.mat(COLORS[key], { rough: 0.6 }));
       const d = Math.hypot(x, z), ux = -x / d, uz = -z / d;
-      return { key, anchor: [x, SH / 2, z], view: { pos: [x + ux * 1.7, 1.65, z + uz * 1.7], target: [x, SH / 2 + 0.3, z] }, label: LABELS[lang][key], meshes: [m] };
+      return { key, anchor: [x, SH / 2, z], view: { pos: [x + ux * 1.7, 1.65, z + uz * 1.7], target: [x, SH / 2 + 0.3, z] }, label: i18n && key === 'data' ? LABELS_BOTH : LABELS[lang][key], meshes: [m] };
     });
     return { scene: g, bounds: { x0: -5, z0: -5, x1: 5, z1: 5 }, colliders: window.__fxColliders, spawn: { pos: [0, 1.65, 4], yaw: 0 }, stations, fog: { color: 0xdfe3e6, near: 8, far: 22 }, background: 0xdfe3e6 };
   });
 
   const TITLES = { pl: { brief: 'Zadanie', data: 'Dane', method: 'Metoda', experiment: 'Eksperyment', results: 'Wyniki' }, en: { brief: 'Brief', data: 'Data', method: 'Method', experiment: 'Experiment', results: 'Results' } };
-  const panels = () => Object.fromEntries([...document.querySelectorAll('#fxPanels [data-fx], .room-slot [data-fx]')].map(e => [e.dataset.fx, e]));
+  const PANELS = Object.fromEntries([...document.querySelectorAll('#fxPanels [data-fx]')].map(e => [e.dataset.fx, e]));
+  const titles = () => { if (!i18n) return TITLES[lang]; const t = { ...TITLES[lang], brief: { pl: TITLES.pl.brief, en: TITLES.en.brief } }; delete t.data; return t; };
   const host = document.querySelector('#host');
   window.__fxNode = document.querySelector('#fxInput');
-  window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: {}, titles: TITLES[lang], panels: panels(), onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
+  window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: {}, titles: titles(), panels: { ...PANELS }, onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
   window.__mount();
 })();
 </script>

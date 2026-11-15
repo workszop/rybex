@@ -30,19 +30,21 @@ const GL_ARGS = process.env.ROOMS_GL === 'swiftshader' ? ['--use-angle=swiftshad
 const browser = await chromium.launch({ args: GL_ARGS }).catch(e => { srv.close(); throw e; });
 let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
-const errs = [];
+const errs = [], warns = [];
 
 async function fresh(q = '', vp = { width: 1440, height: 900 }) {
   const ctx = await browser.newContext({ viewport: vp });
   const p = await ctx.newPage();
   p.on('pageerror', e => errs.push(`${q} pageerror: ${e.message}`));
-  p.on('console', m => { if (m.type() === 'error') errs.push(`${q} console: ${m.text()}`); });
+  p.on('console', m => { if (m.type() === 'error') errs.push(`${q} console: ${m.text()}`); if (m.type() === 'warning' && /blocked/.test(m.text())) warns.push(m.text()); });
   await p.goto(FIX(q));
   await p.waitForFunction(() => { const r = document.querySelector('.room-root'); return r && r.dataset.roomStatus !== 'loading'; }, null, { timeout: 15000 });
   return p;
 }
 const root = (p, k) => p.$eval('.room-root', (e, k) => e.dataset[k], k);
-const waitStation = (p, s, timeout = 2000) => p.waitForFunction(s => document.querySelector('.room-root').dataset.roomStation === s, s, { timeout }).then(() => true, () => false);
+// ROOMS_PICK_MS: how long a click on a station (mesh or toolbar) may take to open it; raise it on a software renderer.
+const PICK_MS = Number(process.env.ROOMS_PICK_MS) || 2000;
+const waitStation = (p, s, timeout = PICK_MS) => p.waitForFunction(s => document.querySelector('.room-root').dataset.roomStation === s, s, { timeout }).then(() => true, () => false);
 const cam = p => p.evaluate(() => window.__room._debug.cameraPos());
 
 try {
@@ -111,10 +113,25 @@ try {
     ok('engine.setPanels keeps the open station and canvas, swaps content', sp.st === 'brief' && sp.shown && !sp.old && sp.cv, JSON.stringify(sp));
 
     // engine.dispose
-    const d = await p.evaluate(async () => { let n = 0; const raf = window.requestAnimationFrame; window.requestAnimationFrame = f => { n++; return raf.call(window, f); }; await new Promise(r => setTimeout(r, 200)); const before = n; window.__room.dispose(); n = 0; await new Promise(r => setTimeout(r, 300)); const after = n; const host = document.querySelector('#host'); const kids = host.children.length; const a = window.__mount(), b = window.__mount(); b.dispose(); a.dispose(); window.requestAnimationFrame = raf; return { before, after, kids, canvases: document.querySelectorAll('canvas').length, hostKids: host.children.length }; });
+    const d = await p.evaluate(async () => { window.__fxNode.value = 'keep me'; let n = 0; const raf = window.requestAnimationFrame; window.requestAnimationFrame = f => { n++; return raf.call(window, f); }; await new Promise(r => setTimeout(r, 200)); const before = n; window.__room.dispose(); n = 0; await new Promise(r => setTimeout(r, 300)); const after = n; const host = document.querySelector('#host'); const kids = host.children.length; const panelEl = window.__fxNode.closest('[data-fx]'); const node = { kept: window.__fxNode.value === 'keep me', inDoc: window.__fxNode.isConnected, parent: panelEl && panelEl.parentNode ? panelEl.parentNode.className || panelEl.parentNode.nodeName : null }; const a = window.__mount(), b = window.__mount(); b.dispose(); a.dispose(); window.requestAnimationFrame = raf; return { before, after, kids, node, canvases: document.querySelectorAll('canvas').length, hostKids: host.children.length }; });
     ok('engine.dispose stops frames and empties the host', d.before > 0 && d.after === 0 && d.kids === 0, JSON.stringify(d));
+    ok('engine.dispose leaves the app panels intact and detached', d.node.kept && !d.node.inDoc && d.node.parent === null, JSON.stringify(d.node));
     ok('engine.dispose mounting twice then disposing leaves no canvas', d.canvases === 0 && d.hostKids === 0, JSON.stringify(d));
     await p.close();
+
+    // engine.i18n: titles and labels given as { pl, en }
+    for (const lang of ['pl', 'en']) {
+      p = await fresh(`&i18n=1&lang=${lang}`);
+      const want = lang === 'pl' ? { brief: 'Zadanie', data: 'Monitor z danymi' } : { brief: 'Brief', data: 'Data monitor' };
+      const bar = await p.evaluate(() => ({ brief: document.querySelector('.room-toolbar [data-station=brief]').textContent, data: document.querySelector('.room-toolbar [data-station=data]').textContent, labels: window.__fxLabels }));
+      await p.click('.room-toolbar [data-station=brief]'); await waitStation(p, 'brief');
+      const t1 = await p.evaluate(() => ({ title: document.querySelector('.room-panel-title').textContent, live: document.querySelector('.room-live').textContent }));
+      await p.click('.room-panel [data-room-next]'); await waitStation(p, 'data');
+      const t2 = await p.evaluate(() => ({ title: document.querySelector('.room-panel-title').textContent, live: document.querySelector('.room-live').textContent }));
+      ok(`engine.i18n ${lang}: { pl, en } title resolved in toolbar, panel title and live region`, bar.brief === want.brief && t1.title === want.brief && t1.live.endsWith(want.brief), JSON.stringify([bar, t1]));
+      ok(`engine.i18n ${lang}: { pl, en } label resolved on the sprite, toolbar and panel title`, bar.labels.includes(want.data) && bar.labels.every(x => typeof x === 'string') && bar.data === want.data && t2.title === want.data && t2.live.endsWith(want.data), JSON.stringify([bar, t2]));
+      await p.close();
+    }
 
     // engine.fallback
     p = await fresh('&nowebgl=1');
@@ -139,6 +156,7 @@ try {
 
     // engine.errors
     ok('engine.errors no page or console errors', errs.length === 0, errs.join(' | '));
+    ok('engine.errors fixture station views are not blocked', warns.length === 0, warns.join(' | '));
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
