@@ -376,7 +376,7 @@
     const monStand = kit.batch(mon, M.stainless);
     monStand.box([0.06, 1.3, 0.06], [0, 0.65, -0.05]).box([0.5, 0.03, 0.5], [0, 0.015, -0.05]).box([0.12, 0.12, 0.06], [0, 1.4, -0.06]);
     monStand.done();
-    const photoImgs = photos.map(src => { const im = new Image(); im.src = src; return im; });
+    const photoImgs = photos.map(() => new Image()); // src is set below, after onload, so a cached image never fires before the handler
     const drawMon = (c, w, h) => {
       c.fillStyle = '#0d1419'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#16232d'; c.fillRect(0, 0, w, 44);
@@ -395,7 +395,7 @@
       c.fillText(photos.length ? tx(`${photos.length} zdjęć z linii`, `${photos.length} photos from the line`) : tx('Brak podglądu', 'No preview'), 16, h - 14);
     };
     const monTex = tex.screen(drawMon, { w: 640, h: 420 });
-    photoImgs.forEach(im => { im.onload = () => monTex.redraw(); });
+    photoImgs.forEach((im, i) => { im.onload = () => monTex.redraw(); im.src = photos[i]; });
     const monHousing = kit.box(mon, [0.72, 0.5, 0.07], [0, 1.6, 0], M.stainless);
     const monScreen = new T.Mesh(new T.PlaneGeometry(0.64, 0.42), new T.MeshBasicMaterial({ map: monTex, toneMapped: false }));
     monScreen.position.set(0, 0, 0.036); monHousing.add(monScreen);

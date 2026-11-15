@@ -408,14 +408,14 @@
     const trendFrame = kit.box(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.steel);
     const drawTrend = (c, w, h) => {
       c.fillStyle = '#0d151b'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#e6eef3'; c.font = '700 34px system-ui'; c.fillText(tx('Drgania · retorta i zamykarka', 'Vibration · retort and seamer'), 30, 52);
+      c.fillStyle = '#e6eef3'; c.font = '700 34px system-ui'; c.fillText(tx('Drgania · retorta', 'Vibration · retort'), 30, 52);
       c.fillStyle = '#9fb3c0'; c.font = '500 22px system-ui'; c.fillText('mm/s', 30, 86);
       const x0 = 70, x1 = w - 30, y0 = h - 50, y1 = 110;
       const hi = Math.max(ALARM * 1.4, ...series), lo = 0, sy = v => y0 - (v - lo) / (hi - lo) * (y0 - y1);
       c.strokeStyle = '#2b3b46'; c.lineWidth = 1;
       for (let v = 0; v <= hi; v += 1) { c.beginPath(); c.moveTo(x0, sy(v)); c.lineTo(x1, sy(v)); c.stroke(); c.fillStyle = '#6f8593'; c.font = '500 18px system-ui'; c.fillText(String(v), 36, sy(v) + 6); }
       c.setLineDash([14, 10]); c.strokeStyle = '#ff5a4f'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, sy(ALARM)); c.lineTo(x1, sy(ALARM)); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#ff8a80'; c.font = '600 20px system-ui'; c.fillText(tx(`PROCES-05: alarm > ${ALARM} mm/s`, `PROCES-05: alarm > ${ALARM} mm/s`), x1 - 300, sy(ALARM) - 10);
+      c.fillStyle = '#ff8a80'; c.font = '600 20px system-ui'; c.fillText(tx(`PROCES-05: alarm > ${ALARM} mm/s`, `PROCES-05: alarm > ${ALARM} mm/s`), x0 + 12, sy(ALARM) - 10); // left end: the series is low there, its end is at the right
       if (series.length > 1) {
         c.strokeStyle = '#4fc3f7'; c.lineWidth = 3; c.beginPath();
         series.forEach((v, i) => { const x = x0 + i / (series.length - 1) * (x1 - x0); i ? c.lineTo(x, sy(v)) : c.moveTo(x, sy(v)); });
