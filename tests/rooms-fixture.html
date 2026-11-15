@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rooms fixture</title>
+<script>
+  // ?nowebgl=1: no WebGL at all, before the engine loads.
+  if (/[?&]nowebgl=1/.test(location.search)) HTMLCanvasElement.prototype.getContext = function () { return null; };
+</script>
+<link rel="stylesheet" href="../rooms/rooms.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; }
+  #host { position: fixed; inset: 0; }
+  .fx p { margin: 0 0 12px; line-height: 1.5; }
+</style>
+<script src="../vendor/three/three.global.js"></script>
+<script src="../rooms/engine.js"></script>
+</head>
+<body>
+<div id="host"></div>
+<div id="fxPanels" hidden>
+  <div class="fx" data-fx="brief"><p>Partia RYB-261031-L2: klienci zgłaszają wgniecione puszki. Sprawdźcie, czy kamera na linii wyłapie je wcześniej.</p><p>Kryterium sukcesu: co najmniej 9 z 10 wadliwych puszek odrzuconych.</p></div>
+  <div class="fx" data-fx="data"><p>Zdjęcia z kamery inspekcyjnej: 240 zestawu ćwiczeniowego, 60 testu końcowego.</p></div>
+  <div class="fx" data-fx="method"><label for="fxInput">Notatka zespołu</label> <input id="fxInput" type="text" autocomplete="off"></div>
+  <div class="fx" data-fx="experiment"><button type="button" id="fxRun">Uruchom eksperyment</button></div>
+  <div class="fx" data-fx="results"><p>Brak wyników – uruchomcie pierwszy eksperyment.</p></div>
+</div>
+<script>
+(function () {
+  'use strict';
+  const q = new URLSearchParams(location.search), track = q.get('track') || 'test', lang = q.get('lang') === 'en' ? 'en' : 'pl';
+  // Colliders [x0,z0,x1,z1]: the crate in front of the door and the five station blocks.
+  const ST = { brief: [-4, 2.5], data: [-4, -1.5], method: [0, -4.2], experiment: [4, -1.5], results: [2.5, -0.5] };
+  const COLORS = { brief: 0x1E8FC2, data: 0x00A651, method: 0x7A5AC2, experiment: 0xE5322D, results: 0xF0C800 };
+  const LABELS = { pl: { brief: 'Tablica z notatką', data: 'Monitor z danymi', method: 'Biurko jakości', experiment: 'Konsola kamery', results: 'Wydruk wyników' }, en: { brief: 'Memo board', data: 'Data monitor', method: 'QA desk', experiment: 'Camera console', results: 'Results printout' } };
+  const SW = 0.9, SD = 0.6, SH = 1.1;
+  window.__fxColliders = [[-0.6, 0.5, 0.6, 1.5], ...Object.values(ST).map(([x, z]) => [x - SW / 2, z - SD / 2, x + SW / 2, z + SD / 2])];
+
+  Rooms.define('test', ({ THREE, kit, lang }) => {
+    const g = new THREE.Group();
+    const tiles = kit.canvasTexture(256, 256, (c, w, h) => {
+      c.fillStyle = '#c9c2b7'; c.fillRect(0, 0, w, h); c.strokeStyle = '#a89f92'; c.lineWidth = 4;
+      for (let i = 0; i <= 4; i++) { c.beginPath(); c.moveTo(i * w / 4, 0); c.lineTo(i * w / 4, h); c.moveTo(0, i * h / 4); c.lineTo(w, i * h / 4); c.stroke(); }
+    }, { repeat: [5, 5] });
+    const floor = kit.box(g, [10, 0.1, 10], [0, -0.05, 0], kit.mat(0xffffff, { map: tiles, rough: 0.9 }));
+    floor.castShadow = false;
+    const wall = kit.mat(0xf5f3f0, { rough: 0.95 });
+    kit.box(g, [10, 3, 0.2], [0, 1.5, -5.1], wall); kit.box(g, [0.2, 3, 10], [-5.1, 1.5, 0], wall); kit.box(g, [0.2, 3, 10], [5.1, 1.5, 0], wall); kit.box(g, [10, 3, 0.2], [0, 1.5, 5.1], wall);
+    kit.box(g, [1.2, 0.8, 1], [0, 0.4, 1], kit.mat(0xb08a5a, { rough: 0.85 }));
+    kit.cyl(g, 0.25, 1.2, [-2, 0.6, -3], kit.mat(0x9aa3a8, { rough: 0.35, metal: 0.8 }));
+    const stations = Object.entries(ST).map(([key, [x, z]]) => {
+      const m = kit.box(g, [SW, SH, SD], [x, SH / 2, z], kit.mat(COLORS[key], { rough: 0.6 }));
+      const d = Math.hypot(x, z), ux = -x / d, uz = -z / d;
+      return { key, anchor: [x, SH / 2, z], view: { pos: [x + ux * 1.7, 1.65, z + uz * 1.7], target: [x, SH / 2 + 0.3, z] }, label: LABELS[lang][key], meshes: [m] };
+    });
+    return { scene: g, bounds: { x0: -5, z0: -5, x1: 5, z1: 5 }, colliders: window.__fxColliders, spawn: { pos: [0, 1.65, 4], yaw: 0 }, stations, fog: { color: 0xdfe3e6, near: 8, far: 22 }, background: 0xdfe3e6 };
+  });
+
+  const TITLES = { pl: { brief: 'Zadanie', data: 'Dane', method: 'Metoda', experiment: 'Eksperyment', results: 'Wyniki' }, en: { brief: 'Brief', data: 'Data', method: 'Method', experiment: 'Experiment', results: 'Results' } };
+  const panels = () => Object.fromEntries([...document.querySelectorAll('#fxPanels [data-fx], .room-slot [data-fx]')].map(e => [e.dataset.fx, e]));
+  const host = document.querySelector('#host');
+  window.__fxNode = document.querySelector('#fxInput');
+  window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: {}, titles: TITLES[lang], panels: panels(), onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
+  window.__mount();
+})();
+</script>
+</body>
+</html>
