@@ -1,7 +1,7 @@
 // Packs the served vision photos into one script so the app also works opened from disk (file://).
 // Chrome blocks fetch() of local files and canvas reads of local images, but it runs a local <script>,
 // and images given as data: URLs keep the canvas readable for the pixel rules.
-// Usage: node tools/vision-bundle.mjs   (rerun whenever the JPEGs or manifest.json in assets/vision-realistic/web/ change)
+// Usage: node tools/vision-bundle.mjs   (rerun whenever the JPEGs or manifest.json in assets/vision-generated/web/ change)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

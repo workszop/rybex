@@ -17,4 +17,20 @@ try {
   assert(result.baseline.fp < 42 && result.baseline.tn > 0, 'baseline rejects every good tin');
   assert(result.baseline.tp > 0, 'baseline detects no defects');
   assert(new Set(result.scores.map(s => `${s.tp},${s.fp}`)).size >= 3, 'sensitivity does not meaningfully change results');
+
+  // Beating the baseline: more defects found never counts when it is bought with more false alarms than the baseline.
+  const guard = await page.evaluate(() => {
+    const hb = visHumanEval(VIS.val), s = m => ({ r: f0(m.r), f1: f0(m.f1), tp: m.tp, fp: m.fp, fn: m.fn, tn: m.tn });
+    const base = baseRun('vision'), be = { track: 'vision', base: true, cfg: base.cfg, res: { ...base.res, primary: base.primary } };
+    const run = sens => { const m = visEval(VIS.val, visThFromSens(sens)); return { track: 'vision', cfg: { sens, fk: VIS.featureSource }, res: { val: s(m), test: null, primary: { v: f0(m.r), base: f0(hb.r), baseFp: Math.round(hb.fp), hi: true, test: false } } } };
+    const verdict = list => { const t = { ...team(), track: 'vision', log: [be, ...list.map(run)] }, v = baseVerdict(t, 'vision'); return { beaten: v.beaten, sens: v.b.entry.cfg.sens, badge: earnedBadges(t).includes('beatBase') } };
+    const fair = [...Array(101).keys()].filter(x => { const m = visEval(VIS.val, visThFromSens(x)); return m.fp <= hb.fp && m.tp > hb.tp });
+    return { flagAll: verdict([100]), fair, mixed: fair.length ? verdict([100, fair[0]]) : null, word: partVerdict('vision', run(100), 'dev').line };
+  });
+  console.log(JSON.stringify(guard, null, 2));
+  assert.equal(guard.flagAll.beaten, false, 'flagging every tin beats the baseline');
+  assert.equal(guard.flagAll.badge, false, 'flagging every tin earns the badge');
+  assert(guard.fair.length > 0, 'no sensitivity beats the baseline without extra false alarms');
+  assert.deepEqual(guard.mixed, { beaten: true, sens: guard.fair[0], badge: true }, 'a fair run does not outrank the flag-everything run');
+  assert(/fałszywe alarmy 42/.test(guard.word) && /nie pobił/.test(guard.word), 'the verdict line does not name the false alarms');
 } finally { await browser.close(); }

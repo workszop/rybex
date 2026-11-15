@@ -460,7 +460,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       for (const k of Object.keys(gen)) {
         const md = await p.evaluate(k => { const t = team(); t.track = k; t.log = [{ id: 'r1', ts: '', track: k, cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: .3, hi: true } }, note: '', testViews: 0 }]; return reportMD(); }, k);
         // Hidden-test tracks name the baseline in a plain sentence ("Metoda odniesienia (klasa większościowa) na …"); the others decline it after "wobec".
-        const plainT = ['vision', 'rag', 'complaints'].includes(k), nm = { vision: '„zawsze OK”', rag: 'wyszukiwanie dosłowne', complaints: 'klasa większościowa' }[k];
+        const plainT = ['vision', 'rag', 'complaints'].includes(k), nm = { vision: 'kontrola wzrokowa', rag: 'wyszukiwanie dosłowne', complaints: 'klasa większościowa' }[k];
         ok(`exit1 report declines the baseline name (${k})`, plainT ? md.includes(`Metoda odniesienia (${nm})`) && !/wobec/.test((md.match(/Najlepszy wynik[^\n]*/) || [''])[0]) : md.includes('wobec ' + gen[k]) && !nom.some(n => md.includes('wobec ' + n)), (md.match(/Najlepszy wynik[^\n]*/) || [''])[0]); }
       const en = await p.evaluate(() => { S.lang = 'en'; const r = [0, 1, 2].map(fp => recapText('vision', { tp: 1, fp, fn: 0 }, { set: 'val', n: 60 })); const md = reportMD(); S.lang = 'pl'; return { r, md }; });
       ok('exit1 English vision recap: false alarm forms', en.r[0].includes('1 can was truly defective, and there were no false alarms') && en.r[1].includes('1 was good (a false alarm)') && en.r[2].includes('2 were good (false alarms)'), JSON.stringify(en.r));
@@ -835,7 +835,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     const p0ev = async fn => { const q = await fresh('#/lab/maint'); try { return await fn(q); } finally { await q.close(); } };
     // Without the can photos the vision challenge cannot be passed: it says so and never records a pass.
     const nc = await browser.newContext({ viewport: { width: 1280, height: 800 } }), np = await nc.newPage(); np.errs = [];
-    await np.route(/vision-realistic|vision-bundle|\.(png|jpe?g|webp)(\?|$)/, r => r.abort());
+    await np.route(/vision-realistic|vision-generated|vision-bundle|\.(png|jpe?g|webp)(\?|$)/, r => r.abort());
     np.on('pageerror', e => np.errs.push(e.message));
     await np.goto(APP() + '#/lab/vision'); await np.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     await np.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 30000 });
@@ -1653,7 +1653,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // 8. A note typed while the photos load survives the redraw.
     await B(async () => { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage(); p.errs = [];
       p.on('pageerror', e => p.errs.push(e.message));
-      await p.route('**/assets/vision-realistic/**/manifest.json', async r => { await new Promise(x => setTimeout(x, 1500)); await r.continue(); });
+      await p.route('**/assets/vision-generated/**/manifest.json', async r => { await new Promise(x => setTimeout(x, 1500)); await r.continue(); });
       await p.goto(APP() + '#/lab/vision'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
       await p.waitForSelector('#expNote'); const loading = await p.evaluate(() => VIS.loading);
       await tap(p, '#expNote'); await p.keyboard.type('Wgniecenia są trudne');

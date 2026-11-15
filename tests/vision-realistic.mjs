@@ -70,12 +70,12 @@ try {
   context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
-  await page.route('**/assets/vision-realistic/web/manifest.json', route => route.fulfill({
+  await page.route('**/assets/vision-generated/web/manifest.json', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(manifest),
   }));
-  await page.route('**/assets/vision-realistic/web/*.png', route => route.fulfill({
+  await page.route('**/assets/vision-generated/web/*.png', route => route.fulfill({
     status: 200,
     contentType: 'image/png',
     body: PNG_1X1,
@@ -104,10 +104,10 @@ try {
   const shortState = { ...state, first: { ...state.first, url: state.first.url.slice(0, 24) }, second: { ...state.second, url: state.second.url.slice(0, 24) }, big: state.big.slice(0, 24), payload: state.payload.slice(-120) };
   ok('photos are not loaded until the image folder is opened', idle.status === 'idle' && idle.initialized === false, JSON.stringify(idle));
   ok('manifest becomes ready with expected and loaded counts', state.status === 'ready' && state.expected === 210 && state.photos === 3 && state.fallback === 207, JSON.stringify(shortState));
-  ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/png') && /assets\/vision-realistic\/web\/train_003\.png$/.test(state.first.originalUrl), JSON.stringify(state.first));
+  ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/png') && /assets\/vision-generated\/web\/train_003\.png$/.test(state.first.originalUrl), JSON.stringify(state.first));
   ok('manifest label mismatch is rejected without changing immutable truth', state.rejected === 1 && state.mismatch.id === 'train_001' && state.mismatch.type === 'code' && state.mismatch.bad && state.mismatch.source === 'synthetic', JSON.stringify(state.mismatch));
   ok('missing items visibly remain synthetic fallback', state.second.source === 'synthetic' && state.second.type === 'code' && state.second.url.startsWith('data:image/'), JSON.stringify(state.second));
-  ok('visBig and model payload contain data URLs, not photo paths', state.big.startsWith('data:image/') && !state.payload.includes('/assets/vision-realistic/') && !state.payload.includes('train_003.png'), state.payload.slice(-200));
+  ok('visBig and model payload contain data URLs, not photo paths', state.big.startsWith('data:image/') && !state.payload.includes('/assets/vision-generated/') && !state.payload.includes('train_003.png'), state.payload.slice(-200));
     const zip = await page.evaluate(async () => {
       const blob = zipStore([
         { name: 'train/train_001.png', data: dataUrlBytes(VIS.train[0].url) },
