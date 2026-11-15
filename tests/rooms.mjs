@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..');
 const PORT = 8798, BASE = `http://127.0.0.1:${PORT}`;
-const FIX = (q = '') => `${BASE}/tests/rooms-fixture.html?track=test${q}`;
+const FIX = (q = '', track = 'test') => `${BASE}/tests/rooms-fixture.html?track=${track}${q}`;
 const SHOTS = path.join(ROOT, 'scratch', 'rooms');
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
@@ -32,12 +32,12 @@ let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
 const errs = [], warns = [];
 
-async function fresh(q = '', vp = { width: 1440, height: 900 }) {
-  const ctx = await browser.newContext({ viewport: vp });
+async function fresh(q = '', vp = { width: 1440, height: 900 }, track = 'test', ctxOpts = {}) {
+  const ctx = await browser.newContext({ viewport: vp, ...ctxOpts });
   const p = await ctx.newPage();
   p.on('pageerror', e => errs.push(`${q} pageerror: ${e.message}`));
   p.on('console', m => { if (m.type() === 'error') errs.push(`${q} console: ${m.text()}`); if (m.type() === 'warning' && /blocked/.test(m.text())) warns.push(m.text()); });
-  await p.goto(FIX(q));
+  await p.goto(FIX(q, track));
   await p.waitForFunction(() => { const r = document.querySelector('.room-root'); return r && r.dataset.roomStatus !== 'loading'; }, null, { timeout: 15000 });
   return p;
 }
@@ -157,6 +157,60 @@ try {
     // engine.errors
     ok('engine.errors no page or console errors', errs.length === 0, errs.join(' | '));
     ok('engine.errors fixture station views are not blocked', warns.length === 0, warns.join(' | '));
+  }
+  if (run('look')) {
+    // Mean luminance (0..1) of a PNG, decoded by the browser itself (no image library needed).
+    const lumaOf = async (p, buf) => p.evaluate(async b64 => {
+      const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+      const c = document.createElement('canvas'); c.width = 240; c.height = Math.round(240 * img.height / img.width);
+      const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+      const d = g.getImageData(0, 0, c.width, c.height).data; let s = 0;
+      for (let i = 0; i < d.length; i += 4) s += (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+      return s / (d.length / 4);
+    }, buf.toString('base64'));
+    const frameMs = p => p.evaluate(() => new Promise(res => { const t = []; const f = now => { t.push(now); if (t.length > 120) res((t[t.length - 1] - t[0]) / (t.length - 1)); else requestAnimationFrame(f); }; requestAnimationFrame(f); }));
+    const SOFT = process.env.ROOMS_GL === 'swiftshader';
+    for (const track of ['vision', 'maint']) {
+      const w0 = warns.length, e0 = errs.length;
+      let p = await fresh('', undefined, track);
+      const st = await p.evaluate(() => ({ status: window.__room.status, track: document.querySelector('.room-root').dataset.roomTrack }));
+      ok(`look.${track} ready`, st.status === 'ready' && st.track === track, JSON.stringify(st));
+      await p.waitForTimeout(600); // photos and textures settle
+      const ms = await frameMs(p);
+      const calls = await p.evaluate(() => window.__room._debug.info().render.calls);
+      console.log(`    ${track}: ${calls} draw calls, mean frame ${ms.toFixed(1)} ms (${(1000 / ms).toFixed(0)} fps)`);
+      ok(`look.${track} draw calls between 20 and 600`, calls >= 20 && calls <= 600, String(calls));
+      ok(`look.${track} mean frame time < ${SOFT ? 60 : 22} ms`, ms < (SOFT ? 60 : 22), ms.toFixed(1));
+      const shot = await p.screenshot({ path: path.join(SHOTS, `${track}-spawn.png`) });
+      const luma = await lumaOf(p, shot);
+      console.log(`    ${track}: spawn luminance ${luma.toFixed(3)}`);
+      ok(`look.${track} spawn view neither black nor blown out`, luma > 0.2 && luma < 0.8, luma.toFixed(3));
+      // Every station is visible from the door and opens on a click at its anchor.
+      for (const s of ['brief', 'data', 'method', 'experiment', 'results']) {
+        await p.evaluate(() => window.__mount());
+        await p.waitForTimeout(150);
+        const pt = await p.evaluate(s => window.__room._debug.project(s), s);
+        const on = pt && pt[0] > 0 && pt[0] < 1440 && pt[1] > 60 && pt[1] < 900;
+        if (on) await p.mouse.click(pt[0], pt[1]);
+        const opened = on && await waitStation(p, s);
+        ok(`look.${track} ${s} visible from the door and opens on click`, opened, JSON.stringify(pt));
+        await p.waitForTimeout(1300);
+        await p.screenshot({ path: path.join(SHOTS, `${track}-${s}.png`) });
+      }
+      await p.close();
+      // No data: the room still builds.
+      p = await fresh('&nodata=1', undefined, track);
+      ok(`look.${track} renders without data`, await p.evaluate(() => window.__room.status) === 'ready');
+      await p.close();
+      // Reduced motion: nothing moves (conveyor stopped, LEDs steady, glow steady).
+      p = await fresh('', undefined, track, { reducedMotion: 'reduce' });
+      await p.waitForTimeout(800);
+      const a = await p.screenshot(), b = await (p.waitForTimeout(700).then(() => p.screenshot()));
+      ok(`look.${track} reduced motion: a still picture`, a.equals(b));
+      await p.close();
+      ok(`look.${track} no station view blocked`, warns.length === w0, warns.slice(w0).join(' | '));
+      ok(`look.${track} no page or console errors`, errs.length === e0, errs.slice(e0).join(' | '));
+    }
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -70,6 +70,316 @@
     },
   };
 
+  // ---- kit: realistic materials and building blocks (shared by the rooms) ----
+  // Textures are drawn on canvases, deterministic (seeded) and cached per page: rooms share one image per kind and
+  // take a clone with their own repeat via kit.tile(). Every texture is RepeatWrapping with repeat 1x1.
+  const rng = seed => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const css = c => typeof c === 'number' ? '#' + c.toString(16).padStart(6, '0') : c;
+  const shade = (c, k) => { const n = parseInt(css(c).slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
+  const texCache = new Map(), screenCache = new WeakMap();
+  const cachedTex = (key, w, h, draw) => { let t = texCache.get(key); if (!t) { t = kit.canvasTexture(w, h, draw, { repeat: [1, 1] }); texCache.set(key, t); } return t; };
+  // Per-pixel grain on our own canvas (never on a canvas holding an image, so file:// stays untainted).
+  function grain(g, w, h, amt, r) {
+    const img = g.getImageData(0, 0, w, h), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * amt; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(img, 0, 0);
+  }
+  // Draw fn(x, y) at every wrapped copy that touches the tile, so blotches repeat seamlessly.
+  const wrap = (w, h, x, y, rad, fn) => { for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) if (x + ox > -rad && x + ox < w + rad && y + oy > -rad && y + oy < h + rad) fn(x + ox, y + oy); };
+  function blotches(g, w, h, r, n, [r0, r1], tones) {
+    for (let i = 0; i < n; i++) {
+      const x = r() * w, y = r() * h, rad = r0 + r() * (r1 - r0), tone = tones[Math.floor(r() * tones.length)], a = 0.025 + r() * 0.06;
+      wrap(w, h, x, y, rad, (cx, cy) => { const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rad); gr.addColorStop(0, `rgba(${tone},${a})`); gr.addColorStop(1, `rgba(${tone},0)`); g.fillStyle = gr; g.fillRect(cx - rad, cy - rad, rad * 2, rad * 2); });
+    }
+  }
+
+  const tex = {
+    // Power-floated concrete: soft mottling, aggregate specks, a few hairline cracks. One tile is about 2 m.
+    concrete: () => cachedTex('concrete', 512, 512, (g, w, h) => {
+      const r = rng(11);
+      g.fillStyle = '#8e8c87'; g.fillRect(0, 0, w, h);
+      blotches(g, w, h, r, 90, [30, 130], ['52,50,46', '196,194,186', '120,110,96']);
+      for (let i = 0; i < 2600; i++) { const v = r() < 0.5 ? 40 : 210; g.fillStyle = `rgba(${v},${v},${v - 6},${0.08 + r() * 0.2})`; g.fillRect(r() * w, r() * h, 1 + r() * 1.6, 1 + r() * 1.6); }
+      g.lineWidth = 1;
+      for (let i = 0; i < 2; i++) {
+        let x = r() * w, y = r() * h; g.strokeStyle = `rgba(40,38,34,${0.1 + r() * 0.12})`; g.beginPath(); g.moveTo(x, y);
+        for (let k = 0; k < 14; k++) { x += (r() - 0.5) * 22; y += 4 + r() * 10; g.lineTo(x, y); } g.stroke();
+      }
+      grain(g, w, h, 18, r);
+    }),
+    // Square floor or wall tiles with grout, each tile a slightly different shade. 4x4 tiles per image.
+    tiles: (color = '#9b5b45') => cachedTex('tiles:' + css(color), 512, 512, (g, w, h) => {
+      const r = rng(23), n = 4, s = w / n;
+      g.fillStyle = shade(color, 0.62); g.fillRect(0, 0, w, h);
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        g.fillStyle = shade(color, 0.9 + r() * 0.2); g.fillRect(i * s + 3, j * s + 3, s - 6, s - 6);
+        g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(i * s + 3, j * s + 3, s - 6, 3); g.fillRect(i * s + 3, j * s + 3, 3, s - 6);
+        g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(i * s + 3, j * s + s - 6, s - 6, 3);
+      }
+      blotches(g, w, h, r, 40, [20, 70], ['40,30,25', '230,225,215']);
+      grain(g, w, h, 16, r);
+    }),
+    // Brushed stainless: fine streaks along u.
+    brushedSteel: () => cachedTex('steel', 512, 512, (g, w, h) => {
+      const r = rng(31);
+      g.fillStyle = '#b4b8bb'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 5200; i++) {
+        const y = r() * h, x = r() * w, len = 30 + r() * 260, v = r() < 0.5 ? 255 : 70;
+        g.strokeStyle = `rgba(${v},${v},${v},${0.025 + r() * 0.05})`; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y); g.stroke();
+        if (x + len > w) { g.beginPath(); g.moveTo(x - w, y); g.lineTo(x + len - w, y); g.stroke(); }
+      }
+      blotches(g, w, h, r, 14, [40, 120], ['90,94,98', '235,238,240']);
+      grain(g, w, h, 8, r);
+    }),
+    // Painted concrete blockwork (390x190 mm blocks): 4 blocks wide, 8 courses tall = 1.6 x 1.6 m per image.
+    paintedWall: (color = '#e7e4dc') => cachedTex('wall:' + css(color), 512, 512, (g, w, h) => {
+      const r = rng(41), bw = w / 4, bh = h / 8;
+      g.fillStyle = css(color); g.fillRect(0, 0, w, h);
+      blotches(g, w, h, r, 26, [20, 80], ['90,90,85', '255,255,255']);
+      g.fillStyle = shade(color, 0.86);
+      for (let row = 0; row < 8; row++) {
+        g.fillRect(0, row * bh, w, 3);
+        const off = row % 2 ? bw / 2 : 0;
+        for (let c = 0; c <= 4; c++) g.fillRect((c * bw + off) % w - 1, row * bh, 3, bh);
+      }
+      g.fillStyle = 'rgba(255,255,255,.18)';
+      for (let row = 0; row < 8; row++) g.fillRect(0, row * bh + 3, w, 1);
+      for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(0,0,0,${0.05 + r() * 0.08})`; g.fillRect(r() * w, r() * h, 1.5, 1.5); }
+      grain(g, w, h, 10, r);
+    }),
+    // Corrugated cardboard (kraft): fibres, faint flutes along v.
+    cardboard: () => cachedTex('cardboard', 256, 256, (g, w, h) => {
+      const r = rng(53);
+      g.fillStyle = '#b48a58'; g.fillRect(0, 0, w, h);
+      for (let x = 0; x < w; x += 6) { g.fillStyle = 'rgba(80,50,20,.05)'; g.fillRect(x, 0, 2, h); }
+      blotches(g, w, h, r, 30, [15, 60], ['90,60,30', '220,190,140']);
+      g.lineWidth = 1;
+      for (let i = 0; i < 260; i++) { const x = r() * w, y = r() * h; g.strokeStyle = `rgba(70,45,20,${0.06 + r() * 0.1})`; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 14, y + (r() - 0.5) * 14); g.stroke(); }
+      grain(g, w, h, 14, r);
+    }),
+    // Ribbed steel cladding (sandwich panel), ribs along v every 1/8 of the image.
+    cladding: (color = '#d9dcdd') => cachedTex('clad:' + css(color), 256, 256, (g, w, h) => {
+      const r = rng(61), p = w / 8;
+      g.fillStyle = css(color); g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 8; i++) {
+        const gr = g.createLinearGradient(i * p, 0, i * p + p, 0);
+        gr.addColorStop(0, 'rgba(0,0,0,.16)'); gr.addColorStop(0.18, 'rgba(255,255,255,.14)'); gr.addColorStop(0.3, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.04)');
+        g.fillStyle = gr; g.fillRect(i * p, 0, p, h);
+      }
+      blotches(g, w, h, r, 20, [20, 70], ['0,0,0', '255,255,255']);
+      grain(g, w, h, 8, r);
+    }),
+    // Yellow and black hazard stripes at 45 degrees (column guards, machine edges, kerbs).
+    hazard: () => cachedTex('hazard', 128, 128, (g, w, h) => {
+      const r = rng(71);
+      g.fillStyle = '#f2c200'; g.fillRect(0, 0, w, h); g.fillStyle = '#1c1b19';
+      for (let k = -2; k < 4; k++) { g.beginPath(); g.moveTo(k * 64, 0); g.lineTo(k * 64 + 32, 0); g.lineTo(k * 64 + 32 + h, h); g.lineTo(k * 64 + h, h); g.closePath(); g.fill(); }
+      blotches(g, w, h, r, 16, [8, 30], ['60,50,30', '255,255,240']);
+      grain(g, w, h, 14, r);
+    }),
+    // Stainless drain grating: slots across u.
+    grate: () => cachedTex('grate', 128, 128, (g, w, h) => {
+      g.fillStyle = '#9da2a5'; g.fillRect(0, 0, w, h); g.fillStyle = '#16191b';
+      for (let x = 4; x < w; x += 16) g.fillRect(x, 6, 9, h - 12);
+      g.fillStyle = 'rgba(255,255,255,.25)'; for (let x = 4; x < w; x += 16) g.fillRect(x + 9, 6, 2, h - 12);
+    }),
+    // A screen image: drawFn(g, w, h) draws it, texture.redraw() draws it again (for data, or an image that has
+    // just loaded). Cached per drawFn.
+    screen(drawFn, { w = 512, h = 320 } = {}) {
+      let t = screenCache.get(drawFn);
+      if (t) return t;
+      const T = window.THREE, c = document.createElement('canvas'); c.width = w; c.height = h;
+      t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+      t.redraw = () => { const g = c.getContext('2d'); g.clearRect(0, 0, w, h); drawFn(g, w, h, t); t.needsUpdate = true; };
+      t.redraw(); screenCache.set(drawFn, t);
+      return t;
+    },
+    // A generic hall for reflections: bright ceiling strips, walls with a light band, darker floor (cube texture).
+    env: () => {
+      let t = texCache.get('env');
+      if (t) return t;
+      const T = window.THREE, mk = draw => { const c = document.createElement('canvas'); c.width = c.height = 128; draw(c.getContext('2d'), 128); return c; };
+      const wall = mk((g, s) => { const gr = g.createLinearGradient(0, 0, 0, s); gr.addColorStop(0, '#c9cbcc'); gr.addColorStop(0.45, '#9fa3a5'); gr.addColorStop(1, '#55534f'); g.fillStyle = gr; g.fillRect(0, 0, s, s); g.fillStyle = '#f4f6f8'; g.fillRect(10, 22, s - 20, 10); g.fillStyle = '#e8eef3'; g.fillRect(30, 40, 26, 22); g.fillRect(72, 40, 26, 22); });
+      const ceil = mk((g, s) => { g.fillStyle = '#b8babb'; g.fillRect(0, 0, s, s); g.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) g.fillRect(12 + i * 30, 10, 8, s - 20); });
+      const floor = mk((g, s) => { g.fillStyle = '#4a4946'; g.fillRect(0, 0, s, s); });
+      t = new T.CubeTexture([wall, wall, ceil, floor, wall, wall]); t.colorSpace = T.SRGBColorSpace; t.needsUpdate = true;
+      texCache.set('env', t);
+      return t;
+    },
+    // A safety sign (ISO 7010 look): kind 'warning' (yellow triangle), 'mandatory' (blue disc), 'fire' (red
+    // square), 'exit' (green), 'info' (white plate), with optional text below the pictogram.
+    sign: (kind, text = '', glyph = '') => cachedTex(`sign:${kind}:${text}:${glyph}`, 256, text ? 320 : 256, (g, w, h) => {
+      g.fillStyle = kind === 'exit' ? '#0b8a3e' : '#fbfaf6'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 4; g.strokeRect(2, 2, w - 4, h - 4);
+      const cx = w / 2, cy = 120;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      if (kind === 'warning') {
+        g.fillStyle = '#1c1917'; g.beginPath(); g.moveTo(cx, 18); g.lineTo(cx + 112, 214); g.lineTo(cx - 112, 214); g.closePath(); g.fill();
+        g.fillStyle = '#f7c600'; g.beginPath(); g.moveTo(cx, 42); g.lineTo(cx + 92, 202); g.lineTo(cx - 92, 202); g.closePath(); g.fill();
+        g.fillStyle = '#1c1917'; g.font = '800 110px system-ui, sans-serif'; g.fillText(glyph || '!', cx, 146);
+      } else if (kind === 'mandatory') {
+        g.fillStyle = '#1764ad'; g.beginPath(); g.arc(cx, cy, 100, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff'; g.font = '700 96px system-ui, sans-serif'; g.fillText(glyph || 'i', cx, cy + 4);
+      } else if (kind === 'fire') {
+        g.fillStyle = '#c8102e'; g.fillRect(28, 20, w - 56, 200);
+        g.fillStyle = '#fff'; g.beginPath(); g.ellipse(cx, 138, 30, 62, 0, 0, Math.PI * 2); g.fill(); g.fillRect(cx - 12, 52, 24, 26); g.fillRect(cx - 12, 58, 64, 10);
+      } else if (kind === 'exit') {
+        g.fillStyle = '#fff'; g.font = '800 120px system-ui, sans-serif'; g.fillText(glyph || '→', cx + 50, cy);
+        g.beginPath(); g.arc(cx - 60, 60, 18, 0, Math.PI * 2); g.fill(); g.lineWidth = 18; g.strokeStyle = '#fff'; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(cx - 66, 90); g.lineTo(cx - 80, 150); g.lineTo(cx - 40, 200); g.moveTo(cx - 80, 150); g.lineTo(cx - 110, 200); g.moveTo(cx - 100, 110); g.lineTo(cx - 40, 125); g.stroke();
+      } else {
+        g.fillStyle = '#1c1917'; g.font = '800 120px system-ui, sans-serif'; g.fillText(glyph || '', cx, cy);
+      }
+      if (text) {
+        g.fillStyle = kind === 'exit' ? '#fff' : '#1c1917'; let fs = 40; g.font = `700 ${fs}px system-ui, sans-serif`;
+        while (g.measureText(text).width > w - 24 && fs > 18) { fs -= 2; g.font = `700 ${fs}px system-ui, sans-serif`; }
+        g.fillText(text, cx, h - 50);
+      }
+    }),
+  };
+
+  // Planar box-projected UVs in world metres (perMetre repeats per metre), so a texture keeps its scale on every
+  // face of every size. Works on any geometry with normals; call after positioning the vertices.
+  function worldUV(geo, perMetre = 1, off = [0, 0, 0]) {
+    const p = geo.attributes.position, n = geo.attributes.normal, uv = new Float32Array(p.count * 2);
+    for (let i = 0; i < p.count; i++) {
+      const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+      const x = p.getX(i) + off[0], y = p.getY(i) + off[1], z = p.getZ(i) + off[2];
+      let u, v;
+      if (ay >= ax && ay >= az) { u = x; v = z; } else if (ax >= az) { u = z; v = y; } else { u = x; v = y; }
+      uv[i * 2] = u * perMetre; uv[i * 2 + 1] = v * perMetre;
+    }
+    geo.setAttribute('uv', new window.THREE.BufferAttribute(uv, 2));
+    return geo;
+  }
+  // Merge indexed or non-indexed geometries (position, normal, uv) into one: one draw call for static clutter.
+  function merge(geos) {
+    const T = window.THREE, pos = [], nor = [], uv = [], idx = []; let base = 0;
+    for (const g0 of geos) {
+      const g = g0, p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv;
+      for (let i = 0; i < p.count; i++) { pos.push(p.getX(i), p.getY(i), p.getZ(i)); nor.push(n.getX(i), n.getY(i), n.getZ(i)); uv.push(u ? u.getX(i) : 0, u ? u.getY(i) : 0); }
+      if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(g.index.getX(i) + base); else for (let i = 0; i < p.count; i++) idx.push(i + base);
+      base += p.count; g0.dispose();
+    }
+    const out = new T.BufferGeometry();
+    out.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); out.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    out.setIndex(base > 65535 ? new T.Uint32BufferAttribute(idx, 1) : new T.Uint16BufferAttribute(idx, 1));
+    out.computeBoundingSphere(); out.computeBoundingBox();
+    return out;
+  }
+
+  Object.assign(kit, {
+    rng, tex, worldUV, merge,
+    // A clone of a cached texture with its own repeat (clones share the image: one upload).
+    tile(t, rx = 1, ry = rx) { const c = t.clone(); c.wrapS = c.wrapT = window.THREE.RepeatWrapping; c.repeat.set(rx, ry); c.needsUpdate = true; return c; },
+    // Static clutter that shares a material: add boxes, cylinders or any geometry, then done() gives ONE mesh.
+    // { uv: perMetre } gives world-scaled box-projected UVs; otherwise each part keeps its own 0..1 UVs.
+    batch(parent, material, { uv = 0, shadow = true, receive = true } = {}) {
+      const T = window.THREE, parts = [], m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), one = new T.Vector3(1, 1, 1);
+      const put = (geo, [x, y, z], [rx, ry, rz] = [0, 0, 0], s) => { geo.applyMatrix4(m4.compose(new T.Vector3(x, y, z), q.setFromEuler(e.set(rx, ry, rz)), s ? new T.Vector3(...s) : one)); parts.push(geo); return api; };
+      const api = {
+        box: ([w, h, d], p, r) => put(new T.BoxGeometry(w, h, d), p, r),
+        cyl: (rt, rb, h, p, r, seg = 16, open = false) => put(new T.CylinderGeometry(rt, rb, h, seg, 1, open), p, r),
+        // A cylinder from point a to point b.
+        rod(a, b, rad, seg = 10) { const A = new T.Vector3(...a), B = new T.Vector3(...b), d = B.clone().sub(A), geo = new T.CylinderGeometry(rad, rad, d.length(), seg); geo.applyMatrix4(m4.compose(A.add(B).multiplyScalar(0.5), q.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()), one)); parts.push(geo); return api; },
+        add: (geo, p = [0, 0, 0], r, s) => put(geo, p, r, s),
+        get count() { return parts.length; },
+        done() {
+          if (!parts.length) return null;
+          const geo = merge(parts); if (uv) worldUV(geo, uv);
+          const mesh = new T.Mesh(geo, material); mesh.castShadow = shadow; mesh.receiveShadow = receive; parent.add(mesh); return mesh;
+        },
+      };
+      return api;
+    },
+    // Many copies of one geometry: list of { p:[x,y,z], r:[rx,ry,rz], s:[sx,sy,sz] }.
+    inst(parent, geo, material, list, { shadow = false, receive = true } = {}) {
+      const T = window.THREE, im = new T.InstancedMesh(geo, material, list.length), m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
+      list.forEach((it, i) => im.setMatrixAt(i, m4.compose(new T.Vector3(...it.p), q.setFromEuler(e.set(...(it.r || [0, 0, 0]))), new T.Vector3(...(it.s || [1, 1, 1])))));
+      im.instanceMatrix.needsUpdate = true; im.castShadow = shadow; im.receiveShadow = receive; im.computeBoundingSphere(); parent.add(im); return im;
+    },
+    plane(parent, [w, h], [x, y, z], [rx, ry, rz], material) {
+      const m = new window.THREE.Mesh(new window.THREE.PlaneGeometry(w, h), material);
+      m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.receiveShadow = true; parent.add(m); return m;
+    },
+    rbox(parent, [w, h, d], [x, y, z], material, radius = 0.03) {
+      const T = window.THREE, m = new T.Mesh(new T.RoundedBoxGeometry(w, h, d, 3, radius), material);
+      m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
+    },
+    // A station view that leaves room for the panel docked on the right: the station ends up left of centre
+    // (shift = fraction of the viewing distance the aim point moves to the right). pos/target are [x, y, z].
+    view(pos, target, shift = 0.3) {
+      const dx = target[0] - pos[0], dz = target[2] - pos[2], len = Math.hypot(dx, dz) || 1;
+      return { pos, target: [target[0] - dz / len * len * shift, target[1], target[2] + dx / len * len * shift] };
+    },
+    // Station highlight by hand (the engine already pulses station meshes): on = true, false or an intensity.
+    glow(obj, on) {
+      obj.traverse(o => {
+        if (!o.isMesh) return;
+        o.material = [].concat(o.material).map(m => {
+          if (!m || !m.emissive) return m;
+          if (!m.userData.roomGlow) { m = m.clone(); m.userData.roomGlow = true; m.emissive.copy(m.color); if (m.map && !m.emissiveMap) m.emissiveMap = m.map; }
+          m.emissiveIntensity = on === true ? 0.42 : on ? Number(on) : 0;
+          return m;
+        });
+        if (o.material.length === 1) o.material = o.material[0];
+      });
+      return obj;
+    },
+    // A self-lit screen (unlit, not tone-mapped): mesh.userData.redraw() draws it again.
+    screenPlane(parent, [w, h], [x, y, z], rotY, drawFn) {
+      const T = window.THREE, px = 512, t = tex.screen(drawFn, { w: Math.round(px * Math.min(2, w / h)), h: Math.round(px * Math.min(2, w / h) * h / w) });
+      const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ map: t, toneMapped: false }));
+      m.position.set(x, y, z); m.rotation.y = rotY || 0; m.userData.redraw = t.redraw; parent.add(m); return m;
+    },
+    // Give every standard material under obj the shared reflection map (steel and wet floors need something to reflect).
+    envAll(obj, intensity = 1) {
+      const env = tex.env();
+      obj.traverse(o => { for (const m of [].concat(o.material || [])) if (m.isMeshStandardMaterial && !m.envMap) { m.envMap = env; m.envMapIntensity = intensity; } });
+    },
+    // Common fittings for any room.
+    prop: {
+      // Wall-mounted extinguisher with its sign above; (x, z) on the wall face, rotY faces the room.
+      extinguisher(parent, [x, z], rotY, lang = 'pl') {
+        const T = window.THREE, g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = rotY; parent.add(g);
+        const red = kit.mat(0xc21a1a, { rough: 0.35, metal: 0.1 }), black = kit.mat(0x1a1a1a, { rough: 0.6 });
+        kit.cyl(g, 0.085, 0.5, [0, 0.95, 0.12], red);
+        kit.cyl(g, 0.05, 0.1, [0, 1.25, 0.12], black);
+        kit.box(g, [0.12, 0.03, 0.03], [0.03, 1.32, 0.12], black);
+        kit.box(g, [0.16, 0.04, 0.06], [0, 0.82, 0.04], black);
+        kit.plane(g, [0.3, 0.3], [0, 1.65, 0.012], [0, 0, 0], new T.MeshStandardMaterial({ map: tex.sign('fire'), roughness: 0.6 }));
+        return g;
+      },
+      // Green illuminated exit sign (unlit, so it glows).
+      exitSign(parent, [x, y, z], rotY, lang = 'pl') {
+        const T = window.THREE, word = lang === 'en' ? 'EXIT' : 'WYJŚCIE';
+        const t = cachedTex('exit:' + word, 512, 200, (g, w, h) => {
+          g.fillStyle = '#0b8a3e'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineWidth = 16;
+          g.beginPath(); g.arc(70, 46, 15, 0, Math.PI * 2); g.fill();
+          g.beginPath(); g.moveTo(64, 72); g.lineTo(52, 122); g.lineTo(84, 166); g.moveTo(52, 122); g.lineTo(26, 166); g.moveTo(34, 88); g.lineTo(92, 100); g.stroke();
+          g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '800 78px system-ui, sans-serif'; g.fillText(word, 128, h / 2 + 4);
+          g.font = '800 90px system-ui, sans-serif'; g.textAlign = 'right'; g.fillText('\u2192', w - 18, h / 2);
+        });
+        const face = new T.MeshBasicMaterial({ map: t, toneMapped: false }), body = kit.mat(0xe8e8e8, { rough: 0.5 });
+        const m = new T.Mesh(new T.BoxGeometry(0.5, 0.2, 0.05), [body, body, body, body, face, body]);
+        m.position.set(x, y, z); m.rotation.y = rotY; parent.add(m); return m;
+      },
+      // A sign plate on a wall (use tex.sign).
+      sign(parent, [w, h], [x, y, z], rotY, t) {
+        return kit.plane(parent, [w, h], [x, y, z], [0, rotY, 0], new window.THREE.MeshStandardMaterial({ map: t, roughness: 0.55 }));
+      },
+      // EUR pallet (1.2 x 0.8 x 0.144 m) added to a batch b, at (x, z), turned rotY (0 or PI/2).
+      pallet(b, [x, z], rotY = 0) {
+        const c = Math.cos(rotY), s = Math.sin(rotY), at = (lx, y, lz) => [x + lx * c + lz * s, y, z - lx * s + lz * c];
+        for (const lz of [-0.35, 0, 0.35]) b.box([1.2, 0.022, 0.1], at(0, 0.133, lz), [0, rotY, 0]);
+        for (const lz of [-0.35, 0, 0.35]) b.box([1.2, 0.022, 0.1], at(0, 0.011, lz), [0, rotY, 0]);
+        for (const lx of [-0.55, 0, 0.55]) for (const lz of [-0.35, 0, 0.35]) b.box([0.145, 0.078, 0.1], at(lx, 0.061, lz), [0, rotY, 0]);
+        for (const lx of [-0.5, -0.25, 0.25, 0.5]) b.box([0.1, 0.022, 0.8], at(lx, 0.133, 0), [0, rotY, 0]);
+      },
+    },
+  });
+
   function el(tag, attrs = {}, kids = []) {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) { if (v === true) e.setAttribute(k, ''); else if (v !== false && v != null) e.setAttribute(k, v); }
