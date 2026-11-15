@@ -26,6 +26,8 @@ const TRAINER = '?trainer=1';
 const ready = p => p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
 const nav = (p, v) => p.click(`#nav button[data-v=${v}]`);
 const track = (p, k) => p.click(`#trackTabs button[data-k=${k}]`);
+// Change one setting first: saving the lab's starting settings is refused as "not a new experiment" (simplify round 1).
+const tweak = (p, k) => p.evaluate(k => { const L = lab(); if (k === 'maint') L.mt.thr += 0.5; if (k === 'rag') L.rag.k += 1; if (k === 'forecast') L.fc.w += 1; if (k === 'vision') { const c = VIS.calib; L.vision.th = { d: c.d * 1.05, s: c.s, c: c.c, fk: VIS.featureSource }; } }, k);
 const sub = p => p.evaluate(() => S.sub.lab);
 const val = (p, s) => p.$eval(s, e => e.value);
 const shot = async (p, n, full = true) => { if (EV) await p.screenshot({ path: `${EV}/after-${n}.png`, fullPage: full }); };
@@ -69,7 +71,7 @@ console.log('\nUX-003 price');
   await p.fill('#tt', 'Zażółć gęślą jaźń'); ok('003 text focus kept', await p.evaluate(() => document.activeElement.id) === 'tt'); await p.fill('#tt', ''); ok('003 empty text ok', !p.errs.length); }
 
 console.log('\nUX-004 team file, tabs, failed save');
-{ const p = await fresh(undefined, '#/lab/maint'); await p.fill('#teamName', 'Zespół Żółw'); await p.click('#sv'); await nav(p, 'deliver'); await p.fill('textarea[data-n="1"]', 'notatka ąę'); await p.click('input[data-c="1.0"]'); await nav(p, 'arch'); await p.click('button[data-p=vision]');
+{ const p = await fresh(undefined, '#/lab/maint'); await p.fill('#teamName', 'Zespół Żółw'); await tweak(p, 'maint'); await p.click('#sv'); await nav(p, 'deliver'); await p.click('#checkDetails summary'); await p.fill('textarea[data-n="1"]', 'notatka ąę'); await p.click('input[data-c="1.0"]'); await nav(p, 'arch'); await p.click('button[data-p=vision]');
   const f = await download(p, '#teamExport', 'team.json'); ok('004 file name', f.name === 'rybex_team_1.json');
   const q = await fresh(); await q.selectOption('#teamSel', '3'); await q.setInputFiles('#teamFile', f.file); await q.click('#toast .toast-act'); await q.waitForFunction(() => team().name === 'Zespół Żółw');
   const t = await q.evaluate(() => team()); ok('004 restores name, note, check, log, arch', t.notes[1] === 'notatka ąę' && t.checks['1.0'] === true && t.log.length === 1 && Object.keys(t.arch.sel).length > 5);
@@ -81,10 +83,10 @@ console.log('\nUX-004 team file, tabs, failed save');
   await q.setInputFiles('#teamFile', bad); await q.click('#toast .toast-act'); await q.waitForFunction(() => team().log.length === 1); await nav(q, 'deliver'); await q.evaluate(() => go('lab', 'rag')); await q.waitForSelector('#chat .msg'); await q.evaluate(() => go('lab', 'forecast')); await q.waitForSelector('#fcRes svg'); await q.evaluate(() => go('deliver')); await q.waitForTimeout(150);
   ok('004 hostile import inert', !(await q.evaluate(() => window.__x)) && !q.errs.length, q.errs.join('|'));
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const a = await ctx.newPage(), b = await ctx.newPage(); await a.goto(ROOT); await b.goto(ROOT); await ready(a); await ready(b);
-  await a.evaluate(() => go('lab', 'maint')); await a.waitForSelector('#sv'); await a.click('#sv'); await b.waitForFunction(() => team().log.length === 1, null, { timeout: 3000 }).catch(() => {}); await b.evaluate(() => go('deliver')); await b.waitForSelector('textarea[data-n="1"]'); await b.fill('textarea[data-n="1"]', 'druga karta'); await a.reload(); await ready(a);
+  await a.evaluate(() => go('lab', 'maint')); await a.waitForSelector('#sv'); await tweak(a, 'maint'); await a.click('#sv'); await b.waitForFunction(() => team().log.length === 1, null, { timeout: 3000 }).catch(() => {}); await b.evaluate(() => go('deliver')); await b.click('#checkDetails summary'); await b.waitForSelector('textarea[data-n="1"]'); await b.fill('textarea[data-n="1"]', 'druga karta'); await a.reload(); await ready(a);
   ok('004 two tabs keep both', await a.evaluate(() => team().log.length === 1 && team().notes[1] === 'druga karta'));
-  await b.selectOption('#teamSel', '2'); await b.fill('#teamName', 'B'); await a.evaluate(() => go('lab', 'rag')); await a.waitForSelector('#sv'); await a.click('#sv'); await b.reload(); await ready(b); ok('004 other team survives', await b.evaluate(() => S.teams[1].log.length === 2 && S.teams[2].name === 'B'));
-  const c2 = await browser.newContext(); const s = await c2.newPage(); await s.addInitScript(() => { Storage.prototype.setItem = function () { throw new Error('quota'); }; }); await s.goto(ROOT + '#/lab/maint'); await ready(s); await s.click('#sv');
+  await b.selectOption('#teamSel', '2'); await b.fill('#teamName', 'B'); await a.evaluate(() => go('lab', 'rag')); await a.waitForSelector('#sv'); await tweak(a, 'rag'); await a.click('#sv'); await b.reload(); await ready(b); ok('004 other team survives', await b.evaluate(() => S.teams[1].log.length === 2 && S.teams[2].name === 'B'));
+  const c2 = await browser.newContext(); const s = await c2.newPage(); await s.addInitScript(() => { Storage.prototype.setItem = function () { throw new Error('quota'); }; }); await s.goto(ROOT + '#/lab/maint'); await ready(s); await tweak(s, 'maint'); await s.click('#sv');
   ok('004 failed save warns', await s.isVisible('#saveWarn')); ok('004 no false success', !(await s.textContent('#toast')).includes('Zapisano')); }
 
 console.log('\nUX-005 test discipline');
@@ -118,12 +120,12 @@ console.log('\nUX-007 reproducible experiments');
   await p.selectOption('#teamSel', '3'); await p.waitForSelector('#kw_delivery'); ok('007 team isolation', !(await val(p, '#kw_delivery')).includes('karton')); await p.selectOption('#teamSel', '1'); await p.waitForSelector('#kw_delivery');
   await p.fill('#kw_delivery', 'x'); const changed = await p.$eval('#cStats', e => e.dataset.dev); ok('007 metric moved', changed !== before); await nav(p, 'deliver'); await p.click('button[data-r="0"]'); await p.waitForSelector('#cStats');
   ok('007 restore gives same metric', await p.$eval('#cStats', e => e.dataset.dev) === before); ok('007 restore sets field', (await val(p, '#kw_delivery')).includes('karton'));
-  for (const k of ['vision', 'rag', 'forecast', 'maint']) { await track(p, k); await p.click('#sv'); } await nav(p, 'deliver'); const txt = await p.textContent('#logBox'); ok('007 log renders all tracks', txt.includes('MAPE') && txt.includes('hit@k') && /trafność/.test(txt)); ok('007 no errors', !p.errs.length, p.errs.join('|'));
+  for (const k of ['vision', 'rag', 'forecast', 'maint']) { await track(p, k); await tweak(p, k); await p.click('#sv'); } await nav(p, 'deliver'); const txt = await p.textContent('#logBox'); ok('007 log renders all tracks', txt.includes('MAPE') && txt.includes('hit@k') && txt.includes('wykryte awarie')); ok('007 no errors', !p.errs.length, p.errs.join('|'));
   await p.click('#langSeg button[data-l=en]'); const en = await p.textContent('#logBox'); ok('007 log follows language', en.includes('correct answers') && !en.includes('poprawne odpowiedzi')); }
 
 console.log('\nUX-008 report');
 { const p = await fresh(undefined, TRAINER + '#/lab/vision'); await p.click('#pickTrack'); await p.evaluate(() => { $('#labMethod details').open = true; }); await p.click('input[name=meth][value="0"]'); await p.fill('#methWhy', 'Bo <tanie> i wyjaśnialne'); await p.click('#visRv'); await p.click('#sv'); await nav(p, 'arch'); await p.click('button[data-p=vision]'); await nav(p, 'deliver');
-  const h = await download(p, '#expH', 'r.html'); const html = fs.readFileSync(h.file, 'utf8'); ok('008 html has diagram', html.includes('<svg')); ok('008 states track, method, why, best', /Wizyjna kontrola/.test(html) && /Reguły na cechach/.test(html) && html.includes('Bo &lt;tanie&gt;') && /wykryte wady \(test\)/.test(html) && html.includes('kontrola wzrokowa')); ok('008 infra localized', html.includes('hybrydowa')); ok('008 title fallback', html.includes('<h1>Zespół 1</h1>'));
+  const h = await download(p, '#expH', 'r.html'); const html = fs.readFileSync(h.file, 'utf8'); ok('008 html has diagram', html.includes('<svg')); ok('008 states track, method, why, best', /Wizyjna kontrola/.test(html) && /Reguły na cechach/.test(html) && html.includes('Bo &lt;tanie&gt;') && /wykryte wady/.test(html) && html.includes('kontrola wzrokowa')); ok('008 infra localized', html.includes('hybrydowa')); ok('008 title fallback', html.includes('<h1>Zespół 1</h1>'));
   const m = await download(p, '#exp', 'r.md'); const md = fs.readFileSync(m.file, 'utf8'); ok('008 md embeds diagram', md.includes('data:image/svg+xml;base64,')); ok('008 md summary', md.includes('Wizyjna kontrola') && md.includes('Bo &lt;tanie&gt;')); if (EV) { const v = await p.context().newPage(); await v.goto('file://' + h.file); await v.screenshot({ path: `${EV}/after-report.png`, fullPage: true }); await v.close(); } }
 
 console.log('\nUX-009 safety');
@@ -146,7 +148,7 @@ console.log('\nUX-011 keyboard');
   await p.evaluate(() => go('demos', 'rag')); await p.waitForSelector('#pl'); await p.click('#pl'); await p.waitForTimeout(300); const e0 = p.errs.length; await nav(p, 'home'); await p.waitForTimeout(1600); ok('019 play then leave no error', p.errs.length === e0); }
 
 console.log('\nUX-012 forecast legend');
-{ const p = await fresh(undefined, '#/lab/forecast'); ok('012 chips carry swatch', await p.$$eval('#fcChips .chip svg.sw', e => e.length === 5)); ok('012 legend covers shown', await p.$$eval('#fcRes .legend span', e => e.length === 1 + 3)); await p.click('#fcChips .chip[data-m=ma]'); ok('012 legend updates', await p.$$eval('#fcRes .legend span', e => e.length === 1 + 4));
+{ const p = await fresh(undefined, '#/lab/forecast'); await p.click('#runBase'); ok('012 chips carry swatch', await p.$$eval('#fcChips .chip svg.sw', e => e.length === 5)); ok('012 legend covers shown', await p.$$eval('#fcRes .legend span', e => e.length === 1 + 3)); await p.click('#fcChips .chip[data-m=ma]'); ok('012 legend updates', await p.$$eval('#fcRes .legend span', e => e.length === 1 + 4));
   ok('012 best row readable', await p.$eval('#fcRes tr.best td', e => { const c = getComputedStyle(e); return c.color !== c.backgroundColor; }));
   const clip = await p.evaluate(() => { const s = document.querySelector('#fcRes svg'), r = s.getBoundingClientRect(); return [...s.querySelectorAll('text')].every(t => { const b = t.getBoundingClientRect(); return b.left >= r.left - 1 && b.right <= r.right + 1; }); }); ok('012 axis labels not clipped', clip); }
 
@@ -156,7 +158,7 @@ console.log('\nUX-013 inspector');
 
 console.log('\nUX-014 undo');
 { const p = await fresh(undefined, '#/arch'); await p.click('.chip[data-o=hitl]'); await p.click('.chip[data-o=erp]'); await p.click('button[data-p=rag]'); ok('014 template applied', await p.evaluate(() => !team().arch.sel.erp && !!team().arch.sel.llm)); await p.click('#toast button'); ok('014 undo template', await p.evaluate(() => !!team().arch.sel.erp && !team().arch.sel.llm));
-  await p.click('#clr'); await p.click('#toast button'); ok('014 undo clear', await p.evaluate(() => !!team().arch.sel.hitl)); await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#sv'); await p.click('#sv'); await nav(p, 'deliver'); await p.click('button[data-d="0"]'); ok('014 deleted', await p.evaluate(() => team().log.length) === 0); await p.click('#toast button'); ok('014 undo delete', await p.evaluate(() => team().log.length) === 1); await p.reload(); await ready(p); ok('014 undo persisted', await p.evaluate(() => team().log.length) === 1); }
+  await p.click('#clr'); await p.click('#toast button'); ok('014 undo clear', await p.evaluate(() => !!team().arch.sel.hitl)); await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#sv'); await tweak(p, 'maint'); await p.click('#sv'); await nav(p, 'deliver'); await p.click('button[data-d="0"]'); ok('014 deleted', await p.evaluate(() => team().log.length) === 0); await p.click('#toast button'); ok('014 undo delete', await p.evaluate(() => team().log.length) === 1); await p.reload(); await ready(p); ok('014 undo persisted', await p.evaluate(() => team().log.length) === 1); }
 
 console.log('\nUX-016 navigation');
 { const p = await fresh(); await nav(p, 'brief'); await nav(p, 'lab'); await track(p, 'rag'); ok('016 deep url', p.url().endsWith('#/lab/rag')); await p.goBack(); await p.waitForFunction(() => S.sub.lab === 'vision'); ok('016 back to previous tab', true); await p.goBack(); await p.waitForFunction(() => S.view === 'brief'); ok('016 back to previous view', true); await p.goForward(); await p.waitForFunction(() => S.view === 'lab'); ok('016 forward', true);

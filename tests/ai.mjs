@@ -418,7 +418,7 @@ try {
       t.log.push(mk('a', 'dev', .9, 'v1', 0), mk('b', 'dev', .7, 'v2', 0), mk('c', 'test', .95, 'v2', 1), mk('d', 'test', .8, 'v1', 2));
       return reportFacts().bestTxt;
     });
-    ok('report picks the best run by dev (90%) and adds that configuration\'s test score (80%, viewed 2×)', /90/.test(best) && /80/.test(best) && !/95/.test(best) && /2×/.test(best), best);
+    ok('report picks the best run by dev (90% = 32 of 36) and adds that configuration\'s test score (80% = 19 of 24, viewed 2×)', /kategorie 32 z 36/.test(best) && /kategorie 19 z 24/.test(best) && !/23 z 24/.test(best) && /2×/.test(best), best);
     const task = await p.evaluate(() => { const t = team(); t.track = null; t.log = [{ id: 'f', ts: '', track: 'forecast', note: '', testViews: 0, cfg: { p: 0, h: 6, w: 3 }, res: { mape: {}, best: 'mean', primary: { m: 'MAPE', v: .1, base: .2, hi: false } } }]; return reportFacts().trackTxt; });
     ok('report task stays empty until the team picks one', /nie wybrano|not chosen/.test(task), task);
     const hdr = await p.evaluate(() => { const t = team(); t.track = 'forecast'; t.log.push({ id: 'r', ts: '', track: 'rag', note: '', testViews: 0, cfg: { k: 2 }, res: {} }); save(); render(); return document.querySelector('#tbProg').textContent; });
