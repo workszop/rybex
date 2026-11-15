@@ -446,7 +446,7 @@ try {
     await p.evaluate(() => go('demos', 'tok')); await p.waitForSelector('#tokOut .stat');
     const tk = await p.$$eval('#tokOut .stat', s => s.map(x => [x.querySelector('b').textContent, x.querySelector('span').textContent]));
     ok('token demo shows characters per token', tk.some(([v, l]) => /znaków na token/.test(l) && !/%/.test(v)), JSON.stringify(tk));
-    await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#proto .conf', { state: 'attached' }); // folded in details.more-metrics
+    await p.evaluate(() => go('lab', 'maint')); await p.click('#runBase'); await p.waitForSelector('#proto .conf', { state: 'attached' }); // scores show once the baseline ran; // folded in details.more-metrics
     const cm = await p.$$eval('#proto .conf', e => e.map(x => x.textContent).join(' '));
     ok('maintenance confusion matrix says failure, not defect', /awari/i.test(cm) && !/wada/i.test(cm), cm.slice(0, 160));
     const jl = await p.$$eval('#labJump button', b => b.map(x => x.textContent.trim()));

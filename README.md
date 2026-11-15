@@ -30,7 +30,7 @@ The dry run checks that the tool still drives every lab to the end. With `AI` se
 
 ## Guided path
 
-The start page's main button and agenda follow the same nine steps. A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
+The start page's main button and agenda follow the same nine steps. A path bar under the header shows the current step ("Jesteś tutaj: krok n z 9"), a hint for the next step and a button that goes to it (or, on the step's own page, focuses the thing to do there; when that thing is an action – run or save the baseline, save the test result, export the report – the button performs it, so no second, identically named button has to be clicked. The one-time test reveal and paid model runs stay focus-only). The bar only recommends: navigation is never locked, the menu always works, and so do the keys `1`–`7` except while typing in a field or with the photo inspector open. The nine steps (`PATH_STEPS`, Polish label first):
 
 1. Przydział i strona firmy (Team set-up and the company) – read the incident memo, enter the team name, read the notice about the returned lot on the company site.
 2. Cykl projektu (Project lifecycle) – the lifecycle demo and its quiz.
@@ -38,7 +38,7 @@ The start page's main button and agenda follow the same nine steps. A path bar u
 4. Dane zadania (Task data) – open the data file of the chosen task.
 5. Demonstracje (Demos) – the demos the task needs, each followed by a quiz.
 6. Laboratorium, runda 1 (Build lab, round 1) – run and save the baseline.
-7. Rundy 2–3 i test (Rounds 2–3 and the test) – save at least three experiments; on the tracks with a hidden test set, reveal the test once ("Odsłońcie zbiór testowy", in the knowledge assistant "Odsłońcie pytania testowe") and save the result while it is visible. The step is done only when that final result is in the log; a reveal alone does not complete it. Team files from before this rule keep the step done if an entry was saved after a test view.
+7. Rundy 2–3 i test (Rounds 2–3 and the test) – save at least three experiments; on the tracks with a hidden test set, reveal the test once ("Odsłońcie zbiór testowy", in the knowledge assistant "Odsłońcie pytania testowe") and save the result while it is visible. The step is done only when that final result is in the log; a reveal alone does not complete it. Team files from before this rule keep the step done if an entry was saved after a test view. On the forecast and machine-failure tracks (no hidden test set) the step also needs the method ticked in the method table and a justification of at least 10 characters; the box confirms the save under the field.
 8. Ryzyka i wdrożenie (Risks and go-live) – answer at least four risk cards and take the four go-live decisions.
 9. Raport i wystąpienie (Report and presentation) – complete the checklist and export the report. Above the export buttons the page lists what the report would still show as empty (team name, method, diagram, unanswered risk cards, unticked checklist items), each with a link to its place; the export is never blocked. Checklist items the team's work already shows can be ticked with one button.
 
@@ -48,7 +48,7 @@ What participants meet along the way:
 - Glossary terms underlined in the text, with a tooltip on hover or keyboard focus.
 - A plain-language recap of each result with two headline numbers; the other metrics (F1, accuracy, the confusion matrix and so on) are folded under "Więcej miar" (More metrics).
 - Two-question quizzes after the demos (lifecycle, tokens, RAG, data split, metrics).
-- In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline, a ticked method in the method table and a short written justification of that choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
+- In every lab, an "Uruchomcie metodę odniesienia" (Run the baseline) button and a separate save to the log, with a one-line plain definition of the baseline for the track. The forecast and machine-failure labs show their scores only after the baseline was run (before that, a short placeholder asks for it); the forecast lab then names the hidden test months. The machine-failure lab, log, comparison and report lead with breakdowns detected, alarm delay and false-alarm minutes (F1 under "Więcej miar"), and a callout says the alarm comes during the breakdown, not before it. The team's own success criterion is shown next to the headline result in the lab and the report (never judged automatically). Saving the lab's starting settings unchanged is refused: it is not an experiment and earns no badge. In the vision, knowledge-assistant and complaints labs the test set can be revealed only after a saved baseline, a ticked method in the method table and a short written justification of that choice (at least 10 characters). Old team files whose test set was already revealed or viewed are exempt from the reveal gate.
 - From the third experiment on, saving to the log requires a one-sentence conclusion (it goes into the report); the first save of the final test result is the exception.
 - One challenge per track (for example "Najtrudniejsze puszki" in vision, an out-of-scope question in the knowledge assistant).
 - "Porównajcie dwa przebiegi" (Compare two runs): tick two saved runs of the same track to see side by side what changed and by how much.
@@ -93,7 +93,7 @@ node guided.mjs [section]  # guided path probes; run one or more sections by nam
 node presentation.mjs [section]  # slide deck probes; no section runs shots, deck and facts. `ai` runs only when named: it makes one /status call with a wrong code and spends nothing (the paid part is `presentation-shots.mjs ai`)
 ```
 
-`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
+`guided.mjs` sections: `smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata ragtypes simplify`. The WCAG contrast walker used by its `a11y` section and by the regression suite is shared in `tests/contrast.mjs`.
 
 `worker.mjs` starts `wrangler dev` on port 8787 (and a mock OpenRouter on 8799). An aborted run can leave port 8787 taken; free it before the next run.
 

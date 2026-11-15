@@ -1,5 +1,5 @@
 // Probes for the guided simulation path. Starts the mock server itself.
-// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata ragtypes)
+// Usage: cd tests && node guided.mjs [section...]   (sections: smoke state gloss recap story path quiz labstart visprompt note exit1 gate site world risk golive challenge compare badges example exit2 trainer a11y copy final fresh ragdata ragtypes simplify)
 // UX regression suite (ux-audit/regression.mjs) – NODE_PATH is ignored by ESM imports, so link the deps once:
 //   ln -sfn ../tests/node_modules ux-audit/node_modules   (ux-audit/* is gitignored)
 //   cd tests && node mock-server.mjs &  then  cd ../ux-audit && node regression.mjs; kill the server by PID
@@ -27,6 +27,8 @@ async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 },
   const p = await ctx.newPage(); p.errs = [];
   // qz(t, ...demoKeys): marks those demo quizzes as answered correctly (a demo counts as done only after its quiz).
   await p.addInitScript(() => { window.qz = (t, ...ks) => ks.forEach(k => { t.quizzes[k] = { answers: Object.fromEntries(QUIZZES()[k].map(q => [q.id, q.answer])), first: {}, doneAt: 'x' }; }); });
+  // baseClicked(...tracks): as if "Run the baseline" was clicked in this session (forecast and maintenance show scores only after it).
+  await p.addInitScript(() => { window.baseClicked = (...ks) => ks.forEach(k => { (X.baseOn || (X.baseOn = {}))[baseKey(k)] = true; }); });
   p.on('pageerror', e => p.errs.push(e.message));
   p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) p.errs.push(m.text()); });
   await p.goto(APP(q) + hash);
@@ -73,7 +75,7 @@ try {
       ok(`gloss tips hidden until hover or focus: ${h}`, shown.length === 0 && await p.$$eval('.gloss', e => e.length) > 0, JSON.stringify(shown)); }
     await p.close(); }
   if (run('recap')) { const p = await fresh('#/lab/vision');
-    await p.waitForSelector('#proto .recap');
+    await p.waitForSelector('#proto .recap'); await p.evaluate(() => baseClicked('forecast', 'maint'));
     const r0 = await p.$eval('#proto .recap', e => ({ t: e.textContent, set: e.dataset.set, track: e.dataset.track }));
     ok('recap vision present on validation set', r0.track === 'vision' && r0.set === 'val' && /walidac/.test(r0.t), JSON.stringify(r0));
     await p.focus('#vd'); for (let i = 0; i < 6; i++) await p.keyboard.press('ArrowRight');
@@ -136,7 +138,10 @@ ok('story site preview is a still picture with one working button', await p.$eva
     const rules = await p.evaluate(() => { const t = defaultTeam(); t.onboardedAt = 'x'; t.site.newsRead = true; t.track = 'vision'; t.goal = 'g'; t.seen.data = true; qz(t, 'life', 'split', 'metr', 'tok');
       const a = pathState(t).next.id; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, ts: '', track: 'vision', note: '', testViews: 0 })).concat({ id: 'lb', ts: '', track: 'vision', note: '', testViews: 0, base: true }); const b = pathState(t).next.id; t.lab.vision.testViews = 1; const c = pathState(t).next.id; t.log.push({ id: 'lt', ts: '', track: 'vision', note: '', testViews: 1, res: { test: { f1: .5 } } }); const d = pathState(t).next.id; return [a, b, c, d, demoDone(t, 'tok'), demoDone(t, 'rag')]; });
     ok('pathState demos, base, iterate with test reveal', JSON.stringify(rules) === '["base","iterate","iterate","risk",true,false]', JSON.stringify(rules));
-    ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); return pathState(t).steps.find(s => s.id === 'iterate').done; }));
+    ok('forecast iterate needs no test reveal', await p.evaluate(() => { const t = defaultTeam(); t.track = 'forecast'; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: 'forecast' })); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; return pathState(t).steps.find(s => s.id === 'iterate').done; }));
+    // Simplify round 1: the method choice and its justification are part of step 7 on the tracks without a hidden test too.
+    const m7 = await p.evaluate(() => ['forecast', 'maint'].map(k => { const t = defaultTeam(); t.track = k; t.log = [1, 2, 3].map(i => ({ id: 'l' + i, track: k })); const a = [step7(t), pathState(t).steps.find(s => s.id === 'iterate').done, PATH_STEPS(t).find(s => s.id === 'iterate').hint]; t.decision[k] = { m: 1, why: 'krótko' }; const b = step7(t); t.decision[k].why = 'Pasuje do danych i jest tanie.'; return [...a, b, step7(t), pathState(t).steps.find(s => s.id === 'iterate').done]; }));
+    ok('step 7 without a hidden test asks for the method and justification', m7.every(r => r[0] === 'meth' && r[1] === false && /zaznaczcie w tabeli metodę/.test(r[2]) && r[3] === 'meth' && r[4] === 'done' && r[5] === true), JSON.stringify(m7));
     await seed(p, () => { team().onboardedAt = 'x'; team().site.newsRead = true; });
     const before = await p.$eval('#pathBar', e => e.dataset.next); await p.click('#pathNext');
     ok('Next goes to the step target', await p.evaluate(b => { const s = PATH_STEPS().find(x => x.id === b); return S.view === s.go[0]; }, before));
@@ -174,16 +179,17 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // Review round 1: Next on its own page, fresh bar after lab actions, unavailable steps, sub-view aware current step.
     const f = await fresh('#/home');
     const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; t.site.newsRead = true; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; } };
+      base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; }, report: t => { t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; } };
     let acc = [];
     for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
       await f.evaluate(src => { S.teams[S.team] = defaultTeam(); const t = team(); for (const s of src) (0, eval)('(' + s + ')')(t); save(); }, acc);
       const r1 = await f.evaluate(id => { const s = PATH_STEPS().find(x => x.id === id); go(...s.go); document.activeElement.blur(); const n = PATH_STEPS().find(x => x.id === document.querySelector('#pathBar').dataset.next); return { next: n.id, hash: location.hash, target: '#/' + n.go.join('/') }; }, id);
       await f.click('#pathNext'); await f.waitForTimeout(50);
       const r2 = await f.evaluate(() => ({ hash: location.hash, act: document.activeElement }));
-      // On its own page Next must focus the step's working element; elsewhere it must land exactly on the target.
-      const own = { data: '.tree button[aria-current]', join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', risk: '#riskDemo [data-o]', base: '#runBase', iterate: '#expNote', report: '#expH' };
-      const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
+      // On its own page Next must focus the step's working element, or press it when it is the action the bar names
+      // (run the baseline, export the report: simplify round 1); elsewhere it must land exactly on the target.
+      const own = { data: '.tree button[aria-current]', join: '#onboardName', cycle: '#quiz [data-o]', task: '#main [data-t]', demos: '#quiz [data-o]', risk: '#riskDemo [data-o]', base: 'ACT:base', iterate: '#expNote', report: 'ACT:report' };
+      const res = r1.hash === r1.target ? { own: true, hit: await f.evaluate(sel => sel === 'ACT:base' ? !document.querySelector('#baseOut').hidden && document.querySelector('#baseOut').dataset.track === 'forecast' : sel === 'ACT:report' ? team().seen.report === true : document.activeElement.matches(sel), own[r1.next] || '#none') } : { own: false, hit: r2.hash === r1.target };
       ok(`Next acts on its own page (${id})`, res.hit && (!own[id] || (res.own && r1.next === id)), JSON.stringify([r1, r2.hash, res])); }
     await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.log = []; t.seen.data = true; qz(t, 'life', 'split'); delete t.quizzes.metr; });
     await f.evaluate(() => go('demos', 'split')); await f.click('#pathNext'); await f.waitForTimeout(50);
@@ -197,12 +203,12 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('bar fresh after a test reveal', await f.evaluate(() => { const n = pathState(team()).next; return document.querySelector('#pathBar').dataset.next === n.id && n.id === 'iterate' && document.querySelector('#pathNext').textContent.trim() === 'Zapiszcie wynik testu'; }));
     await seed(f, () => { const t = team(); t.name = ''; t.log = []; t.checks = {}; t.onboardedAt = ''; t.site.newsRead = true; }); await f.evaluate(() => go('brief')); await f.fill('#teamName', 'Szprot');
     ok('bar fresh after typing the team name', await f.$eval('#pathBar', e => e.dataset.next !== 'join'));
-    const done = await f.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true });
+    const done = await f.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, track: 'forecast' })).concat({ id: 'fb', track: 'forecast', base: true }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' };
       const r = pathState(t).next.id; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' };
       const a = pathState(t); t.seen.report = true; const b = pathState(t); return { r, a: a.next && a.next.id, b: b.next, na: b.steps.find(s => s.id === 'risk') }; });
     ok('risk before the report, report recommended once four risks are answered', done.r === 'risk' && done.a === 'report', JSON.stringify(done));
     ok('path completes with the risk step done', done.b === null && !done.na.na && done.na.done === true, JSON.stringify(done));
-    await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; });
+    await seed(f, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); Object.assign(t.seen, { data: true, report: true }); qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; });
     ok('bar reads Ścieżka ukończona', await f.$eval('#pathBar', e => e.textContent.includes('Ścieżka ukończona') && e.dataset.next === '' && e.dataset.total === '9'));
     ok('data hint spec wording', await f.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint.includes('otwórzcie dane wybranego zadania')));
     await seed(f, () => { S.teams[S.team] = defaultTeam(); team().onboardedAt = 'x'; team().site.newsRead = true; }); await f.evaluate(() => go('demos', 'split'));
@@ -371,7 +377,11 @@ ok('story site preview is a still picture with one working button', await p.$eva
       await p.type('#expNote', 'W');
       ok('exit1 typing clears the field error', await p.$eval('#expNote', e => e.getAttribute('aria-invalid') !== 'true') && (await p.$eval('#expNoteMsg', e => e.textContent)).trim() === '');
       await p.fill('#expNote', 'Wyższy próg: mniej fałszywych alarmów'); await p.click('#sv');
-      ok('exit1 with a note: 3/3 and the path moves on', await p.$eval('#heroProg .gh-num', e => e.textContent) === '3/3' && await p.evaluate(() => pathState(team()).next.id !== 'iterate'));
+      ok('exit1 with a note: 3/3, step 7 now asks for the method', await p.$eval('#heroProg .gh-num', e => e.textContent) === '3/3' && await p.evaluate(() => pathState(team()).next.id === 'iterate' && step7(team()) === 'meth' && NEXT_HERE('iterate') === 'Wybierzcie metodę i uzasadnijcie wybór'));
+      ok('exit1 method box on maint: no test-set wording', await p.evaluate(() => !/zbiór testowy/.test(document.querySelector('#methWhyHint').textContent + document.querySelector('#labMethod summary').textContent) && /krok 7/.test(document.querySelector('#methWhyHint').textContent)));
+      await p.click('#pathNext'); ok('exit1 Next on the method step focuses the method table', await p.evaluate(() => document.activeElement.name === 'meth' && document.querySelector('#labMethod details').open));
+      await p.check('input[name=meth][value="1"]'); await p.fill('#methWhy', 'Z-score patrzy na kilka czujników naraz.');
+      ok('exit1 justification shows a visible confirmation and the path moves on', await p.evaluate(() => { const m = document.querySelector('#methSaved'); return m.dataset.saved === 'true' && /Zapisano/.test(m.textContent) && /gotowe/.test(document.querySelector('#labMethod summary').textContent) && pathState(team()).next.id !== 'iterate'; }));
       // 3: the saved baseline card survives a reload, without writing anything.
       const n0 = await p.evaluate(() => JSON.stringify(team().log.map(l => l.id))); await p.reload(); await p.waitForSelector('#baseOut .recap');
       ok('exit1 baseline card after reload', await p.$eval('#baseOut', e => !e.hidden && e.dataset.v !== undefined && !!e.querySelector('.recap') && e.dataset.saved === 'true'));
@@ -413,7 +423,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // 4: Next on the step's own page says what to do.
     { const f = await fresh('#/home');
       const prep = { join: () => {}, cycle: t => { t.onboardedAt = 'x'; t.site.newsRead = true; }, task: t => { qz(t, 'life'); }, data: t => { t.track = 'forecast'; t.goal = 'g'; }, demos: t => { t.seen.data = true; },
-        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); }, report: t => { t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; } };
+        base: t => { qz(t, 'split', 'metr'); }, iterate: t => { t.log.push({ id: 'b0', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, { id: 'b1', ts: '', track: 'forecast', note: '', testViews: 0 }); }, risk: t => { for (const i of [2, 3]) t.log.push({ id: 'b' + i, ts: '', track: 'forecast', note: '', testViews: 0 }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; }, report: t => { t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' }; } };
       const txt = { join: 'Podajcie nazwę zespołu', cycle: 'Odpowiedzcie na pytania', task: 'Wybierzcie zadanie', data: 'Otwórzcie dane swojego zadania', demos: 'Odpowiedzcie na pytania', base: 'Uruchomcie metodę odniesienia', iterate: 'Zapiszcie eksperyment', risk: 'Odpowiedzcie na pytania o ryzyka', report: 'Wyeksportujcie raport' };
       const acc = [];
       for (const [id, fn] of Object.entries(prep)) { acc.push(fn.toString());
@@ -689,7 +699,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('no quiz under the risk tab', !(await p.$('.quiz')));
     ok('risk step available, targets the risk tab, done at four answers', await p.evaluate(() => { const t = defaultTeam(), prev = S.teams[S.team]; S.teams[S.team] = t; const s = PATH_STEPS().find(x => x.id === 'risk'); S.teams[S.team] = prev; const a = pathState(t).steps.find(x => x.id === 'risk'); t.arch.decisions = { runWhere: 'local', stopAuthority: 'operator', monitor: 'falseAlarms', reviewEvery: 'quarterly' };
       t.risks = { privacy: 0, bias: 1, aiact: 2 }; const b = riskDone(t); t.risks.injection = 0; const c = riskDone(t); return s.go.join('/') === 'demos/risk' && !b && c && pathState(t).steps.find(x => x.id === 'risk').done; }));
-    ok('Next on the risk page names the action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true });
+    ok('Next on the risk page names the action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' };
       S.teams[S.team] = t; save(); go('demos', 'risk'); const b = document.querySelector('#pathNext'), pl = b.textContent.trim(), m = b.dataset.mode; S.lang = 'en'; render(); const en = document.querySelector('#pathNext').textContent.trim(); S.lang = 'pl'; render();
       return document.querySelector('#pathBar').dataset.next === 'risk' && m === 'here' && pl === 'Odpowiedzcie na pytania o ryzyka' && en === 'Answer the questions about the risks'; }));
     await p.click('#pathNext'); await p.waitForTimeout(50);
@@ -755,12 +765,12 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const go1 = PATH_STEPS().find(x => x.id === 'risk').go.join('/'); Object.assign(t.arch.decisions, { runWhere: 'local', stopAuthority: 'operator', monitor: 'refusals' }); const b = riskDone(t); t.arch.decisions.reviewEvery = 'never'; const c = riskDone(t);
       t.risks = { privacy: 0 }; const d = riskDone(t), go2 = PATH_STEPS().find(x => x.id === 'risk').go.join('/'); return !a && !b && c && !d && go1 === 'arch' && go2 === 'demos/risk'; }));
     ok('risk step label and hint name both parts', await p.evaluate(() => { const s = PATH_STEPS().find(x => x.id === 'risk'); return s.label === 'Ryzyka i wdrożenie' && /ryzyk/.test(s.hint) && /wdrożeniow/.test(s.hint); }));
-    ok('Next on the architecture view names the go-live action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true });
+    ok('Next on the architecture view names the go-live action', await p.evaluate(() => { const t = defaultTeam(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' };
       t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = { runWhere: 'local' }; S.teams[S.team] = t; save(); go('arch'); const b = document.querySelector('#pathNext');
       return document.querySelector('#pathBar').dataset.next === 'risk' && b.dataset.mode === 'here' && b.textContent.trim() === 'Podejmijcie cztery decyzje wdrożeniowe'; }));
     await p.click('#pathNext'); await p.waitForTimeout(50);
     ok('Next focuses the first unanswered decision', await p.evaluate(() => document.activeElement.matches('#goLive [data-d=stopAuthority] [data-o]')));
-    await seed(p, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = {}; });
+    await seed(p, () => { const t = team(); t.site.newsRead = true; Object.assign(t, { onboardedAt: 'x', track: 'forecast', goal: 'g' }); t.seen.data = true; qz(t, 'life', 'split', 'metr'); t.log = [1, 2, 3].map(i => ({ id: 'f' + i, ts: '', track: 'forecast', note: '', testViews: 0 })).concat({ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; t.arch.decisions = {}; });
     await p.evaluate(() => go('demos', 'risk'));
     ok('risk tab after four cards: the bar says the risk step', await p.$eval('#pathBar', e => e.dataset.step === 'risk' && e.dataset.next === 'risk'));
     await p.click('#pathNext'); await p.waitForTimeout(50);
@@ -870,9 +880,9 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // pick(page, indexes in the list, newest first) -> the rendered comparison
     const pick = async (pg, ids) => { await pg.evaluate(ids => { const b = $$('#labExp input[data-cmp]'); b.forEach(x => { if (x.checked) x.click(); }); ids.forEach(i => b[i].click()); }, ids); await pg.click('#cmpGo'); return pg.$eval('#cmp', e => ({ t: e.textContent, same: e.dataset.same, diff: e.dataset.diff, set: e.dataset.set })); };
     const f = await fresh('#/lab/forecast');
-    for (const [pr, w] of [[0, 3], [0, 6], [1, 6]]) { await f.evaluate(([pr, w]) => { Object.assign(lab().fc, { p: pr, w }); save(); render(); }, [pr, w]); await f.fill('#expNote', 'n'); await f.click('#sv'); }
+    for (const [pr, w] of [[0, 4], [0, 6], [1, 6]]) { await f.evaluate(([pr, w]) => { Object.assign(lab().fc, { p: pr, w }); save(); render(); }, [pr, w]); await f.fill('#expNote', 'n'); await f.click('#sv'); }
     let c = await pick(f, [1, 2]);
-    // Same product and horizon, window 3 vs 6: the best method (not the moving average) ties, the moving average's own error moves.
+    // Same product and horizon, window 4 vs 6 (the starting window 3 is not an experiment): the best method (not the moving average) ties, the moving average's own error moves.
     const fx = await f.evaluate(() => { const l = team().log, m = l.slice(0, 2).map(x => x.res); return { best: m.map(r => r.best), ma: m.map(r => r.mape.ma), names: m.map(r => fcName(r.best)), maName: fcName('ma'), maPct: m.map(r => pct(r.mape.ma)), cols: $$('#cmp .cmp-col').map(e => e.textContent), s: $('#cmp .cmp-s').textContent }; });
     ok('forecast fixture: best method is not the moving average, its value ties, the moving average error changes', c.same === 'true' && Number(c.diff) === 0 && !fx.best.includes('ma') && Math.abs(fx.ma[0] - fx.ma[1]) >= 5e-4, JSON.stringify(fx));
     ok('forecast columns name the best method and list the moving average error', fx.cols.length === 2 && fx.cols.every((t, i) => t.includes(`Błąd najlepszej metody (${fx.names[i]}): `) && t.includes(`${fx.maName}: ${fx.maPct[i]}`)), fx.cols.join(' | '));
@@ -881,7 +891,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     c = await pick(f, [0, 1]);
     ok('forecast, different products: no winner, a plain note on different data', c.same === 'false' && c.diff === undefined && /różnych danych/.test(c.t) && !/ma niższy/.test(c.t), c.t);
     const k = await fresh('#/lab/complaints');
-    for (const extra of ['', ', pleśń']) { await k.evaluate(x => { lab().compl.safety = SAFETY_KW + x; save(); render(); }, extra); await k.click('#sv'); }
+    for (const extra of [', pleśń', ', pleśń, mętny']) { await k.evaluate(x => { lab().compl.safety = SAFETY_KW + x; save(); render(); }, extra); await k.click('#sv'); }
     c = await pick(k, [0, 1]);
     ok('complaints rules: compared on the dev set by accuracy', c.set === 'dev' && /na zestawie deweloperskim/.test(c.t), c.t);
     ok('cost appears only when both entries carry it, in the 4.9 sentence form', await k.evaluate(() => { const mk = (id, acc, cost) => ({ id, ts: '2026-11-12T10:00', track: 'complaints', cfg: { mode: 'llm', model: 'x', ver: id === 'p' ? 'v1' : 'v2', shots: id === 'p' ? 0 : 5, set: 'dev' }, res: { acc, macro: acc, safety: 1, safetyFalse: 0, base: .4, test: null, ai: { model: 'x', calls: 36, inTok: 1, outTok: 1, cost }, run: id, maj: .3, primary: { m: 'x', v: acc, base: .4, hi: true, test: false } }, note: '', testViews: 0 });
@@ -1140,7 +1150,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('exit2 demos: Dalej names the next demo', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Dalej: następna demonstracja');
       await p.click('#pathNext'); await p.waitForTimeout(50);
       ok('exit2 focus after Dalej between demos is not BODY', await p.evaluate(() => S.sub.demos === 'metr' && document.activeElement && document.activeElement !== document.body));
-      await seed(p, () => { const t = team(); qz(t, 'metr'); t.log = [{ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, 1, 2, 3].map(x => typeof x === 'object' ? x : { id: 'f' + x, ts: '', track: 'forecast', note: '', testViews: 0 }); t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; go('demos', 'risk'); });
+      await seed(p, () => { const t = team(); qz(t, 'metr'); t.log = [{ id: 'fb', ts: '', track: 'forecast', note: '', testViews: 0, base: true }, 1, 2, 3].map(x => typeof x === 'object' ? x : { id: 'f' + x, ts: '', track: 'forecast', note: '', testViews: 0 }); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; t.risks = { privacy: 1, hallucination: 2, aiact: 0, bias: 1 }; go('demos', 'risk'); });
       ok('exit2 risk with four cards: Dalej names the go-live decisions', await p.$eval('#pathNext', e => e.textContent.trim()) === 'Dalej: decyzje wdrożeniowe');
       ok('exit2 data hint in the plural', await p.evaluate(() => PATH_STEPS().find(s => s.id === 'data').hint === 'otwórzcie dane wybranego zadania'));
       // 8: path progress leads in the team bar.
@@ -1351,13 +1361,18 @@ ok('story site preview is a still picture with one working button', await p.$eva
       for (const pg of ['home', 'about', 'products', 'quality', 'news', 'contact', 'career', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg); await fn('site ' + pg); }
       await p.fill('#main #rcText', 'Puszka wgnieciona.').catch(() => {}); };
     // 1. Full contours: no left border wider than the right one or coloured unlike the top one.
+    // Note: the simulated Rybex website (the framed site `.rybex-frame` and the start-page preview `.sp-frame`) is a
+    // mock company site, not our UI. It deliberately keeps its own palette and left-stripe accents, so it is exempt
+    // from the contour guideline. Do not "fix" the site here; those surfaces are skipped.
     { const p = await fresh('#/home', '&trainer=1', { width: 1280, height: 800 }, RM); const bad = [];
-      await tour(p, async tag => { for (const x of await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => !e.matches('input,select,textarea,button,option,td,th') && e.getClientRects().length).flatMap(e => { const c = getComputedStyle(e), l = parseFloat(c.borderLeftWidth); return l > 0 && c.borderLeftStyle !== 'none' && (l > parseFloat(c.borderRightWidth) || c.borderLeftColor !== c.borderTopColor) ? [e.tagName + '.' + [...e.classList].join('.')] : []; }))) bad.push(tag + ': ' + x); });
+      await tour(p, async tag => { for (const x of await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => !e.matches('input,select,textarea,button,option,td,th') && !e.closest('.sp-frame, .rybex-frame') && e.getClientRects().length).flatMap(e => { const c = getComputedStyle(e), l = parseFloat(c.borderLeftWidth); return l > 0 && c.borderLeftStyle !== 'none' && (l > parseFloat(c.borderRightWidth) || c.borderLeftColor !== c.borderTopColor) ? [e.tagName + '.' + [...e.classList].join('.')] : []; }))) bad.push(tag + ': ' + x); });
       await p.evaluate(() => go('rybex', 'contact')); await p.fill('#rcText', 'Puszka wgnieciona przy kodzie partii.'); await p.click('#rcSend');
       for (const x of await p.evaluate(() => [...document.querySelectorAll('.rc-done')].flatMap(e => { const c = getComputedStyle(e); return c.borderLeftWidth !== c.borderRightWidth || c.borderLeftColor !== c.borderTopColor ? ['rc-done'] : []; }))) bad.push('contact sent: ' + x);
       ok('a11y no left-stripe accents in any view (full contours)', !bad.length, [...new Set(bad)].join(' | '));
       const tr = await p.evaluate(() => { const tone = (sel, v) => { const e = document.querySelector(sel); if (!e) return 'missing ' + sel; const c = getComputedStyle(e), x = document.createElement('i'); x.style.color = `var(${v})`; e.parentElement.append(x); const want = getComputedStyle(x).color; x.remove(); return ['Top', 'Right', 'Bottom', 'Left'].every(s => c[`border${s}Color`] === want && parseFloat(c[`border${s}Width`]) > 0) || sel; };
-        go('lab', 'complaints'); const r = [tone('figure.persona', '--yellow'), tone('.recap', '--ink')]; go('rybex', 'news'); go('rybex', 'home'); r.push(tone('.rf-teaser', '--red-600')); go('rybex', 'career'); r.push(tone('.rf-job', '--rf-sea')); go('rybex', 'intranet'); r.push(tone('.ri-queue li', '--rf-sea'), tone('.persona-card blockquote', '--yellow'));
+        // Our own converted boxes keep their accent colour on the whole contour. The simulated Rybex website
+        // (.rybex-frame / .sp-frame) is a mock company site and is exempt — its boxes are not probed here.
+        go('lab', 'complaints'); const r = [tone('figure.persona', '--yellow'), tone('.recap', '--ink')];
         go('demos', 'risk'); r.push(tone('#riskDemo [data-state=good] .fb', '--green-600'), tone('#riskDemo [data-state=other] .fb', '--yellow')); go('demos', 'life'); r.push(tone('.quiz [data-state=right] .qz-fb, .quiz [data-state=wrong] .qz-fb', document.querySelector('.quiz [data-state=right]') ? '--green-600' : '--red-600'));
         return r.every(x => x === true) || r.filter(x => x !== true).join(); }); ok('a11y converted boxes keep their accent colour on the whole contour', tr === true, String(tr));
       ok('a11y no page errors (contours)', !p.errs.length, p.errs.join('|')); await p.close(); }
@@ -1439,7 +1454,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       await p.evaluate(() => go('home')); await p.click('#showExample'); await at('enter the example'); await p.click('#exampleExit'); await at('leave the example');
       await p.click('#langSeg button[data-l=en]'); await at('language switch'); await p.click('#langSeg button[data-l=pl]');
       await p.evaluate(() => { const t = team(); t.log = []; save(); go('lab', 'maint'); }); await p.click('#runBase'); await p.click('#saveBase'); await at('save baseline');
-      for (const thr of [3, 3.5, 4]) { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await p.click('#sv'); } await at('held save');
+      for (const thr of [3, 3.5, 4.5]) { await p.evaluate(v => { lab().mt.thr = v; save(); render(); }, thr); await p.click('#sv'); } await at('held save');
       ok('a11y the last save was held (setup)', await p.evaluate(() => expCount('maint') === 2 && document.querySelector('#expNote').getAttribute('aria-invalid') === 'true'), await p.evaluate(() => expCount('maint')));
       ok('a11y focus never left on BODY after Dalej, tabs, site, example, language, held save', !lost.length, lost.join(' | ')); await p.close();
       const v = await fresh('#/lab/vision', '', { width: 1280, height: 800 }); await v.click('#visRv'); ok('a11y focus not on BODY after a blocked reveal', await v.evaluate(() => document.activeElement !== document.body && toastEl.dataset.reason === 'baseline'));
@@ -1538,7 +1553,8 @@ ok('story site preview is a still picture with one working button', await p.$eva
       await tap(p, rv); let s = await st7(p);
       ok(`final 1 ${k}: reveal without saving keeps step 7 open`, s.next === 'iterate' && !s.done, JSON.stringify(s));
       ok(`final 1 ${k}: bar asks to save the test result`, s.lbl === 'Zapiszcie wynik testu' && s.hint.includes('zapiszcie wynik testu w dzienniku – trafi do raportu jako ocena końcowa'), JSON.stringify(s));
-      await tap(p, '#pathNext'); ok(`final 1 ${k}: Next focuses the save button`, await p.evaluate(() => document.activeElement.id) === 'sv');
+      // Simplify round 1: Next on the save state presses the save button itself (one click, not a second identical button).
+      await tap(p, '#pathNext'); s = await st7(p); ok(`final 1 ${k}: Next saves the test result in one click`, s.done && s.next === 'risk', JSON.stringify(s));
       await tap(p, '#sv'); s = await st7(p);
       ok(`final 1 ${k}: save while revealed completes step 7, next is risk`, s.done && s.next === 'risk', JSON.stringify(s));
       ok(`final 1 ${k}: no page errors`, !p.errs.length, p.errs.join('|')); await p.close();
@@ -1592,7 +1608,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const ag = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#agenda .g-row')].map(r => r.querySelector('.g-name').textContent), want: PATH_STEPS().map(s => s.label), last: document.querySelector('#agenda .g-row:last-child .g-time').textContent }));
       ok('final 3 agenda has the nine path steps', ag.rows.length === 9 && ag.rows.join('|') === ag.want.join('|'), JSON.stringify(ag));
       ok('final 3 agenda times run from 0:00', /^0:00–0:10$/.test(await p.$eval('#agenda .g-row .g-time', e => e.textContent)) && ag.last.endsWith('2:35'), ag.last);
-      await seed(p, () => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'maint', cfg: { base: true }, res: { primary: { m: 'F1', v: .3, base: .3, hi: true } }, note: '', testViews: 0, base: true }, ...[1, 2, 3].map(i => ({ id: 'e' + i, ts: '', track: 'maint', cfg: { i }, res: { primary: { m: 'F1', v: .4, base: .3, hi: true } }, note: 'n', testViews: 0 }))];
+      await seed(p, () => { const t = team(); t.decision.maint = { m: 1, why: 'Z-score patrzy na kilka czujników.' }; t.log = [{ id: 'b', ts: '', track: 'maint', cfg: { base: true }, res: { primary: { m: 'F1', v: .3, base: .3, hi: true } }, note: '', testViews: 0, base: true }, ...[1, 2, 3].map(i => ({ id: 'e' + i, ts: '', track: 'maint', cfg: { i }, res: { primary: { m: 'F1', v: .4, base: .3, hi: true } }, note: 'n', testViews: 0 }))];
         RISK_SCENARIOS().forEach(s => t.risks[s.id] = 0); GO_LIVE_DECISIONS(t).forEach(d => t.arch.decisions[d.id] = d.options[0].id); t.seen.report = true; go('home'); });
       h = await hero(); ok('final 3 path complete: hero leads to the report', h.go === 'deliver' && !(await p.evaluate(() => pathState(team()).next)), JSON.stringify(h));
       ok('final 3 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
@@ -1788,9 +1804,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('final r7 focus on Next during a run stays on Next when the run ends', a.id === 'pathNext' && a.lbl === 'Zapiszcie wynik testu', JSON.stringify(a));
       await tap(p, '#main [data-run=rd]'); await p.focus('#expNote'); await p.evaluate(() => document.querySelector('#cRun').click()); await runEnds(3);
       ok('final r7 focus on the note during a run stays on the note', await p.evaluate(() => document.activeElement.id) === 'expNote');
-      await tap(p, '#pathNext'); ok('final r7 Next in the save state still ends on the save button', await p.evaluate(() => document.activeElement.id) === 'sv');
-      await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-      ok('final r7 saving with focus on the save button does not move focus to the bar', await p.evaluate(() => expCount('complaints') === 4 && !document.querySelector('#pathBar').contains(document.activeElement)), await p.evaluate(() => document.activeElement.id + ' ' + expCount('complaints')));
+      await tap(p, '#pathNext'); ok('final r7 Next in the save state saves the test result in one click', await p.evaluate(() => expCount('complaints') === 4 && pathState(team()).steps.find(s => s.id === 'iterate').done), await p.evaluate(() => document.activeElement.id + ' ' + expCount('complaints')));
       ok('final r7 no page errors', !p.errs.length, p.errs.join('|')); await p.close(); });
   }
   // ─── Fresh review (code review + usability audit of the finished branch) ───
@@ -1815,7 +1829,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('fresh baseline card is not shown to another team', await p.$eval('#baseOut', e => e.hidden));
       await p.close(); }
     // 3. "More metrics" stays open while tuning.
-    { const p = await fresh('#/lab/maint');
+    { const p = await fresh('#/lab/maint'); await p.click('#runBase');
       await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 2.5); await p.waitForTimeout(50);
       ok('fresh more metrics stays open across a redraw', await p.$eval('#proto details.more-metrics', e => e.open));
       await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 3); await p.waitForTimeout(50);
@@ -2046,7 +2060,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       return { id: bestRun(t, 'forecast').entry.id, txt: reportFacts().bestTxt }; });
     ok('persona forecast best run = biggest gain over its own baseline, with product and horizon', fb.id === 'f1' && /horyzont 6 mies/.test(fb.txt), JSON.stringify(fb));
     // Maintenance: the headline counts whole breakdowns, and the recap says the alarm comes during the breakdown.
-    await p.evaluate(() => { team().track = 'maint'; save(); go('lab', 'maint'); });
+    await p.evaluate(() => { team().track = 'maint'; baseClicked('maint'); save(); go('lab', 'maint'); });
     const mt = await p.evaluate(() => { const R = mtCompute(lab().mt); return { ev: R.m.ev, head: [...document.querySelectorAll('#mtRes .headline .stat')].map(s => s.textContent), recap: document.querySelector('#mtRes .recap').textContent }; });
     ok('persona maint headline counts whole breakdowns', mt.ev.total >= 1 && mt.head.length === 2 && mt.head[0].includes(`${mt.ev.caught} z ${mt.ev.total}`) && /Wykryte awarie \(całe awarie/.test(mt.head[0]), JSON.stringify(mt.head));
     ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: z-score/.test($('#mtRes').textContent)));
@@ -2096,6 +2110,52 @@ ok('story site preview is a still picture with one working button', await p.$eva
     const st = await p.evaluate(() => ({ method: lab().vision.method, focus: document.activeElement && document.activeElement.dataset.reveal, rules: !!document.querySelector('#visMethod button[data-m=rules][aria-pressed=true]') }));
     ok('persona vision Next on the reveal step switches to the chosen rules panel', /Odsłońcie zbiór testowy/.test(before) && st.method === 'rules' && st.rules && st.focus === 'vision', JSON.stringify([before, st]));
     await p.close(); }
+  // ─── Simplify round 1 (two lay participants, forecast and maintenance tracks, 2026-11-14) ───
+  if (run('simplify')) { const p = await fresh('#/lab/forecast');
+    await seed(p, () => { const t = team(); t.track = 'forecast'; t.goal = 'Błąd prognozy poniżej 10%.'; });
+    await p.evaluate(() => go('lab', 'forecast'));
+    // Fix 3 + 4: no score before the baseline, the baseline defined in plain words; one bar click runs it.
+    ok('simplify forecast: placeholder instead of a score before the baseline', await p.$eval('#fcRes', e => !!e.querySelector('#baseFirst') && !e.querySelector('.headline') && !/zbioru testowego/.test(e.textContent)));
+    ok('simplify baseline defined on every track', await p.evaluate(() => LAB_KEYS.every(k => BASE_DEF(k).length > 40) && /= najprostsza prognoza/.test($('#baseDef').textContent)));
+    await p.click('#pathNext');
+    ok('simplify bar click runs the baseline; the score and the test months appear', await p.evaluate(() => !$('#baseOut').hidden && !!$('#fcRes .headline') && /To jest wasz test: ostatnie 6 mies\./.test($('#fcHidden').textContent) && /miesiące testowe/.test($('#fcRes .recap').textContent)));
+    ok('simplify forecast: the team criterion beside the result', /Wasze kryterium sukcesu: „Błąd prognozy poniżej 10%\.” – porównajcie z wynikiem\./.test(await p.$eval('#goalLine', e => e.textContent)));
+    await p.click('#pathNext'); ok('simplify bar click saves the baseline', await p.evaluate(() => hasBaseline(team(), 'forecast')));
+    // Fix 7: the starting settings are not an experiment and earn no badge.
+    await p.click('#sv');
+    ok('simplify unchanged run refused with a one-thing hint', await p.evaluate(() => expCount('forecast') === 0 && !earnedBadges(team()).beatBase && /Zmieńcie najpierw jedną rzecz/.test($('#expNoteMsg').textContent)));
+    ok('simplify unchangedRun per track', await p.evaluate(() => { const D = defaultLab(); return unchangedRun('forecast', { p: 0, h: 6, w: 3 }) && !unchangedRun('forecast', { p: 0, h: 6, w: 4 }) && unchangedRun('maint', { f: { ...D.mt.f }, thr: 4, win: 1 }) && !unchangedRun('maint', { f: { ...D.mt.f }, thr: 3.9, win: 1 })
+      && unchangedRun('rag', { k: 2, chunk: 1, min: .12, lang: 'en' }) && !unchangedRun('rag', { k: 2, chunk: 1, min: .12, mode: 'llm' }) && unchangedRun('complaints', { kw: { ...KW }, safety: SAFETY_KW }) && !unchangedRun('complaints', { kw: { ...KW }, safety: SAFETY_KW + ', x' }); }));
+    // Fix 8: track-fitting case line, director quote and go-live consequences; optional download; no "(to demo)" in the report.
+    const w = await p.evaluate(() => { const t = team(); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; return { cs: caseLine(), q: PERSONAS().hanna.quotes.brief, gl: GO_LIVE_DECISIONS(t).flatMap(d => d.options.map(o => o.fb)).join(' '), rep: reportHTML(), md: reportMD() }; });
+    ok('simplify forecast case line, quote and go-live texts fit the task', !/kontrola jakości/.test(w.cs) && /ile produkować/.test(w.cs) && /pustym magazynem/.test(w.q) && !/dostawca puszek|zdjęcia z linii|duży model językowy/.test(w.gl) && /nowa sieć handlowa albo duża promocja/.test(w.gl), JSON.stringify([w.cs, w.q]));
+    ok('simplify report: no "(to demo)", criterion next to the best result', !/to demo/.test(w.rep + w.md) && /Trend × sezonowość<\/dd>/.test(w.rep) && /Wasze kryterium sukcesu: „Błąd prognozy/.test(w.rep) && /Wasze kryterium sukcesu: „Błąd prognozy/.test(w.md));
+    ok('simplify vision keeps its own wording', await p.evaluate(() => { const t = team(), k = t.track; t.track = 'vision'; const r = [caseLine(), PERSONAS().hanna.quotes.brief, GO_LIVE_DECISIONS(t).flatMap(d => d.options.map(o => o.fb)).join(' ')]; t.track = k; return /kontrola jakości/.test(r[0]) && /walidacji/.test(r[1]) && /dostawca puszek/.test(r[2]); }));
+    await p.evaluate(() => { FSEL = 'sales_history.csv'; go('data'); });
+    ok('simplify data step: download is optional', /nie jest potrzebny dalej/.test(await p.$eval('#main', e => e.textContent)) && !/pobierzcie go do prototypu/.test(await p.$eval('#main', e => e.textContent)));
+    // Fix 9: the required demos ask a question about the team's own measure (same ids and right options, so saved answers keep counting).
+    const qz9 = await p.evaluate(() => { const t = team(), out = {}; for (const k of LAB_KEYS) { t.track = k; const Q = QUIZZES(); out[k] = [Q.split[0].q, Q.metr[0].q, Q.split[0].answer, Q.metr[0].answer, Q.split[0].id, Q.metr[0].id]; } t.track = 'forecast'; return out; });
+    ok('simplify quizzes fit the track with stable ids and answers', /MAPE 8%/.test(qz9.forecast[1]) && /ostatnie miesiące/.test(qz9.forecast[0]) && /fałszywych alarmów/.test(qz9.maint[1]) && /minuty 300–600/.test(qz9.maint[0]) && /bezpieczeństwa żywności/.test(qz9.complaints[1]) && /dokumenty nic nie mówią/.test(qz9.rag[1]) && /paradoks|Trafność/.test(qz9.vision[1]) && !/F1/.test(qz9.vision[0]) && Object.values(qz9).every(r => r[2] === 1 && r[3] === 1 && r[4] === 's1' && r[5] === 'm1'), JSON.stringify(qz9));
+    ok('simplify: a quiz answered before the track wording changed still counts', await p.evaluate(() => { const t = team(); t.track = 'vision'; t.quizzes.split = { answers: Object.fromEntries(QUIZZES().split.map(x => [x.id, x.answer])), first: {}, doneAt: 'x' }; t.track = 'maint'; return quizDone(t, 'split'); }));
+    ok('simplify forecast no page errors', !p.errs.length, p.errs.join('|')); await p.close();
+    // Fix 5: maintenance speaks in breakdowns, alarm delay and false-alarm minutes; the lesson is a visible callout.
+    const m = await fresh('#/lab/maint');
+    await seed(m, () => { team().track = 'maint'; });
+    await m.evaluate(() => go('lab', 'maint'));
+    ok('simplify maint: no "3 z 3" score before the baseline', await m.$eval('#mtRes', e => !!e.querySelector('#baseFirst') && !/\d z \d/.test(e.textContent)));
+    await m.click('#runBase'); await m.click('#saveBase');
+    ok('simplify maint lesson callout above the tiles', await m.evaluate(() => { const c = $('#mtRes #mtLesson'), h = $('#mtRes .headline'); return !!c && c.offsetParent !== null && /w trakcie awarii, nie przed nią/.test(c.textContent) && !!(c.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+    await m.evaluate(() => { lab().mt.thr = 3; save(); render(); }); await m.click('#sv');
+    const ml = await m.evaluate(() => { const l = team().log.filter(x => x.track === 'maint'); return { e: logText(l[1]), b: logText(l[0]), cfg: cmpCfg(l[1]), best: reportFacts().bestTxt, list: $('#cmpList').textContent }; });
+    ok('simplify maint log entry: plain sensor names and mechanic numbers first', /^temperatura \+ drgania, próg 3,0, wygładzanie 1 min: wykryte awarie \d z \d, alarm średnio [\d,]+ min po początku awarii, fałszywe alarmy \d+ min; reguła PROCES-05: wykryte awarie/.test(ml.e) && ml.e.indexOf('F1') > ml.e.indexOf('Więcej miar'), ml.e);
+    ok('simplify maint baseline entry and comparison list in plain numbers', /reguła PROCES-05 \(minuty 300–600\); wykryte awarie \d z \d/.test(ml.b) && /wykryte awarie \d z \d/.test(ml.list) && !/temp_c/.test(ml.cfg + ml.list), JSON.stringify(ml));
+    ok('simplify maint report headline in mechanic numbers, F1 under more metrics', /^Najlepsze ustawienie \(temperatura \+ drgania, [^)]+\): wykryte awarie \d z \d/.test(ml.best) && /Więcej miar: F1/.test(ml.best), ml.best);
+    ok('simplify maint: an old entry without the counts still reads', await m.evaluate(() => /F1=/.test(logText({ track: 'maint', cfg: { keys: ['temp_c'], thr: 3, win: 1 }, res: { f1: .5, p: .5, r: .5, base: .4 } }))));
+    ok('simplify maint no page errors', !m.errs.length, m.errs.join('|')); await m.close();
+    // Fix 10: on a phone the bar's text and button wrap instead of cutting words.
+    const s = await fresh('#/lab/maint', '', { width: 390, height: 844 });
+    ok('simplify mobile bar wraps, nothing cut, no page scroll', await s.evaluate(() => { const l = $('#pathNext .pb-lbl'), t = $('#pathBar .pb-txt'); return getComputedStyle(l).whiteSpace === 'normal' && getComputedStyle(t).whiteSpace === 'normal' && l.scrollWidth <= l.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth; }));
+    await s.close(); }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);
 await browser.close(); srv.kill();
