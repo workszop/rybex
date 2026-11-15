@@ -653,7 +653,10 @@
       const near = new T.Vector3(), fwd = new T.Vector3(), rel = new T.Vector3();
       // Labels keep a steady on-screen size: LABEL_PX tall up close, easing to LABEL_PX_FAR at a distance (cap height
       // about 14-17 px), fade out closer than ~1.5 m and hide while a panel is open (they would cover the view).
+      const shown = [], scr = new T.Vector3();
       function sizeLabel(lab, hide) {
+        const base = lab.userData.base || (lab.userData.base = lab.position.clone());
+        lab.position.copy(base);
         rel.copy(lab.position).sub(pos);
         const depth = rel.dot(camera.getWorldDirection(fwd)), dist = rel.length(), vh = canvas.clientHeight || 1;
         const px = LABEL_PX - (LABEL_PX - LABEL_PX_FAR) * Math.max(0, Math.min(1, (depth - 3) / 11));
@@ -661,6 +664,28 @@
         lab.scale.set(hw * (lab.userData.aspect || 4), hw, 1);
         lab.material.opacity = hide ? 0 : Math.max(0, Math.min(1, (dist - 1.0) / 0.5));
         lab.visible = lab.material.opacity > 0.01;
+        if (lab.visible && depth > 0.1) {
+          scr.copy(base).project(camera);
+          const sy = (1 - scr.y) / 2 * vh;
+          shown.push({ lab, depth, x: (scr.x + 1) / 2 * canvas.clientWidth, y: sy, y0: sy, h: px, w: px * (lab.userData.aspect || 4), mPerPx: hw / px });
+        }
+      }
+      // A farther label that would cover a nearer one moves up on screen until it clears (nearest labels stay put).
+      function declutter() {
+        shown.sort((a, b) => a.depth - b.depth);
+        for (let i = 0; i < shown.length; i++) {
+          const L = shown[i];
+          for (let pass = 0; pass < 4; pass++) {
+            let moved = false;
+            for (let j = 0; j < i; j++) {
+              const P = shown[j];
+              if (Math.abs(L.x - P.x) * 2 < L.w + P.w && Math.abs(L.y - P.y) * 2 < L.h + P.h) { L.y = P.y - (L.h + P.h) / 2 - 3; moved = true; }
+            }
+            if (!moved) break;
+          }
+          if (L.y0 - L.y > 0.5) L.lab.position.y = L.lab.userData.base.y + (L.y0 - L.y) * L.mPerPx;
+        }
+        shown.length = 0;
       }
       function frame(now) {
         local.raf = 0; if (disposed) return;
@@ -691,6 +716,7 @@
           for (const m of st.mats) m.emissiveIntensity = v;
           sizeLabel(st.lab, station !== 'none');
         }
+        declutter();
         if (spec.tick && !tickBroken) { try { spec.tick(dt); } catch (err) { tickBroken = true; console.error('Rooms: room tick failed', err); } }
         renderer.render(scene, camera);
         if (!document.hidden) local.raf = window.requestAnimationFrame(frame);
@@ -712,7 +738,8 @@
           return STATIONS.filter(k => api.byKey[k]).map(k => {
             const lab = api.byKey[k].lab, half = up.clone().multiplyScalar(lab.scale.y / 2);
             const a = lab.position.clone().add(half).project(camera), c = lab.position.clone().sub(half).project(camera), m = lab.position.clone().project(camera);
-            return { key: k, visible: lab.visible && lab.material.opacity > 0.01, h: +(Math.abs(a.y - c.y) / 2 * r.height).toFixed(1), x: Math.round(r.left + (m.x + 1) / 2 * r.width), y: Math.round(r.top + (1 - m.y) / 2 * r.height) };
+            const hh = Math.abs(a.y - c.y) / 2 * r.height;
+            return { key: k, visible: lab.visible && lab.material.opacity > 0.01, h: +hh.toFixed(1), w: Math.round(hh * (lab.userData.aspect || 1)), x: Math.round(r.left + (m.x + 1) / 2 * r.width), y: Math.round(r.top + (1 - m.y) / 2 * r.height) };
           });
         },
       };
