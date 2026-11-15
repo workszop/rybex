@@ -1,6 +1,7 @@
 // Probes for the walk-in 3D rooms. Serves the worktree root itself (port 8798).
 // Usage: cd tests && node rooms.mjs [section...]   (sections: engine look integration file)
 // ROOMS_TRACKS=rag,forecast limits the look section to those rooms (default: all five).
+// integration: the real app in the lab, served by mock-server.mjs on port 8799 (screenshots scratch/rooms/app-<track>-<station>.png).
 // WebGL in headless Chromium: ANGLE on the machine's OpenGL driver (real GPU). ROOMS_GL=swiftshader uses the
 // software renderer instead (no GPU needed, about 10x slower).
 import { chromium } from 'playwright';
@@ -8,6 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..');
@@ -238,6 +240,192 @@ try {
       ok(`look.${track} no station view blocked`, warns.length === w0, warns.slice(w0).join(' | '));
       ok(`look.${track} no page or console errors`, errs.length === e0, errs.slice(e0).join(' | '));
     }
+  }
+  if (run('integration')) {
+    // The real app, served by the mock Worker server (as in guided.mjs), with the rooms mounted in the lab.
+    const IPORT = 8799, IB = `http://127.0.0.1:${IPORT}`, IMOCK = `${IB}/mock`;
+    const APP = (q = '') => `${IB}/rybex-ai-workshop.html?ai=${encodeURIComponent(IMOCK)}${q}`;
+    const msrv = spawn('node', [path.join(HERE, 'mock-server.mjs'), String(IPORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
+    await new Promise(r => msrv.stdout.once('data', r));
+    const ierrs = [], aborted = [];
+    const TRACKS = ['vision', 'rag', 'complaints', 'forecast', 'maint'], ST = ['brief', 'data', 'method', 'experiment', 'results'];
+    const app = async (hash = '#/lab/vision', q = '', init = null, vp = { width: 1440, height: 900 }) => {
+      const ctx = await browser.newContext({ viewport: vp });
+      const p = await ctx.newPage();
+      if (init) await p.addInitScript(init);
+      p.on('pageerror', e => ierrs.push(`${hash}${q} pageerror: ${e.message}`));
+      p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) ierrs.push(`${hash}${q} console: ${m.text()}`); });
+      p.on('requestfailed', r => { if (/\/mock\/chat/.test(r.url())) aborted.push(r.failure() && r.failure().errorText); });
+      await p.goto(APP(q) + hash);
+      await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 15000 });
+      return p;
+    };
+    const roomReady = (p, k) => p.waitForSelector(`#roomHost .room-root[data-room-track="${k}"][data-room-status="ready"]`, { timeout: 15000 }).then(() => true, () => false);
+    const station = p => p.evaluate(() => { const r = document.querySelector('#roomHost .room-root'); return r ? r.dataset.roomStation : null; });
+    const openSt = (p, s) => p.evaluate(s => X.room.handle.open(s), s);
+    const inSlot = (p, s, sel) => p.evaluate(([s, sel]) => !!document.querySelector(`#roomHost .room-slot[data-station="${s}"] ${sel}`), [s, sel]);
+    const dupIds = p => p.evaluate(() => { const c = {}; document.querySelectorAll('[id]').forEach(e => c[e.id] = (c[e.id] || 0) + 1); return Object.keys(c).filter(k => c[k] > 1); });
+    const seedTeam = (p, fn) => p.evaluate(`(${fn})(); save(); render();`);
+    try {
+      // integration.mount + integration.panels
+      let p = await app('#/lab/vision');
+      for (const k of TRACKS) {
+        if (k !== 'vision') await p.evaluate(k => go('lab', k), k);
+        const ready = await roomReady(p, k);
+        ok(`integration.mount ${k}: room in #roomHost`, ready && await p.evaluate(k => document.querySelectorAll('#roomHost .room-root').length === 1 && document.querySelector('#roomHost .room-root').dataset.roomTrack === k && !document.querySelector('#main .room-root'), k));
+        if (!ready) continue;
+        ok(`integration.panels ${k}: brief holds #pickTrack`, await inSlot(p, 'brief', '#pickTrack'));
+        ok(`integration.panels ${k}: method holds #methWhy`, await inSlot(p, 'method', '#methWhy'));
+        ok(`integration.panels ${k}: experiment holds #proto and #runBase`, await inSlot(p, 'experiment', '#proto') && await inSlot(p, 'experiment', '#runBase'));
+        ok(`integration.panels ${k}: results holds #cmpList`, await inSlot(p, 'results', '#cmpList'));
+        const data = await p.evaluate(() => { const s = document.querySelector('#roomHost .room-slot[data-station="data"]'); return { thumbs: s.querySelectorAll('.gal .thumb').length, txt: s.textContent, table: !!s.querySelector('table') }; });
+        ok(`integration.panels ${k}: data shows the track file`, { vision: data.thumbs >= 200, rag: /PROCES-01/.test(data.txt) && /§1/.test(data.txt), complaints: data.table, forecast: data.table, maint: data.table }[k], JSON.stringify({ ...data, txt: data.txt.slice(0, 80) }));
+        const d = await dupIds(p);
+        ok(`integration.panels ${k}: no duplicate ids`, d.length === 0, d.join());
+        ok(`integration.panels ${k}: lab sections left #main`, await p.evaluate(() => !document.querySelector('#main #labProto') && !document.querySelector('#main #labJump')));
+        for (const s of ST) {
+          await openSt(p, s); await p.waitForTimeout(s === 'brief' ? 400 : 150);
+          const vis = await p.evaluate(s => { const sl = document.querySelector(`#roomHost .room-slot[data-station="${s}"]`); return !sl.hidden && sl.getBoundingClientRect().height > 40; }, s);
+          ok(`integration.panels ${k}.${s} opens with content`, vis && await station(p) === s);
+          await p.screenshot({ path: path.join(SHOTS, `app-${k}-${s}.png`) });
+        }
+        await p.evaluate(() => X.room.handle.close());
+      }
+      // Seen-progress: the data step counts only when the data station opens.
+      await seedTeam(p, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'rag'); t.seen.data = false; });
+      await p.evaluate(() => go('lab', 'rag')); await roomReady(p, 'rag');
+      ok('integration.seen data not counted before the data station opens', await p.evaluate(() => team().seen.data === false));
+      await openSt(p, 'data');
+      ok('integration.seen data counted once the data station opens', await p.evaluate(() => team().seen.data === true));
+      await p.close();
+
+      // integration.baseline: same score in the room and on the 2D page.
+      const baseOf = async q => {
+        const b = await app('#/lab/vision', q);
+        await seedTeam(b, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'vision'); });
+        if (!q) { await roomReady(b, 'vision'); await openSt(b, 'experiment'); }
+        await b.click('#runBase');
+        await b.waitForSelector('#baseOut:not([hidden])', { timeout: 5000 }).catch(() => {});
+        const r = await b.evaluate(() => { const o = document.querySelector('#baseOut'); return o ? { v: o.dataset.v, vis: !o.hidden && o.getBoundingClientRect().height > 0, txt: o.innerText.replace(/\s+/g, ' ').trim(), st: (document.querySelector('#roomHost .room-root') || { dataset: {} }).dataset.roomStation } : null; });
+        await b.close(); return r;
+      };
+      const b3 = await baseOf(''), b2 = await baseOf('&rooms=0');
+      ok('integration.baseline output visible in the experiment station', b3 && b3.vis && b3.st === 'experiment', JSON.stringify(b3));
+      ok('integration.baseline score identical to the 2D page', b3 && b2 && b3.v === b2.v && b3.txt === b2.txt, `${b3 && b3.v} vs ${b2 && b2.v}`);
+
+      // integration.rerender + integration.typing
+      p = await app('#/lab/vision');
+      await roomReady(p, 'vision');
+      await p.evaluate(() => { window.__cv = document.querySelector('#roomHost canvas'); });
+      await p.click('#roomHost .room-toolbar [data-station="method"]');
+      await p.waitForFunction(() => document.querySelector('#roomHost .room-root').dataset.roomStation === 'method', null, { timeout: PICK_MS }).catch(() => {});
+      await p.check('#roomHost input[name=meth][value="0"]');
+      await p.fill('#methWhy', 'Reguły są tanie i wystarczą na start.');
+      const pos0 = await p.evaluate(() => X.room.handle._debug.cameraPos());
+      await p.focus('#methWhy'); await p.keyboard.press('End'); await p.keyboard.type(' wasd'); await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(400);
+      const pos1 = await p.evaluate(() => X.room.handle._debug.cameraPos());
+      ok('integration.typing WASD in #methWhy does not move the camera', JSON.stringify(pos0) === JSON.stringify(pos1) && (await p.inputValue('#methWhy')).endsWith(' wasd'), JSON.stringify([pos0, pos1]));
+      // A full re-render (choosing the team's task re-renders the page) keeps the room, the station and the typed text.
+      await p.click('#roomHost #pickTrack').catch(() => {});
+      await p.evaluate(() => render());
+      const rr = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, same: document.querySelector('#roomHost canvas') === window.__cv, canv: document.querySelectorAll('#roomHost canvas').length, why: document.querySelector('#methWhy').value, saved: team().decision.vision && team().decision.vision.why, m: team().decision.vision && team().decision.vision.m, inSlot: !!document.querySelector('#roomHost .room-slot[data-station="method"] #methWhy') }));
+      ok('integration.rerender station, canvas and justification kept', rr.st === 'method' && rr.same && rr.canv === 1 && rr.inSlot && rr.why === 'Reguły są tanie i wystarczą na start. wasd', JSON.stringify(rr));
+      ok('integration.rerender justification and method saved', rr.saved === rr.why && rr.m === 0, JSON.stringify(rr));
+      const rd = await dupIds(p);
+      ok('integration.rerender no duplicate ids', rd.length === 0, rd.join());
+      await p.close();
+
+      // integration.airun: a model run survives closing and reopening the panel.
+      await fetch(IMOCK + '/reset?delay=350');
+      p = await app('#/lab/vision');
+      await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
+      await roomReady(p, 'vision'); await openSt(p, 'experiment');
+      const a0 = aborted.length;
+      await p.click('#visRun');
+      const live = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
+      await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);
+      const during = await p.evaluate(() => !!AIS.run || !!document.querySelector('#visModelRes[data-ai-run="done"]'));
+      await p.click('#roomHost .room-toolbar [data-station="experiment"]');
+      const done = await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 30000 }).then(() => true, () => false);
+      const out = await p.evaluate(() => { const e = document.querySelector('#visModelRes'); return e ? e.innerText.length : 0; });
+      ok('integration.airun run active, survives close, finishes with output', live && during && done && out > 20 && await station(p) === 'experiment', JSON.stringify({ live, during, done, out }));
+      ok('integration.airun no request aborted', aborted.length === a0, aborted.slice(a0).join());
+      await p.close(); await fetch(IMOCK + '/reset');
+
+      // integration.switch: tracks, language, team, leaving the lab.
+      p = await app('#/lab/vision');
+      await roomReady(p, 'vision');
+      const one = () => p.evaluate(() => ({ host: document.querySelectorAll('#roomHost canvas.room-canvas').length, all: document.querySelectorAll('canvas.room-canvas').length, roots: document.querySelectorAll('.room-root').length }));
+      let sw = true;
+      for (const k of ['rag', 'complaints', 'forecast', 'maint', 'vision']) { await p.click(`#trackTabs button[data-k="${k}"]`); if (!await roomReady(p, k)) sw = false; const c = await one(); if (c.host !== 1 || c.all !== 1 || c.roots !== 1) sw = false; }
+      ok('integration.switch five track switches: one room each time', sw);
+      for (const l of ['en', 'pl']) { await p.click(`#langSeg button[data-l="${l}"]`); await roomReady(p, 'vision'); }
+      const lc = await one();
+      ok('integration.switch language twice: one room', lc.host === 1 && lc.all === 1 && await p.evaluate(() => document.querySelector('#roomHost .room-btn[data-station="brief"]').textContent.length > 0), JSON.stringify(lc));
+      for (const t of ['2', '1']) { await p.selectOption('#teamSel', t); await roomReady(p, 'vision'); }
+      const tc = await one();
+      ok('integration.switch team twice: one room', tc.host === 1 && tc.all === 1, JSON.stringify(tc));
+      await p.evaluate(() => { location.hash = '#/home'; }); await p.waitForFunction(() => S.view === 'home');
+      const hc = await one();
+      ok('integration.switch outside the lab: no room, host hidden', hc.all === 0 && hc.roots === 0 && await p.evaluate(() => document.querySelector('#roomHost').hidden && !document.body.classList.contains('in-room')), JSON.stringify(hc));
+      await p.evaluate(() => { location.hash = '#/lab/vision'; });
+      const back = await roomReady(p, 'vision'), bc = await one();
+      ok('integration.switch back in the lab: exactly one room', back && bc.all === 1 && bc.host === 1, JSON.stringify(bc));
+      const sd = await dupIds(p);
+      ok('integration.switch no duplicate ids', sd.length === 0, sd.join());
+
+      // integration.jump: links that target the method section open the method station and focus the target.
+      await p.evaluate(() => X.room.handle.close());
+      await seedTeam(p, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'forecast'); t.decision = {}; });
+      await p.evaluate(() => go('deliver'));
+      await p.waitForSelector('#delivGaps [data-gap="meth"], #delivGaps [data-gap="why"]', { timeout: 5000 }).catch(() => {});
+      await p.click('#delivGaps [data-gap="meth"], #delivGaps [data-gap="why"]').catch(() => {});
+      await roomReady(p, 'forecast');
+      const jp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, focus: a && (a.id || a.name), inMeth: !!a && !!a.closest('#roomHost .room-slot[data-station="method"]') }; });
+      ok('integration.jump gaps link opens the method station and focuses its field', jp.st === 'method' && jp.inMeth, JSON.stringify(jp));
+      // The reveal gate (vision, no method chosen) sends the focus to the method choice: that station opens.
+      await seedTeam(p, () => { const t = team(); setTrack(t, 'vision'); t.decision = {}; });
+      await p.evaluate(() => go('lab', 'vision')); await roomReady(p, 'vision'); await openSt(p, 'experiment');
+      // Baseline run and saved, so the gate's next need is the method choice.
+      await p.click('#runBase'); await p.click('#saveBase').catch(() => {});
+      const rv = await p.$('#roomHost [data-reveal="vision"]');
+      if (rv) await rv.click();
+      const gp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, inMeth: !!a && !!a.closest('#roomHost .room-slot[data-station="method"]'), id: a && (a.id || a.name) }; });
+      ok('integration.jump reveal gate opens the method station', !!rv && gp.inMeth && gp.st === 'method', JSON.stringify(gp));
+      await p.close();
+
+      // integration.2d: the toolbar 2D button, kept over a reload, and back to the room.
+      p = await app('#/lab/vision');
+      await roomReady(p, 'vision');
+      await p.click('#roomHost [data-room-2d]');
+      const flat = () => p.evaluate(() => ({ host: document.querySelector('#roomHost').hidden, rooms: document.querySelectorAll('.room-root').length, proto: !!document.querySelector('#main #labProto'), jump: !!document.querySelector('#main #labJump'), cls: document.body.classList.contains('in-room'), on: !!document.querySelector('#roomOn'), saved: S.rooms }));
+      const f1 = await flat();
+      ok('integration.2d toolbar button shows the page view', f1.host && f1.rooms === 0 && f1.proto && f1.jump && !f1.cls && f1.on && f1.saved === false, JSON.stringify(f1));
+      await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      const f2 = await flat();
+      ok('integration.2d choice kept after a reload', f2.host && f2.rooms === 0 && f2.proto && f2.on, JSON.stringify(f2));
+      await p.click('#roomOn');
+      ok('integration.2d the 3D button brings the room back', await roomReady(p, 'vision') && await p.evaluate(() => S.rooms === true && document.body.classList.contains('in-room') && !document.querySelector('#roomHost').hidden));
+      await p.close();
+      p = await app('#/lab/vision', '&rooms=0');
+      const f3 = await flat();
+      ok('integration.2d ?rooms=0 forces the page view', f3.host && f3.rooms === 0 && f3.proto && !f3.on, JSON.stringify(f3));
+      await p.close();
+
+      // integration.fallback: no WebGL -> the 2D page with a notice.
+      const e0 = ierrs.length;
+      p = await app('#/lab/vision', '', () => { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/i.test(t) ? null : g.call(this, t, ...a); }; });
+      const fb = await p.evaluate(() => ({ rooms: document.querySelectorAll('.room-root').length, proto: !!document.querySelector('#main #labProto'), note: (document.querySelector('#roomNote') || {}).textContent || '', host: document.querySelector('#roomHost').hidden }));
+      ok('integration.fallback no WebGL: 2D page with a notice, no errors', fb.rooms === 0 && fb.proto && fb.host && fb.note.length > 10 && ierrs.length === e0, JSON.stringify(fb) + ierrs.slice(e0).join('|'));
+      await p.close();
+
+      // Mobile: bottom sheet over the room.
+      p = await app('#/lab/rag', '', null, { width: 390, height: 844 });
+      if (await roomReady(p, 'rag')) { await openSt(p, 'method'); await p.waitForTimeout(300); await p.screenshot({ path: path.join(SHOTS, 'app-mobile-rag-method.png') }); }
+      ok('integration.mobile no horizontal page scroll', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      await p.close();
+    } finally { msrv.kill(); }
+    ok('integration.errors no page or console errors', ierrs.length === 0, ierrs.join(' | '));
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -11,7 +11,8 @@ import { lowContrast } from './contrast.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8797, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
-const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}${q}`;
+// rooms=0: the lab as the plain page (the walk-in 3D rooms have their own suite, tests/rooms.mjs integration).
+const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0${q}`;
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
 
@@ -1659,7 +1660,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const rec = await p.evaluate(async () => { S.ai.code = 'test-code'; await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
       await fetch(MOCK + '/replay', { method: 'POST', body: rec }); await p.close();
       const ctx = await browser.newContext(); const q = await ctx.newPage();
-      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
       await q.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; lab().rag.gen = 'llm'; render(); await aiCheck(); });
       const before = await q.$eval('#aiStatus', e => e.textContent);
       const r = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] });

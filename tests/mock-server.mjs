@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = +(process.argv[2] || 8794);
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.md': 'text/markdown' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.md': 'text/markdown' };
 const PRICE = { 'deepseek/deepseek-v4.1-flash': [0.045, 0.5], 'anthropic/claude-haiku-5.5': [0.1, 0.5] };
 const KW = { smell: ['zapach', 'śmierdz', 'zepsut', 'nieświeży', 'smell'], damage: ['wgniec', 'uszkodz', 'wybrzusz', 'rdze', 'przecie', 'ścieśni'], label: ['etykiet', 'kod', 'składu', 'data'], quality: ['suchy', 'ości', 'słon', 'konsystenc', 'sos', 'rozpada'], delivery: ['zamówieni', 'dostaw', 'kurier', 'faktur', 'palet', 'karton'] };
 
