@@ -61,6 +61,36 @@ What participants meet along the way:
 - Nine badges (baseline saved, baseline beaten, fair test and others), announced when earned. The counter and the strip show only the badges the team's track can earn ("8/8"); the knowledge assistant's challenge badge is marked optional. "Better than the baseline" needs a strict win on the practice set and is withdrawn when the final test shows a tie or a loss.
 - "Pokażcie przykład zespołu" (Show an example team): a read-only preview of a finished, deliberately imperfect forecast project. The team's own work is not touched, the model does not run and report export is off while the example is shown.
 
+## Walk-in rooms
+
+Each lab task opens in its own first-person 3D room: line 2 of the production hall for vision, the quality office for the knowledge assistant, customer service for complaints, the dispatch warehouse for the forecast and the retort machine room for machine failures. The room has five stations, one per lab step: Zadanie (Brief), Dane (Data), Metoda (Method), Eksperyment (Experiment) and Wyniki (Results). A station opens a panel beside the room with the same lab controls as the plain page, so scores, saved runs and team files are the same in both views.
+
+- Controls: click a glowing station or its button in the toolbar. Walk with WASD or the arrow keys, drag to look around, click the floor to walk there. `Esc` closes the panel, and ‹ › go to the previous or next station. Typing in a panel never moves the camera.
+- 2D toggle: "Widok 2D" (2D view) in the toolbar switches to the plain page, and "Wejdźcie do pokoju 3D" (Enter the 3D room) switches back. The choice is saved with the browser state. `?rooms=0` forces the plain page without saving anything (the older test suites use it).
+- Fallback: without WebGL2, or when the room fails to start, the lab is shown as the plain page with a one-line notice. If the GPU drops the 3D view later, the toolbar and panels stay and only the 3D picture goes.
+- The room shows real app data: can photos on the vision monitor (they replace the drawn cans as soon as the photos load), document codes, complaint categories, one product's sales and a vibration window.
+- Files: `rooms/engine.js` (camera, stations, panels), `rooms/room-*.js` (one per track) and `rooms/rooms.css`. They are classic scripts, so the rooms also work from `file://`.
+- Three.js r170 is vendored in `vendor/three/`. The app loads `vendor/three/three.global.js`, a classic-script wrapper that sets `window.THREE`, because module scripts do not load from `file://`. Rebuild it after replacing the vendored files:
+
+```bash
+node tools/build-three-global.mjs          # writes vendor/three/three.global.js
+node tools/build-three-global.mjs --check  # exits 1 when it is out of date
+```
+
+Room tests are in `tests/rooms.mjs` (not part of `npm test`), sections `engine look integration file`; without a section all four run:
+
+```bash
+cd tests
+node rooms.mjs                    # all sections
+node rooms.mjs integration file   # the real app in the lab, and the app opened from disk
+ROOMS_TRACKS=rag,forecast node rooms.mjs look
+ROOMS_GL=swiftshader ROOMS_PICK_MS=8000 node rooms.mjs   # no GPU: software renderer, slower clicks allowed
+```
+
+- `engine` checks the engine on a test page (`tests/rooms-fixture.html`). `look` builds every room and checks draw calls, frame time, brightness, labels and reduced motion. `integration` runs the real app through the mock Worker on port 8799: panels, seen-progress, the baseline equal to the plain page, typing, a model run and its stop, track, language and team switches, jump links, the 2D toggle, the fallback, scrolling, camera framing, the photo refresh and resizing. `file` opens the app from disk.
+- WebGL runs on the machine's GPU through ANGLE (`--use-angle=gl`). `ROOMS_GL=swiftshader` uses the software renderer instead. It is about ten times slower, so raise `ROOMS_PICK_MS` (how long a click on a station may take to open it, default 2000).
+- Run it on its own: a second GPU-heavy browser at the same time can crash the test browser. Screenshots go to `scratch/rooms/` (not committed).
+
 ## Company site
 
 The route `#/rybex/<page>` shows the Rybex website inside a frame, with a back button to the workshop. Pages (`RYBEX_PAGES`): `home`, `about`, `products`, `quality`, `news`, `contact`, `career`, `intranet`. It is not a menu item; the path bar and links in the app lead to it.
