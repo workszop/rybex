@@ -246,7 +246,13 @@ try {
     const IPORT = 8799, IB = `http://127.0.0.1:${IPORT}`, IMOCK = `${IB}/mock`;
     const APP = (q = '') => `${IB}/rybex-ai-workshop.html?ai=${encodeURIComponent(IMOCK)}${q}`;
     const msrv = spawn('node', [path.join(HERE, 'mock-server.mjs'), String(IPORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
-    await new Promise(r => msrv.stdout.once('data', r));
+    // A busy port makes the mock server exit before it prints: fail (the outer catch closes the browser and the 8798 server).
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => { msrv.kill(); rej(new Error(`mock server on ${IPORT} did not start in 10 s`)); }, 10000);
+      msrv.stdout.once('data', () => { clearTimeout(t); res(); });
+      msrv.once('exit', c => { clearTimeout(t); rej(new Error(`mock server on ${IPORT} exited (${c}) – port busy?`)); });
+      msrv.once('error', e => { clearTimeout(t); rej(e); });
+    });
     const ierrs = [], aborted = [];
     const TRACKS = ['vision', 'rag', 'complaints', 'forecast', 'maint'], ST = ['brief', 'data', 'method', 'experiment', 'results'];
     const app = async (hash = '#/lab/vision', q = '', init = null, vp = { width: 1440, height: 900 }) => {
@@ -417,6 +423,56 @@ try {
       p = await app('#/lab/vision', '', () => { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/i.test(t) ? null : g.call(this, t, ...a); }; });
       const fb = await p.evaluate(() => ({ rooms: document.querySelectorAll('.room-root').length, proto: !!document.querySelector('#main #labProto'), note: (document.querySelector('#roomNote') || {}).textContent || '', host: document.querySelector('#roomHost').hidden }));
       ok('integration.fallback no WebGL: 2D page with a notice, no errors', fb.rooms === 0 && fb.proto && fb.host && fb.note.length > 10 && ierrs.length === e0, JSON.stringify(fb) + ierrs.slice(e0).join('|'));
+      await p.close();
+
+      // integration.moremetrics: "More metrics" stays open (and closed) across redraws in the room, as on the page (guided.mjs fresh 3).
+      const setRange = (p, sel, v) => p.$eval(sel, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+      p = await app('#/lab/maint');
+      if (await roomReady(p, 'maint')) {
+        await openSt(p, 'experiment'); await p.click('#runBase');
+        await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 2.5); await p.waitForTimeout(50);
+        ok('integration.moremetrics stays open across a redraw in the room', await p.$eval('#roomHost #proto details.more-metrics', e => e.open));
+        await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 3); await p.waitForTimeout(50);
+        ok('integration.moremetrics stays closed once closed in the room', !(await p.$eval('#roomHost #proto details.more-metrics', e => e.open)));
+      } else ok('integration.moremetrics maint room ready', false);
+      await p.close();
+
+      // integration.aistop: a run survives closing the panel, and the stop control on the reopened station ends it.
+      await fetch(IMOCK + '/reset?delay=400');
+      p = await app('#/lab/vision');
+      await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
+      await roomReady(p, 'vision'); await openSt(p, 'experiment');
+      const s0 = aborted.length;
+      await p.click('#visRun');
+      const started = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
+      await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);
+      const alive = await p.evaluate(() => !!AIS.run);
+      await p.click('#roomHost .room-toolbar [data-station="experiment"]');
+      await p.waitForFunction(() => document.querySelector('#roomHost .room-root').dataset.roomStation === 'experiment', null, { timeout: PICK_MS }).catch(() => {});
+      const stop = p.locator('#roomHost .room-slot[data-station="experiment"] [data-cancel]:visible').first();
+      const hasStop = await stop.count() > 0;
+      if (hasStop) await stop.click();
+      const ended = await p.waitForFunction(() => !AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
+      await p.waitForTimeout(300);
+      const st = await p.evaluate(() => ({ run: (document.querySelector('#visModelRes') || { dataset: {} }).dataset.aiRun, station: document.querySelector('#roomHost .room-root').dataset.roomStation }));
+      ok('integration.aistop stop on the reopened station ends the run', started && alive && hasStop && ended && st.run !== 'done' && st.station === 'experiment', JSON.stringify({ started, alive, hasStop, ended, ...st }));
+      ok('integration.aistop the stopped request is aborted', aborted.slice(s0).some(e => /ABORTED/i.test(e || '')), aborted.slice(s0).join());
+      await p.close(); await fetch(IMOCK + '/reset');
+
+      // integration.resize: side panel at 1440x900 -> bottom sheet at 390x844 -> side panel again; the canvas fills the host.
+      p = await app('#/lab/vision');
+      await roomReady(p, 'vision'); await openSt(p, 'experiment');
+      const geo = () => p.evaluate(() => { const h = document.querySelector('#roomHost').getBoundingClientRect(), c = document.querySelector('#roomHost canvas').getBoundingClientRect(), pn = document.querySelector('#roomHost .room-panel').getBoundingClientRect(); return { hw: Math.round(h.width), hh: Math.round(h.height), cw: Math.round(c.width), ch: Math.round(c.height), pw: Math.round(pn.width), pb: Math.round(h.bottom - pn.bottom), sw: document.documentElement.scrollWidth, iw: innerWidth }; });
+      const g1 = await geo();
+      await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(400);
+      const g2 = await geo();
+      await p.setViewportSize({ width: 1440, height: 900 }); await p.waitForTimeout(400);
+      const g3 = await geo();
+      const fills = g => Math.abs(g.cw - g.hw) <= 1 && Math.abs(g.ch - g.hh) <= 1;
+      ok('integration.resize desktop: side panel, canvas fills the host', g1.pw <= 562 && g1.pw < g1.hw / 2 && fills(g1), JSON.stringify(g1));
+      ok('integration.resize phone: bottom sheet, no horizontal scroll, canvas fills the host', g2.pw === g2.hw && g2.pb <= 1 && g2.sw <= g2.iw && fills(g2), JSON.stringify(g2));
+      ok('integration.resize back: side panel, canvas fills the host', g3.pw <= 562 && g3.pw < g3.hw / 2 && fills(g3) && g3.hw === g1.hw, JSON.stringify(g3));
+      ok('integration.resize panel stays open', await station(p) === 'experiment');
       await p.close();
 
       // Mobile: bottom sheet over the room.

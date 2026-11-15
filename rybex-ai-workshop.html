@@ -1458,7 +1458,8 @@ function statGrid(items,cls='grid4 stats4'){return`<div class="${cls}">${items.m
 const moreKey=d=>{const c=d.closest('[id]');return c?`${S.team}|${S.view}|${S.sub[S.view]||''}|${c.id}`:null};
 function bindMoreMetrics(){const M=X.moreOpen||(X.moreOpen={});
  document.addEventListener('toggle',e=>{const d=e.target;if(!(d instanceof Element)||!d.matches('details.more-metrics')||!d.isConnected)return;const k=moreKey(d);if(k)M[k]=d.open},true);
- new MutationObserver(()=>$$('details.more-metrics',mainEl).forEach(d=>{const k=moreKey(d);if(k&&Object.hasOwn(M,k)&&d.open!==M[k])d.open=M[k]})).observe(mainEl,{childList:true,subtree:true})}
+ // The lab's result panels live in #roomHost while a walk-in room is open: watch both containers.
+ const R=[mainEl,$('#roomHost')],mo=new MutationObserver(()=>R.forEach(r=>$$('details.more-metrics',r).forEach(d=>{const k=moreKey(d);if(k&&Object.hasOwn(M,k)&&d.open!==M[k])d.open=M[k]})));R.forEach(r=>mo.observe(r,{childList:true,subtree:true}))}
 function essentials(head,rest,{cls='grid3',extra='',recap='',open=false}={}){return`<div class="headline">${statGrid(head,'grid2')}</div>${recap}<details class="more-metrics"${open?' open':''}><summary>${T('Więcej miar','More metrics')}</summary>${rest.length?statGrid(rest,cls):''}${extra}</details>`}
 const KIND=k=>k==='maint'?{pos:T('minuta awarii','failure minute'),found:T('Minuty awarii z alarmem','Failure minutes with an alarm'),tp:T('min. z alarmem','min. with alarm'),fn:T('min. bez alarmu','min. without alarm')}:{pos:T('wada','defect'),found:T('Wykryte wady','Defects found'),tp:T('wykryta wada','defect found'),fn:T('przeoczona wada','missed defect')};
 // Maintenance headline counts whole breakdowns; the per-minute recall moves into the folded metrics.
