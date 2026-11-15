@@ -685,6 +685,8 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 /* Walk-in rooms (rooms/*.js): the lab task in its own 3D room under the header; the lab sections are the station panels.
    The room is a screen tall less the sticky bars, so opening a station can scroll its top right under them (the footer gives the 16 px). */
 #roomHost{position:relative;height:clamp(420px,calc(100vh - var(--hdr-h,0px) - 16px),1100px);border-top:1px solid var(--line)}
+body.in-room #main{padding-bottom:0}
+body.in-room .toast{left:24px;right:auto;transform:none;max-width:calc(100vw - min(560px,45vw) - 40px)}
 body.in-room #main .page-head{padding-top:14px;padding-bottom:14px}body.in-room #main .app-title{font-size:1.9rem;margin-bottom:8px}body.in-room #main .edu-lead{display:none}
 .room-slot .sec{padding:0;border:0;background:none}.room-slot .wrap{padding:0}.room-pane>*+*,.room-pane .sec+.sec{margin-top:18px}
 .room-slot .grid2,.room-slot .grid3,.room-slot .group-hero{grid-template-columns:minmax(0,1fr)}.room-slot .group-hero{padding:18px 20px;gap:16px}.room-slot .sec-head h2{font-size:24px}
@@ -2450,6 +2452,7 @@ function roomData(k){const i=langIx();if(k==='vision'){visInit();return{vision:{
 // An element inside a closed station (jump and path links, gate focus): open that station first.
 function roomShow(el){const sl=el&&X.room&&el.closest&&el.closest('#roomHost .room-slot');if(sl)X.room.handle.open(sl.dataset.station);return el}
 function roomDispose(){if(X.room){X.room.handle.dispose();X.room=null}roomHost.replaceChildren();roomHost.hidden=true;delete roomHost.dataset.roomStatus;document.body.classList.remove('in-room')}
+// Old panels stay in #roomHost while vLab re-renders #main; $() finds the new nodes because #main precedes #roomHost; $$('input[name=meth]') also binds the old radios harmlessly until setPanels.
 function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
  const pane=(...n)=>{const d=document.createElement('div');d.className='room-pane';d.append(...n.filter(Boolean));return d};
  const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));

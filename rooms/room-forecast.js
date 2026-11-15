@@ -299,7 +299,7 @@
       word(tx('grudzień!', 'December!'), w - 260, 110, 26);
       pen('#1f3f8f', 3); word(tx('trend? sezon? średnia?', 'trend? season? average?'), 60, 360, 28);
       pen('#2f7f3f', 3); word(tx('porównać z metodą odniesienia', 'compare with a baseline'), 60, 410, 24);
-      c.fillStyle = '#ffe66b'; c.fillRect(w - 230, 330, 170, 120); c.fillStyle = '#3a3a3a'; word(tx('błąd < 10%?', 'error < 10%?'), w - 220, 390, 22);
+      c.fillStyle = '#ffe66b'; c.fillRect(w - 230, 330, 170, 120); c.fillStyle = '#3a3a3a'; word(tx('np. błąd < 10%?', 'e.g. error < 10%?'), w - 220, 390, 22);
     };
     kit.plane(wb, [1.8, 1.1], [0, 1.45, 0.022], [0, 0, 0], kit.mat(0xffffff, { map: tex.screen(drawWb, { w: 860, h: 526 }), rough: 0.3 })).castShadow = false;
     kit.plane(wb, [1.8, 1.1], [0, 1.45, -0.022], [0, Math.PI, 0], M.white).castShadow = false;

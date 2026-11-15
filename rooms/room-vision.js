@@ -362,7 +362,7 @@
       c.restore();
       c.fillStyle = '#ffe66b'; c.fillRect(390, 310, 150, 130); c.fillStyle = '#9fd7f0'; c.fillRect(600, 60, 130, 120);
       c.fillStyle = '#3a3a3a'; c.font = '600 22px system-ui';
-      c.fillText(tx('Cel: 9 z 10', 'Goal: 9 of 10'), 402, 352); c.fillText(tx('wadliwych', 'bad cans'), 402, 380); c.fillText(tx('odrzuconych', 'rejected'), 402, 408);
+      c.fillText(tx('np. cel: 9 z 10', 'e.g. goal: 9 of 10'), 402, 352); c.fillText(tx('wadliwych', 'bad cans'), 402, 380); c.fillText(tx('odrzuconych', 'rejected'), 402, 408);
       c.fillText(tx('Zmiana B', 'Shift B'), 612, 100); c.fillText('06:00', 612, 130);
       c.strokeStyle = '#1f6fb2'; c.lineWidth = 4; c.beginPath(); c.moveTo(600, 300); c.bezierCurveTo(660, 250, 720, 360, 760, 290); c.stroke();
       c.fillStyle = '#1f6fb2'; c.font = '600 28px system-ui'; c.fillText('L2 → QA', 600, 440);
@@ -480,8 +480,8 @@
       c.fillStyle = '#fff'; c.fillRect(30, 272, w - 60, h - 300);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(90, 300); c.lineTo(90, h - 60); c.lineTo(w - 60, h - 60); c.stroke();
       c.setLineDash([12, 10]); c.strokeStyle = '#2f8f47'; c.beginPath(); c.moveTo(90, 340); c.lineTo(w - 60, 340); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#2f8f47'; c.font = '600 24px system-ui'; c.fillText(tx('cel: 9 z 10 wadliwych', 'goal: 9 of 10 bad cans'), w - 330, 330);
-      c.fillStyle = '#6b6a66'; c.font = '500 26px system-ui'; c.fillText(tx('Tu pojawi się porównanie eksperymentów.', 'The comparison of experiments appears here.'), 120, h - 120);
+      c.fillStyle = '#2f8f47'; c.font = '600 24px system-ui'; c.fillText(tx('np. cel: 9 z 10 wadliwych', 'e.g. goal: 9 of 10 bad cans'), w - 330, 330);
+      c.fillStyle = '#6b6a66'; c.font = '500 26px system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 120, h - 120);
     };
     const resScreen = new T.Mesh(new T.PlaneGeometry(2.32, 1.29), new T.MeshBasicMaterial({ map: tex.screen(drawRes, { w: 1024, h: 572 }), toneMapped: false }));
     resScreen.position.set(0, 0, 0.051); scrFrame.add(resScreen);
