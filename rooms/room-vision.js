@@ -16,7 +16,8 @@
     const brand = (d.brand || 'Rybex').toUpperCase();
     // On file:// only data: URLs can go into a WebGL texture (a file image would taint the canvas).
     const usable = src => typeof src === 'string' && (location.protocol !== 'file:' || /^data:image\//.test(src));
-    const photos = (Array.isArray(d.photos) ? d.photos : []).filter(usable).slice(0, 6);
+    const pick = dd => (Array.isArray(dd.photos) ? dd.photos : []).filter(usable).slice(0, 6);
+    let photos = pick(d);
 
     // ---- materials ----
     const M = {
@@ -367,7 +368,8 @@
       c.fillStyle = '#1f6fb2'; c.font = '600 28px system-ui'; c.fillText('L2 → QA', 600, 440);
     };
     const memoTex = tex.screen(drawMemo, { w: 800, h: 512 });
-    if (photos[0]) { const im = new Image(); im.onload = () => memoTex.redraw(); im.src = photos[0]; memoImgs.push(im); }
+    const loadMemo = () => { memoImgs.forEach(im => { im.onload = null; }); memoImgs.length = 0; if (photos[0]) { const im = new Image(); im.onload = () => memoTex.redraw(); im.src = photos[0]; memoImgs.push(im); } };
+    loadMemo();
     kit.box(board, [1.34, 0.87, 0.03], [0, 1.3, 0], M.galv);
     const boardFace = kit.plane(board, [1.3, 0.83], [0, 1.3, 0.016], [0, 0, 0], kit.mat(0xffffff, { map: memoTex, rough: 0.35 }));
 
@@ -376,7 +378,7 @@
     const monStand = kit.batch(mon, M.stainless);
     monStand.box([0.06, 1.3, 0.06], [0, 0.65, -0.05]).box([0.5, 0.03, 0.5], [0, 0.015, -0.05]).box([0.12, 0.12, 0.06], [0, 1.4, -0.06]);
     monStand.done();
-    const photoImgs = photos.map(() => new Image()); // src is set below, after onload, so a cached image never fires before the handler
+    let photoImgs = [];
     const drawMon = (c, w, h) => {
       c.fillStyle = '#0d1419'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#16232d'; c.fillRect(0, 0, w, 44);
@@ -395,7 +397,15 @@
       c.fillText(photos.length ? tx(`${photos.length} zdjęć z linii`, `${photos.length} photos from the line`) : tx('Brak podglądu', 'No preview'), 16, h - 14);
     };
     const monTex = tex.screen(drawMon, { w: 640, h: 420 });
-    photoImgs.forEach((im, i) => { im.onload = () => monTex.redraw(); im.src = photos[i]; });
+    // onload before src, so a cached image never fires before the handler.
+    const loadMon = () => { photoImgs.forEach(im => { im.onload = null; }); photoImgs = photos.map(src => { const im = new Image(); im.onload = () => monTex.redraw(); im.src = src; return im; }); };
+    loadMon();
+    // The app's photos arrive after the mount (synthetic cans first, the real set once loaded): swap them in.
+    function setData(nd) {
+      const next = pick((nd && nd.vision) || nd || {});
+      if (next.length === photos.length && next.every((u, i) => u === photos[i])) return;
+      photos = next; loadMon(); loadMemo(); monTex.redraw(); memoTex.redraw();
+    }
     const monHousing = kit.box(mon, [0.72, 0.5, 0.07], [0, 1.6, 0], M.stainless);
     const monScreen = new T.Mesh(new T.PlaneGeometry(0.64, 0.42), new T.MeshBasicMaterial({ map: monTex, toneMapped: false }));
     monScreen.position.set(0, 0, 0.036); monHousing.add(monScreen);
@@ -637,6 +647,8 @@
         { key: 'results', label: { pl: 'Ekran wyników', en: 'Results screen' }, meshes: [scrFrame], anchor: [scrX, scrY + 0.55, -D / 2 + 0.12], view: kit.view([scrX + 0.8, 1.65, -3.0], [scrX, scrY - 0.05, -D / 2], 0.25) },
       ],
       tick,
+      setData,
+      debug: () => ({ photos: photos.slice() }),
       dispose() { photoImgs.forEach(im => { im.onload = null; }); memoImgs.forEach(im => { im.onload = null; }); },
     };
   });

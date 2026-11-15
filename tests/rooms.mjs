@@ -1,5 +1,6 @@
 // Probes for the walk-in 3D rooms. Serves the worktree root itself (port 8798).
 // Usage: cd tests && node rooms.mjs [section...]   (sections: engine look integration file)
+// file: the app opened straight from disk (file://), rag and vision rooms.
 // ROOMS_TRACKS=rag,forecast limits the look section to those rooms (default: all five).
 // integration: the real app in the lab, served by mock-server.mjs on port 8799 (screenshots scratch/rooms/app-<track>-<station>.png).
 // WebGL in headless Chromium: ANGLE on the machine's OpenGL driver (real GPU). ROOMS_GL=swiftshader uses the
@@ -49,6 +50,11 @@ const root = (p, k) => p.$eval('.room-root', (e, k) => e.dataset[k], k);
 const PICK_MS = Number(process.env.ROOMS_PICK_MS) || 2000;
 const waitStation = (p, s, timeout = PICK_MS) => p.waitForFunction(s => document.querySelector('.room-root').dataset.roomStation === s, s, { timeout }).then(() => true, () => false);
 const cam = p => p.evaluate(() => window.__room._debug.cameraPos());
+// Wait until the app room's camera has stopped (the glide to a station takes up to 1.1 s): 6 equal samples 50 ms apart.
+const settle = p => p.evaluate(() => { window.__camS = { k: '', n: 0 }; }).then(() => p.waitForFunction(() => {
+  const c = typeof X !== 'undefined' && X.room && X.room.handle._debug.cameraPos(); if (!c) return true;
+  const k = c.map(v => v.toFixed(4)).join(), w = window.__camS; if (w.k === k) w.n++; else { w.k = k; w.n = 0; } return w.n >= 5;
+}, null, { polling: 50, timeout: 4000 })).then(() => true, () => false);
 
 try {
   if (run('engine')) {
@@ -290,19 +296,55 @@ try {
         ok(`integration.panels ${k}: no duplicate ids`, d.length === 0, d.join());
         ok(`integration.panels ${k}: lab sections left #main`, await p.evaluate(() => !document.querySelector('#main #labProto') && !document.querySelector('#main #labJump')));
         for (const s of ST) {
-          await openSt(p, s); await p.waitForTimeout(s === 'brief' ? 400 : 150);
+          // Start at the top for some stations and slightly scrolled (heading half under the bars) for the others.
+          const y0 = ST.indexOf(s) % 2 ? 20 : 0;
+          await p.evaluate(y => scrollTo(0, y), y0);
+          await openSt(p, s); const still = await settle(p); if (s === 'brief') await p.waitForTimeout(250);
           const vis = await p.evaluate(s => { const sl = document.querySelector(`#roomHost .room-slot[data-station="${s}"]`); return !sl.hidden && sl.getBoundingClientRect().height > 40; }, s);
           ok(`integration.panels ${k}.${s} opens with content`, vis && await station(p) === s);
+          ok(`integration.panels ${k}.${s} camera settles after the glide`, still);
+          // integration.frame: once the camera stopped, the station's anchor is left of the panel (not behind it). Only x: the
+          // anchor is the label point, which can sit above the object (vision QA desk, complaints desk); the shots cover height.
+          const fr = await p.evaluate(s => { const a = X.room.handle._debug.project(s), c = document.querySelector('#roomHost canvas').getBoundingClientRect(), pn = document.querySelector('#roomHost .room-panel').getBoundingClientRect(); return { a: a && a.map(Math.round), left: Math.round(c.left), top: Math.round(c.top), bottom: Math.round(c.bottom), pl: Math.round(pn.left) }; }, s);
+          ok(`integration.frame ${k}.${s} station in view beside the panel`, fr.a && fr.a[0] > fr.left + 20 && fr.a[0] < fr.pl - 20, JSON.stringify(fr));
+          // integration.scroll: the room's top sits right under the sticky bars, the whole room in view.
+          // integration.scroll: the whole room in view, its top not under the sticky bars, and the page heading either
+          // fully shown or fully scrolled away (never half-cut under the bars).
+          const sc = await p.evaluate(() => { const b = roomHost.getBoundingClientRect(), top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h')) || 0, h = document.querySelector('#main .page-head').getBoundingClientRect(); return { top: Math.round(b.top), hdr: Math.round(top), bottom: Math.round(b.bottom), ih: innerHeight, ht: Math.round(h.top), hb: Math.round(h.bottom), y: scrollY }; });
+          const headOk = sc.ht >= sc.hdr - 1 || sc.hb <= sc.hdr + 1;
+          ok(`integration.scroll ${k}.${s} (from y=${y0}) room in view under the sticky bars, heading not half-cut`, sc.top >= sc.hdr - 2 && sc.bottom <= sc.ih + 1 && headOk, JSON.stringify(sc));
           await p.screenshot({ path: path.join(SHOTS, `app-${k}-${s}.png`) });
         }
         await p.evaluate(() => X.room.handle.close());
       }
+      // integration.focus: a programmatic open focuses the title quietly (no ring); toolbar buttons keep the ring for the keyboard.
+      await openSt(p, 'method');
+      const fo = await p.evaluate(() => { const t = document.activeElement, cs = getComputedStyle(t); return { title: t.classList.contains('room-panel-title'), shadow: cs.boxShadow, outline: cs.outlineStyle, deco: cs.textDecorationLine }; });
+      ok('integration.focus title focused without the heavy ring', fo.title && fo.shadow === 'none' && fo.outline === 'none' && /underline/.test(fo.deco), JSON.stringify(fo));
+      await p.evaluate(() => X.room.handle.close());
+      await p.keyboard.press('Tab'); await p.keyboard.press('Shift+Tab');
+      const fk = await p.evaluate(() => { const t = document.activeElement; return { btn: !!t.closest('#roomHost .room-toolbar'), shadow: getComputedStyle(t).boxShadow }; });
+      ok('integration.focus keyboard focus on a toolbar button shows the ring', fk.btn && fk.shadow !== 'none', JSON.stringify(fk));
       // Seen-progress: the data step counts only when the data station opens.
       await seedTeam(p, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'rag'); t.seen.data = false; });
       await p.evaluate(() => go('lab', 'rag')); await roomReady(p, 'rag');
       ok('integration.seen data not counted before the data station opens', await p.evaluate(() => team().seen.data === false));
       await openSt(p, 'data');
       ok('integration.seen data counted once the data station opens', await p.evaluate(() => team().seen.data === true));
+      await p.close();
+
+      // integration.photos: on a fresh load the room mounts with the drawn cans; once the real photos arrive the
+      // inspection monitor switches to them without a remount.
+      p = await app('#/lab/vision');
+      await roomReady(p, 'vision');
+      await p.evaluate(() => { window.__cv = document.querySelector('#roomHost canvas'); });
+      await p.waitForFunction(() => VIS.status === 'ready', null, { timeout: 20000 }).catch(() => {});
+      const ph = await p.waitForFunction(() => { const want = VIS.train.slice(0, 6).map(x => x.url).filter(u => /^data:/.test(u)), r = X.room.handle._debug.room(); return r && want.length === 6 && r.photos.join('|') === want.join('|') && VIS.train.slice(0, 6).every(x => x.source === 'photo') ? { n: r.photos.length } : false; }, null, { timeout: 5000 }).then(h => h.jsonValue(), () => null);
+      const ph2 = await p.evaluate(() => ({ status: VIS.status, src: VIS.train.slice(0, 6).map(x => x.source).join(), n: (X.room.handle._debug.room() || { photos: [] }).photos.length, same: window.__cv === document.querySelector('#roomHost canvas') }));
+      ok('integration.photos monitor shows the real photo set once loaded', !!ph, JSON.stringify(ph2));
+      ok('integration.photos no remount for the photos (same canvas)', ph2.same);
+      await openSt(p, 'data'); await settle(p); await p.waitForTimeout(300);
+      await p.screenshot({ path: path.join(SHOTS, 'app-vision-photos-data.png') });
       await p.close();
 
       // integration.baseline: same score in the room and on the 2D page.
@@ -482,6 +524,33 @@ try {
       await p.close();
     } finally { msrv.kill(); }
     ok('integration.errors no page or console errors', ierrs.length === 0, ierrs.join(' | '));
+  }
+  if (run('file')) {
+    // The app straight from disk: rooms are classic scripts, so they work on file:// too.
+    const FURL = 'file://' + path.join(ROOT, 'rybex-ai-workshop.html');
+    const ferrs = [];
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const p = await ctx.newPage();
+    p.on('pageerror', e => ferrs.push(`pageerror: ${e.message}`));
+    p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) ferrs.push(`console: ${m.text()}`); });
+    await p.goto(FURL + '#/lab/rag');
+    await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 15000 }).catch(() => {});
+    const ready = await p.waitForSelector('#roomHost .room-root[data-room-track="rag"][data-room-status="ready"]', { timeout: 15000 }).then(() => true, () => false);
+    ok('file.rag room ready on file://', ready);
+    if (ready) {
+      await p.evaluate(() => X.room.handle.open('data')); await settle(p);
+      const txt = await p.evaluate(() => document.querySelector('#roomHost .room-slot[data-station="data"]').textContent);
+      ok('file.rag data station shows PROCES-01', /PROCES-01/.test(txt), txt.slice(0, 120));
+      await p.screenshot({ path: path.join(SHOTS, 'file-rag-data.png') });
+    }
+    // Vision on file://: the photos come from photos.js as data: URLs, and the monitor takes them.
+    await p.evaluate(() => go('lab', 'vision'));
+    const vr = await p.waitForSelector('#roomHost .room-root[data-room-track="vision"][data-room-status="ready"]', { timeout: 15000 }).then(() => true, () => false);
+    await p.waitForFunction(() => VIS.status === 'ready', null, { timeout: 20000 }).catch(() => {});
+    const fv = await p.waitForFunction(() => { const r = X.room && X.room.handle._debug.room(); return r && r.photos.length === 6 && VIS.train.slice(0, 6).every(x => x.source === 'photo') && r.photos[0] === VIS.train[0].url; }, null, { timeout: 5000 }).then(() => true, () => false);
+    ok('file.vision room ready, monitor shows the bundled photos', vr && fv);
+    ok('file.errors no page or console errors', ferrs.length === 0, ferrs.join(' | '));
+    await ctx.close();
   }
 } catch (e) { fail++; console.log('ERROR', e.stack); }
 console.log(`\n${pass} passed, ${fail} failed`);

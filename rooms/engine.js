@@ -4,7 +4,8 @@
 //
 //   Rooms.define('vision', ctx => ({ scene, bounds, colliders, spawn, stations, ... }));
 //   const room = Rooms.mount({ host, track: 'vision', lang: 'pl', data, titles, panels, onOpen, onClose, onExit2d });
-//   room.open('data'); room.setPanels({ data: el }); room.dispose();
+//   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.dispose();
+// setData passes new data to the room's own setData(data) (if it has one), e.g. photos that arrived after the mount.
 //
 // Panels are MOVED into the room (append), never cloned, so ids, listeners and typed values stay.
 // dispose() takes them out of the slots again and leaves them detached (not in the document) for the app to reuse.
@@ -526,7 +527,7 @@
     setPanels(opts.panels || {});
 
     let station = 'none', disposed = false, pendingOpen = 0;
-    const handle = { open, close, setPanels, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null, labels: () => null } };
+    const handle = { open, close, setPanels, setData, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null } };
     live.set(host, handle);
     const setStatus = s => { handle.status = s; rootEl.dataset.roomStatus = s; };
     const titleOf = s => tr(titles[s]) || (g3 && g3.byKey[s] && g3.byKey[s].label) || s;
@@ -563,6 +564,7 @@
       if (onClose) onClose();
     }
     function step(d) { if (station === 'none') return; const s = STATIONS[(STATIONS.indexOf(station) + d + STATIONS.length) % STATIONS.length]; open(s); }
+    function setData(d) { if (g3) g3.setData(d); }
     function setPanels(panels) {
       const had = panel.contains(document.activeElement);
       for (const s of STATIONS) if (panels && panels[s]) slots[s].replaceChildren(panels[s]);
@@ -607,7 +609,7 @@
         if (local.renderer) { local.renderer.dispose(); local.renderer.forceContextLoss(); }
         if (local.canvas) local.canvas.remove();
         if (spec && spec.dispose) { try { spec.dispose(); } catch (_) { /* reported by the caller */ } }
-        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null };
+        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null };
         throw e;
       }
     }
@@ -615,7 +617,7 @@
       const lon = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); local.off.push(() => t.removeEventListener(ev, fn, o)); };
       const canvas = local.canvas = el('canvas', { class: 'room-canvas', tabindex: '-1', role: 'img', 'aria-label': L.canvas });
       const renderer = local.renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-      const api = { byKey: {}, glideTo: () => 0, dispose: () => {} };
+      const api = { byKey: {}, glideTo: () => 0, dispose: () => {}, setData: d => { if (spec.setData) { try { spec.setData(d); } catch (err) { console.warn('Rooms: room setData failed', err); } } } };
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PR_MAX));
       renderer.outputColorSpace = T.SRGBColorSpace;
       renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
@@ -833,6 +835,8 @@
           return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height];
         },
         info: () => renderer.info,
+        // The room's own state for tests (spec.debug), e.g. the photo set the vision monitor draws.
+        room: () => (spec.debug ? spec.debug() : null),
         // Station labels as drawn: projected height in CSS px, centre, and whether they show.
         labels() {
           const r = canvas.getBoundingClientRect(), up = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
@@ -858,7 +862,7 @@
           }
         });
         renderer.dispose(); renderer.forceContextLoss(); canvas.remove();
-        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null };
+        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null };
       };
       return api;
     }
