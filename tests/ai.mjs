@@ -368,9 +368,9 @@ try {
     await p.click('#visRes .thumb[data-i="0"]');
     ok('inspector shows photo feature names', /odstające|outlier/i.test(await p.textContent('#insp')));
     await p.keyboard.press('Escape');
-    await p.$eval('#vd', e => { e.value = e.min; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    await p.$eval('#vd', e => { e.value = e.max; e.dispatchEvent(new Event('input', { bubbles: true })); });
     await p.reload(); await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
-    ok('a threshold set on the photo features survives reload', await p.evaluate(() => Math.abs(visTh().d - VIS.rng.dent[0]) < 1e-9));
+    ok('a sensitivity set on the photo features survives reload', await p.evaluate(() => Math.abs(visTh().d - VIS.rng.dent[0]) < 1e-9));
     ok('no page errors (photo)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }

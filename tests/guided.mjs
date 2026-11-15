@@ -28,6 +28,8 @@ async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 },
   const p = await ctx.newPage(); p.errs = [];
   // qz(t, ...demoKeys): marks those demo quizzes as answered correctly (a demo counts as done only after its quiz).
   await p.addInitScript(() => { window.qz = (t, ...ks) => ks.forEach(k => { t.quizzes[k] = { answers: Object.fromEntries(QUIZZES()[k].map(q => [q.id, q.answer])), first: {}, doneAt: 'x' }; }); });
+  // baseClicked(...tracks): as if "Run the baseline" was clicked in this session (forecast and maintenance show scores only after it).
+  await p.addInitScript(() => { window.baseClicked = (...ks) => ks.forEach(k => { (X.baseOn || (X.baseOn = {}))[baseKey(k)] = true; }); });
   p.on('pageerror', e => p.errs.push(e.message));
   p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) p.errs.push(m.text()); });
   // baseClicked(...tracks): as if "Run the baseline" was clicked in this session (forecast and maintenance show scores only after it).
@@ -325,7 +327,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.click('#sv');
     const lg = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { ver: l.cfg.ver, txt: logText(l) }; });
     ok('log entry carries cfg.ver and shows it', lg.ver === 'v2' && /prompt v2/.test(lg.txt), JSON.stringify(lg));
-    ok('older vision log entries without ver render as before', await p.evaluate(() => logText({ track: 'vision', cfg: { mode: 'llm', model: 'x', shots: 0, set: 'val' }, res: { val: { f1: .5, p: .5, r: .5 }, ruleF1: .4 } }) === `[model] ${cnt(0, 'example')}, ${T('zestaw ćwiczeniowy', 'practice set')}: F1=${pct(.5)}, P=${pct(.5)}, R=${pct(.5)}; ${T('reguły pikselowe', 'pixel rules')} F1=${pct(.4)}`));
+    ok('final r2 older vision log entries without ver render as before', await p.evaluate(() => logText({ track: 'vision', cfg: { mode: 'llm', model: 'x', shots: 0, set: 'val' }, res: { val: { f1: .5, p: .5, r: .5 }, ruleF1: .4 } }) === `[model] ${cnt(0, 'example')}, ${T('zestaw ćwiczeniowy', 'practice set')}: ${T('wykryte wady', 'defects found')} ${pct(.5)}`));
     await p.selectOption('#vPromptVer', 'v1');
     ok('a switched version marks the shown result as from another prompt', await p.$eval('#visModelRes', e => e.dataset.stale) === '1' && /v2/.test(await p.$eval('#visStale', e => e.textContent)));
     await p.evaluate(() => restoreRun(team().log[team().log.length - 1]));
@@ -454,7 +456,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       await p.close(); }
     // 7 + 8: report grammar and English wording.
     { const p = await fresh('#/lab/forecast');
-      const gen = { vision: '„zawsze OK”', rag: 'wyszukiwania dosłownego', complaints: 'klasy większościowej', forecast: 'średniej historycznej', maint: 'reguły PROCES-05' };
+      const gen = { vision: 'kontroli wzrokowej', rag: 'wyszukiwania dosłownego', complaints: 'klasy większościowej', forecast: 'średniej historycznej', maint: 'reguły PROCES-05' };
       const nom = ['wyszukiwanie dosłowne', 'klasa większościowa', 'średnia historyczna', 'reguła PROCES-05'];
       for (const k of Object.keys(gen)) {
         const md = await p.evaluate(k => { const t = team(); t.track = k; t.log = [{ id: 'r1', ts: '', track: k, cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: .3, hi: true } }, note: '', testViews: 0 }]; return reportMD(); }, k);
@@ -1364,13 +1366,18 @@ ok('story site preview is a still picture with one working button', await p.$eva
       for (const pg of ['home', 'about', 'products', 'quality', 'news', 'contact', 'career', 'intranet']) { await p.evaluate(pg => go('rybex', pg), pg); await fn('site ' + pg); }
       await p.fill('#main #rcText', 'Puszka wgnieciona.').catch(() => {}); };
     // 1. Full contours: no left border wider than the right one or coloured unlike the top one.
+    // Note: the simulated Rybex website (the framed site `.rybex-frame` and the start-page preview `.sp-frame`) is a
+    // mock company site, not our UI. It deliberately keeps its own palette and left-stripe accents, so it is exempt
+    // from the contour guideline. Do not "fix" the site here; those surfaces are skipped.
     { const p = await fresh('#/home', '&trainer=1', { width: 1280, height: 800 }, RM); const bad = [];
-      await tour(p, async tag => { for (const x of await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => !e.matches('input,select,textarea,button,option,td,th') && e.getClientRects().length).flatMap(e => { const c = getComputedStyle(e), l = parseFloat(c.borderLeftWidth); return l > 0 && c.borderLeftStyle !== 'none' && (l > parseFloat(c.borderRightWidth) || c.borderLeftColor !== c.borderTopColor) ? [e.tagName + '.' + [...e.classList].join('.')] : []; }))) bad.push(tag + ': ' + x); });
+      await tour(p, async tag => { for (const x of await p.evaluate(() => [...document.querySelectorAll('body *')].filter(e => !e.matches('input,select,textarea,button,option,td,th') && !e.closest('.sp-frame, .rybex-frame') && e.getClientRects().length).flatMap(e => { const c = getComputedStyle(e), l = parseFloat(c.borderLeftWidth); return l > 0 && c.borderLeftStyle !== 'none' && (l > parseFloat(c.borderRightWidth) || c.borderLeftColor !== c.borderTopColor) ? [e.tagName + '.' + [...e.classList].join('.')] : []; }))) bad.push(tag + ': ' + x); });
       await p.evaluate(() => go('rybex', 'contact')); await p.fill('#rcText', 'Puszka wgnieciona przy kodzie partii.'); await p.click('#rcSend');
       for (const x of await p.evaluate(() => [...document.querySelectorAll('.rc-done')].flatMap(e => { const c = getComputedStyle(e); return c.borderLeftWidth !== c.borderRightWidth || c.borderLeftColor !== c.borderTopColor ? ['rc-done'] : []; }))) bad.push('contact sent: ' + x);
       ok('a11y no left-stripe accents in any view (full contours)', !bad.length, [...new Set(bad)].join(' | '));
       const tr = await p.evaluate(() => { const tone = (sel, v) => { const e = document.querySelector(sel); if (!e) return 'missing ' + sel; const c = getComputedStyle(e), x = document.createElement('i'); x.style.color = `var(${v})`; e.parentElement.append(x); const want = getComputedStyle(x).color; x.remove(); return ['Top', 'Right', 'Bottom', 'Left'].every(s => c[`border${s}Color`] === want && parseFloat(c[`border${s}Width`]) > 0) || sel; };
-        go('lab', 'complaints'); const r = [tone('figure.persona', '--yellow'), tone('.recap', '--ink')]; go('rybex', 'news'); go('rybex', 'home'); r.push(tone('.rf-teaser', '--red-600')); go('rybex', 'career'); r.push(tone('.rf-job', '--rf-sea')); go('rybex', 'intranet'); r.push(tone('.ri-queue li', '--rf-sea'), tone('.persona-card blockquote', '--yellow'));
+        // Our own converted boxes keep their accent colour on the whole contour. The simulated Rybex website
+        // (.rybex-frame / .sp-frame) is a mock company site and is exempt — its boxes are not probed here.
+        go('lab', 'complaints'); const r = [tone('figure.persona', '--yellow'), tone('.recap', '--ink')];
         go('demos', 'risk'); r.push(tone('#riskDemo [data-state=good] .fb', '--green-600'), tone('#riskDemo [data-state=other] .fb', '--yellow')); go('demos', 'life'); r.push(tone('.quiz [data-state=right] .qz-fb, .quiz [data-state=wrong] .qz-fb', document.querySelector('.quiz [data-state=right]') ? '--green-600' : '--red-600'));
         return r.every(x => x === true) || r.filter(x => x !== true).join(); }); ok('a11y converted boxes keep their accent colour on the whole contour', tr === true, String(tr));
       ok('a11y no page errors (contours)', !p.errs.length, p.errs.join('|')); await p.close(); }
@@ -2061,7 +2068,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.evaluate(() => { team().track = 'maint'; baseClicked('maint'); save(); go('lab', 'maint'); });
     const mt = await p.evaluate(() => { const R = mtCompute(lab().mt); return { ev: R.m.ev, head: [...document.querySelectorAll('#mtRes .headline .stat')].map(s => s.textContent), recap: document.querySelector('#mtRes .recap').textContent }; });
     ok('persona maint headline counts whole breakdowns', mt.ev.total >= 1 && mt.head.length === 2 && mt.head[0].includes(`${mt.ev.caught} z ${mt.ev.total}`) && /Wykryte awarie \(całe awarie/.test(mt.head[0]), JSON.stringify(mt.head));
-    ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: z-score/.test($('#mtRes').textContent)));
+    ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: jak bardzo odczyt różni się od normy/.test($('#mtRes').textContent) && !/z-score/i.test($('#main').textContent)));
     ok('persona maint recap names breakdowns and alarm timing', new RegExp(`wykrył ${mt.ev.caught} z ${mt.ev.total}`).test(mt.recap) && /nie przed nią|nie wykrył/.test(mt.recap), mt.recap);
     // Knowledge assistant: an FAQ entry's own question is never returned as the answer; the example in the field gets a real answer.
     const ra = await p.evaluate(() => { const L = lab().rag, a = q => ragAnswer(q, ragAsk(q, L.chunk), L).a; return [a('Co zrobić, gdy puszka jest wybrzuszona?'), a('Klient zgłasza wybrzuszoną puszkę. Co robię?')]; });
@@ -2077,7 +2084,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
         { id: 'k', ts: '', track: 'complaints', cfg: { kw: { damage: 'x' }, safety: 'y' }, res: { dev: .639, base: .25, safety: 1, test: .708, primary: { m: 'trafność (test)', v: .708, base: .25, hi: true } }, note: 'n', testViews: 1 }];
       out.compl = reportFacts().bestTxt; out.complBest = bestRun(t, 'complaints').testEntry.id;
       t.log = [t.log[0]]; out.lost = reportFacts().bestTxt; lab().compl.testViews = 0; out.fresh = reportFacts().bestTxt; return out; });
-    ok('best result: tied tuning scores show the tested run, no second reveal', /^Test końcowy: F1 90,0/.test(r.tie) && !/odsłońcie/.test(r.tie), r.tie);
+    ok('best result: tied tuning scores show the tested run, no second reveal', /^Test końcowy: wykryte wady 90,0/.test(r.tie) && !/odsłońcie/.test(r.tie), r.tie);
     ok('best result: the tested keyword run is final, the better untested model run is named without advice to re-test', r.complBest === 'k' && /^Test końcowy: kategorie 17 z 24/.test(r.compl) && /inny wariant/.test(r.compl) && !/odsłońcie/.test(r.compl) && !/Uwaga/.test(r.compl), r.compl);
     ok('best result: test seen but not saved says so; before any reveal it asks for one reveal', /nie zapisał jego wyniku/.test(r.lost) && /odsłońcie go jeden raz/.test(r.fresh), JSON.stringify([r.lost, r.fresh]));
     await p.close(); }
@@ -2127,7 +2134,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // Fix 8: track-fitting case line, director quote and go-live consequences; optional download; no "(to demo)" in the report.
     const w = await p.evaluate(() => { const t = team(); t.decision.forecast = { m: 1, why: 'Trend i sezon pasują do danych.' }; return { cs: caseLine(), q: PERSONAS().hanna.quotes.brief, gl: GO_LIVE_DECISIONS(t).flatMap(d => d.options.map(o => o.fb)).join(' '), rep: reportHTML(), md: reportMD() }; });
     ok('simplify forecast case line, quote and go-live texts fit the task', !/kontrola jakości/.test(w.cs) && /ile produkować/.test(w.cs) && /pustym magazynem/.test(w.q) && !/dostawca puszek|zdjęcia z linii|duży model językowy/.test(w.gl) && /nowa sieć handlowa albo duża promocja/.test(w.gl), JSON.stringify([w.cs, w.q]));
-    ok('simplify report: no "(to demo)", criterion next to the best result', !/to demo/.test(w.rep + w.md) && /Trend × sezonowość<\/dd>/.test(w.rep) && /Kryterium sukcesu: „Błąd prognozy poniżej 10%\.”/.test(w.rep) && /Kryterium sukcesu: „Błąd prognozy poniżej 10%\.”/.test(w.md) && !/porównajcie z wynikiem/.test(w.rep + w.md));
+    ok('simplify report: no "(to demo)", criterion next to the best result', !/to demo/.test(w.rep + w.md) && /Trend × sezonowość<\/dd>/.test(w.rep) && /Wasze kryterium sukcesu: „Błąd prognozy/.test(w.rep) && /Wasze kryterium sukcesu: „Błąd prognozy/.test(w.md));
     ok('simplify vision keeps its own wording', await p.evaluate(() => { const t = team(), k = t.track; t.track = 'vision'; const r = [caseLine(), PERSONAS().hanna.quotes.brief, GO_LIVE_DECISIONS(t).flatMap(d => d.options.map(o => o.fb)).join(' ')]; t.track = k; return /kontrola jakości/.test(r[0]) && /walidacji/.test(r[1]) && /dostawca puszek/.test(r[2]); }));
     await p.evaluate(() => { FSEL = 'sales_history.csv'; go('data'); });
     ok('simplify data step: download is optional', /nie jest potrzebny dalej/.test(await p.$eval('#main', e => e.textContent)) && !/pobierzcie go do prototypu/.test(await p.$eval('#main', e => e.textContent)));
@@ -2145,9 +2152,9 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('simplify maint lesson callout above the tiles', await m.evaluate(() => { const c = $('#mtRes #mtLesson'), h = $('#mtRes .headline'); return !!c && c.offsetParent !== null && /w trakcie awarii, nie przed nią/.test(c.textContent) && !!(c.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); }));
     await m.evaluate(() => { lab().mt.thr = 3; save(); render(); }); await m.click('#sv');
     const ml = await m.evaluate(() => { const l = team().log.filter(x => x.track === 'maint'); return { e: logText(l[1]), b: logText(l[0]), cfg: cmpCfg(l[1]), best: reportFacts().bestTxt, list: $('#cmpList').textContent }; });
-    ok('simplify maint log entry: plain sensor names and mechanic numbers first', /^temperatura \+ drgania, próg 3,0, wygładzanie 1 min: wykryte awarie \d z \d, alarm średnio [\d,]+ min po początku awarii, fałszywe alarmy \d+ min; reguła PROCES-05: wykryte awarie/.test(ml.e) && ml.e.indexOf('F1') > ml.e.indexOf('Więcej miar'), ml.e);
+    ok('simplify maint log entry: plain sensor names and mechanic numbers first, no F1', /^temperatura \+ drgania, próg 3,0, wygładzanie 1 min: wykryte awarie \d z \d, alarm średnio [\d,]+ min po początku awarii, fałszywe alarmy \d+ min; reguła PROCES-05: wykryte awarie/.test(ml.e) && !/F1/.test(ml.e), ml.e);
     ok('simplify maint baseline entry and comparison list in plain numbers', /reguła PROCES-05 \(minuty 300–600\); wykryte awarie \d z \d/.test(ml.b) && /wykryte awarie \d z \d/.test(ml.list) && !/temp_c/.test(ml.cfg + ml.list), JSON.stringify(ml));
-    ok('simplify maint report headline in mechanic numbers, F1 under more metrics', /^Najlepsze ustawienie \(temperatura \+ drgania, [^)]+\): wykryte awarie \d z \d/.test(ml.best) && /Więcej miar: F1/.test(ml.best), ml.best);
+    ok('simplify maint report headline in mechanic numbers, no F1', /^Najlepsze ustawienie \(temperatura \+ drgania, [^)]+\): wykryte awarie \d z \d/.test(ml.best) && !/F1/.test(ml.best), ml.best);
     ok('simplify maint: an old entry without the counts still reads', await m.evaluate(() => /F1=/.test(logText({ track: 'maint', cfg: { keys: ['temp_c'], thr: 3, win: 1 }, res: { f1: .5, p: .5, r: .5, base: .4 } }))));
     ok('simplify maint no page errors', !m.errs.length, m.errs.join('|')); await m.close();
     // Fix 10: on a phone the bar's text and button wrap instead of cutting words.

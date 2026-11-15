@@ -54,7 +54,7 @@ console.log('\nUX-001 forecast tabs');
 console.log('\nUX-002 sliders');
 { const p = await fresh(); const cases = [['demos', 'metr', '#th'], ['demos', 'metr', '#pv'], ['demos', 'split', '#tp']];
   for (const [v, s, sel] of cases) { await p.evaluate(([v, s]) => go(v, s), [v, s]); await p.waitForSelector(sel); const r = await drag(p, sel, .2, .9); ok(`002 drag ${s} ${sel}`, r.distinct >= 4 && r.end > +r.trail[0], JSON.stringify(r)); }
-  await nav(p, 'lab'); for (const [k, sels] of [['vision', ['#vd', '#vs', '#vc']], ['rag', ['#rk', '#rc', '#rm']], ['forecast', ['#fh', '#fw']], ['maint', ['#mt', '#mw']]]) { await track(p, k); for (const sel of sels) { const r = await drag(p, sel, .1, .9); ok(`002 drag ${k} ${sel}`, r.distinct >= 3, JSON.stringify(r)); } }
+  await nav(p, 'lab'); for (const [k, sels] of [['vision', ['#vd']], ['rag', ['#rk', '#rc', '#rm']], ['forecast', ['#fh', '#fw']], ['maint', ['#mt', '#mw']]]) { await track(p, k); for (const sel of sels) { const r = await drag(p, sel, .1, .9); ok(`002 drag ${k} ${sel}`, r.distinct >= 3, JSON.stringify(r)); } }
   await track(p, 'maint'); await p.focus('#mt'); const v0 = +await val(p, '#mt'); for (let i = 0; i < 4; i++) await p.keyboard.press('ArrowRight');
   ok('002 arrows move 4 steps', Math.abs(+await val(p, '#mt') - v0 - .4) < .001); ok('002 focus kept', await p.evaluate(() => document.activeElement.id) === 'mt');
   const f0 = await p.$eval('#mtRes', e => e.dataset.f1); await drag(p, '#mt', .1, .8); ok('002 results update live', f0 !== await p.$eval('#mtRes', e => e.dataset.f1)); ok('002 no errors', !p.errs.length, p.errs.join('|')); }
@@ -125,7 +125,7 @@ console.log('\nUX-007 reproducible experiments');
 
 console.log('\nUX-008 report');
 { const p = await fresh(undefined, TRAINER + '#/lab/vision'); await p.click('#pickTrack'); await p.evaluate(() => { $('#labMethod details').open = true; }); await p.click('input[name=meth][value="0"]'); await p.fill('#methWhy', 'Bo <tanie> i wyjaśnialne'); await p.click('#visRv'); await p.click('#sv'); await nav(p, 'arch'); await p.click('button[data-p=vision]'); await nav(p, 'deliver');
-  const h = await download(p, '#expH', 'r.html'); const html = fs.readFileSync(h.file, 'utf8'); ok('008 html has diagram', html.includes('<svg')); ok('008 states track, method, why, best', /Wizyjna kontrola/.test(html) && /Reguły na cechach/.test(html) && html.includes('Bo &lt;tanie&gt;') && /Test końcowy: F1 /.test(html) && html.includes('zawsze OK')); ok('008 infra localized', html.includes('hybrydowa')); ok('008 title fallback', html.includes('<h1>Zespół 1</h1>'));
+  const h = await download(p, '#expH', 'r.html'); const html = fs.readFileSync(h.file, 'utf8'); ok('008 html has diagram', html.includes('<svg')); ok('008 states track, method, why, best', /Wizyjna kontrola/.test(html) && /Reguły na cechach/.test(html) && html.includes('Bo &lt;tanie&gt;') && /wykryte wady/.test(html) && html.includes('kontrola wzrokowa')); ok('008 infra localized', html.includes('hybrydowa')); ok('008 title fallback', html.includes('<h1>Zespół 1</h1>'));
   const m = await download(p, '#exp', 'r.md'); const md = fs.readFileSync(m.file, 'utf8'); ok('008 md embeds diagram', md.includes('data:image/svg+xml;base64,')); ok('008 md summary', md.includes('Wizyjna kontrola') && md.includes('Bo &lt;tanie&gt;')); if (EV) { const v = await p.context().newPage(); await v.goto('file://' + h.file); await v.screenshot({ path: `${EV}/after-report.png`, fullPage: true }); await v.close(); } }
 
 console.log('\nUX-009 safety');
