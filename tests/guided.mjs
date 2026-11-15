@@ -324,7 +324,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.click('#sv');
     const lg = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { ver: l.cfg.ver, txt: logText(l) }; });
     ok('log entry carries cfg.ver and shows it', lg.ver === 'v2' && /prompt v2/.test(lg.txt), JSON.stringify(lg));
-    ok('older vision log entries without ver render as before', await p.evaluate(() => logText({ track: 'vision', cfg: { mode: 'llm', model: 'x', shots: 0, set: 'val' }, res: { val: { f1: .5, p: .5, r: .5 }, ruleF1: .4 } }) === `[model] ${cnt(0, 'example')}, ${T('walidacja', 'validation')}: F1=${pct(.5)}, P=${pct(.5)}, R=${pct(.5)}; ${T('reguły pikselowe', 'pixel rules')} F1=${pct(.4)}`));
+    ok('final r2 older vision log entries without ver render as before', await p.evaluate(() => logText({ track: 'vision', cfg: { mode: 'llm', model: 'x', shots: 0, set: 'val' }, res: { val: { f1: .5, p: .5, r: .5 }, ruleF1: .4 } }) === `[model] ${cnt(0, 'example')}, ${T('walidacja', 'validation')}: ${T('wykryte wady', 'defects found')} ${pct(.5)}`));
     await p.selectOption('#vPromptVer', 'v1');
     ok('a switched version marks the shown result as from another prompt', await p.$eval('#visModelRes', e => e.dataset.stale) === '1' && /v2/.test(await p.$eval('#visStale', e => e.textContent)));
     await p.evaluate(() => restoreRun(team().log[team().log.length - 1]));
@@ -453,7 +453,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       await p.close(); }
     // 7 + 8: report grammar and English wording.
     { const p = await fresh('#/lab/forecast');
-      const gen = { vision: '„zawsze OK”', rag: 'wyszukiwania dosłownego', complaints: 'klasy większościowej', forecast: 'średniej historycznej', maint: 'reguły PROCES-05' };
+      const gen = { vision: 'kontroli wzrokowej', rag: 'wyszukiwania dosłownego', complaints: 'klasy większościowej', forecast: 'średniej historycznej', maint: 'reguły PROCES-05' };
       const nom = ['wyszukiwanie dosłowne', 'klasa większościowa', 'średnia historyczna', 'reguła PROCES-05'];
       for (const k of Object.keys(gen)) {
         const md = await p.evaluate(k => { const t = team(); t.track = k; t.log = [{ id: 'r1', ts: '', track: k, cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: .3, hi: true } }, note: '', testViews: 0 }]; return reportMD(); }, k);
@@ -2063,7 +2063,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.evaluate(() => { team().track = 'maint'; baseClicked('maint'); save(); go('lab', 'maint'); });
     const mt = await p.evaluate(() => { const R = mtCompute(lab().mt); return { ev: R.m.ev, head: [...document.querySelectorAll('#mtRes .headline .stat')].map(s => s.textContent), recap: document.querySelector('#mtRes .recap').textContent }; });
     ok('persona maint headline counts whole breakdowns', mt.ev.total >= 1 && mt.head.length === 2 && mt.head[0].includes(`${mt.ev.caught} z ${mt.ev.total}`) && /Wykryte awarie \(całe awarie/.test(mt.head[0]), JSON.stringify(mt.head));
-    ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: z-score/.test($('#mtRes').textContent)));
+    ok('persona maint lab explains its controls and table in plain words', await p.evaluate(() => !!document.querySelector('#mtHelp') && /Wygładzanie/.test($('#mtHelp').textContent) && !/\((TP|FN|FP|TN)\)/.test($('#mtRes').textContent) && /Oś pionowa: jak bardzo odczyt różni się od normy/.test($('#mtRes').textContent) && !/z-score/i.test($('#main').textContent)));
     ok('persona maint recap names breakdowns and alarm timing', new RegExp(`wykrył ${mt.ev.caught} z ${mt.ev.total}`).test(mt.recap) && /nie przed nią|nie wykrył/.test(mt.recap), mt.recap);
     // Knowledge assistant: an FAQ entry's own question is never returned as the answer; the example in the field gets a real answer.
     const ra = await p.evaluate(() => { const L = lab().rag, a = q => ragAnswer(q, ragAsk(q, L.chunk), L).a; return [a('Co zrobić, gdy puszka jest wybrzuszona?'), a('Klient zgłasza wybrzuszoną puszkę. Co robię?')]; });
@@ -2079,7 +2079,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
         { id: 'k', ts: '', track: 'complaints', cfg: { kw: { damage: 'x' }, safety: 'y' }, res: { dev: .639, base: .25, safety: 1, test: .708, primary: { m: 'trafność (test)', v: .708, base: .25, hi: true } }, note: 'n', testViews: 1 }];
       out.compl = reportFacts().bestTxt; out.complBest = bestRun(t, 'complaints').testEntry.id;
       t.log = [t.log[0]]; out.lost = reportFacts().bestTxt; lab().compl.testViews = 0; out.fresh = reportFacts().bestTxt; return out; });
-    ok('best result: tied tuning scores show the tested run, no second reveal', /F1 \(test\): 90,0/.test(r.tie) && !/odsłońcie/.test(r.tie), r.tie);
+    ok('best result: tied tuning scores show the tested run, no second reveal', /wykryte wady \(test\): 90,0/.test(r.tie) && !/odsłońcie/.test(r.tie), r.tie);
     ok('best result: the tested keyword run is final, the better untested model run is named without advice to re-test', r.complBest === 'k' && /trafność \(test\): 70,8/.test(r.compl) && /inny wariant/.test(r.compl) && !/odsłońcie/.test(r.compl) && !/Uwaga/.test(r.compl), r.compl);
     ok('best result: test seen but not saved says so; before any reveal it asks for one reveal', /nie zapisał wyniku końcowego/.test(r.lost) && /odsłońcie go jeden raz/.test(r.fresh), JSON.stringify([r.lost, r.fresh]));
     await p.close(); }
@@ -2147,9 +2147,9 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('simplify maint lesson callout above the tiles', await m.evaluate(() => { const c = $('#mtRes #mtLesson'), h = $('#mtRes .headline'); return !!c && c.offsetParent !== null && /w trakcie awarii, nie przed nią/.test(c.textContent) && !!(c.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING); }));
     await m.evaluate(() => { lab().mt.thr = 3; save(); render(); }); await m.click('#sv');
     const ml = await m.evaluate(() => { const l = team().log.filter(x => x.track === 'maint'); return { e: logText(l[1]), b: logText(l[0]), cfg: cmpCfg(l[1]), best: reportFacts().bestTxt, list: $('#cmpList').textContent }; });
-    ok('simplify maint log entry: plain sensor names and mechanic numbers first', /^temperatura \+ drgania, próg 3,0, wygładzanie 1 min: wykryte awarie \d z \d, alarm średnio [\d,]+ min po początku awarii, fałszywe alarmy \d+ min; reguła PROCES-05: wykryte awarie/.test(ml.e) && ml.e.indexOf('F1') > ml.e.indexOf('Więcej miar'), ml.e);
+    ok('simplify maint log entry: plain sensor names and mechanic numbers first, no F1', /^temperatura \+ drgania, próg 3,0, wygładzanie 1 min: wykryte awarie \d z \d, alarm średnio [\d,]+ min po początku awarii, fałszywe alarmy \d+ min; reguła PROCES-05: wykryte awarie/.test(ml.e) && !/F1/.test(ml.e), ml.e);
     ok('simplify maint baseline entry and comparison list in plain numbers', /reguła PROCES-05 \(minuty 300–600\); wykryte awarie \d z \d/.test(ml.b) && /wykryte awarie \d z \d/.test(ml.list) && !/temp_c/.test(ml.cfg + ml.list), JSON.stringify(ml));
-    ok('simplify maint report headline in mechanic numbers, F1 under more metrics', /^Najlepsze ustawienie \(temperatura \+ drgania, [^)]+\): wykryte awarie \d z \d/.test(ml.best) && /Więcej miar: F1/.test(ml.best), ml.best);
+    ok('simplify maint report headline in mechanic numbers, no F1', /^Najlepsze ustawienie \(temperatura \+ drgania, [^)]+\): wykryte awarie \d z \d/.test(ml.best) && !/F1/.test(ml.best), ml.best);
     ok('simplify maint: an old entry without the counts still reads', await m.evaluate(() => /F1=/.test(logText({ track: 'maint', cfg: { keys: ['temp_c'], thr: 3, win: 1 }, res: { f1: .5, p: .5, r: .5, base: .4 } }))));
     ok('simplify maint no page errors', !m.errs.length, m.errs.join('|')); await m.close();
     // Fix 10: on a phone the bar's text and button wrap instead of cutting words.
