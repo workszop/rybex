@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'vision-realistic', 'web');
+const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'vision-generated', 'web');
 const OUT = path.join(DIR, 'photos.js');
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 

@@ -1196,7 +1196,7 @@ function drawCan(c,seed,type){const x=c.getContext('2d',{willReadFrequently:true
 const NAV=[['home','house',['Start','Start']],['brief','clipboard-list',['Opis projektu','Brief']],['data','folder-open',['Dane','Data']],['demos','clapperboard',['Demonstracje','Demos']],['lab','flask-conical',['Laboratorium','Build lab']],['arch','network',['Architektura','Architecture']],['deliver','circle-check',['Wyniki i raport','Results and report']]];
 const DEMO_KEYS=['life','tok','rag','split','metr','risk'],LAB_KEYS=['vision','rag','complaints','forecast','maint'];
 function visionDataSource(){return VIS.photoCount?T(`Wygenerowane fotografie Rybex (wczytano ${VIS.photoCount}/${VIS.expectedPhotoCount}); w miejsce brakujących aplikacja wstawia obrazy syntetyczne.`,`Generated Rybex photographic images (${VIS.photoCount}/${VIS.expectedPhotoCount} loaded); missing items use the synthetic fallback.`):T('Syntetyczny obraz bazowy generowany w przeglądarce; fotografie nie zostały wczytane.','Synthetic baseline generated in the browser; photographic images were not loaded.')}
-function visionAssetSizeNote(){return T('Aplikacja pobiera kopie zdjęć 320×400 px (JPEG, razem ok. 5 MB) z assets/vision-realistic/web/; galeria, podgląd, model i ZIP używają tej samej rozdzielczości.','The app downloads 320×400 px copies of the photos (JPEG, about 5 MB in total) from assets/vision-realistic/web/; the gallery, preview, model and ZIP use the same resolution.')}
+function visionAssetSizeNote(){return T('Aplikacja pobiera wygenerowane obrazy 320×400 px (JPEG) z assets/vision-generated/web/; galeria, podgląd, model i ZIP używają tej samej rozdzielczości.','The app downloads generated 320×400 px images (JPEG) from assets/vision-generated/web/; the gallery, preview, model and ZIP use the same resolution.')}
 function visionDataCount(){return`${VISION_SPLIT_COUNTS.train} ${T('treningowych','train')} + ${VISION_SPLIT_COUNTS.val} ${T('walidacyjnych','validation')} + ${VISION_SPLIT_COUNTS.test} ${T('testowych','test')} = ${VISION_ASSET_TOTAL}`}
 const FILES=()=>[
  {d:'01_brief',f:[['project_description.md','md']]},
@@ -1262,7 +1262,7 @@ let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision',rybex:'home'}
 const AIS={state:'nocode',err:'',checked:false,calls:0,inTok:0,outTok:0,cost:0,teamSpend:null,limits:null,rec:new Map(),replay:undefined,run:null,timeoutMs:AI_TIMEOUT_MS};
 const T=(pl,en)=>S.lang==='pl'?pl:en,langIx=()=>S.lang==='pl'?0:1;
 // Published 320×400 JPEG copies (≈5 MB); the full-size PNG renders are not shipped.
-const VISION_ASSET_DIR='assets/vision-realistic/web/',VISION_SPLITS=['train','val','test'],VISION_SPLIT_COUNTS={train:90,val:60,test:60},VISION_ASSET_TOTAL=210;
+const VISION_ASSET_DIR='assets/vision-generated/web/',VISION_SPLITS=['train','val','test'],VISION_SPLIT_COUNTS={train:90,val:60,test:60},VISION_ASSET_TOTAL=210;
 const VIS={featureSource:'synthetic',initialized:false,loading:false,queued:false,readyPromise:null,status:'idle',error:'',fallbackReason:'',manifestVersion:null,manifestRejected:0,photoCount:0,fallbackCount:VISION_ASSET_TOTAL,expectedPhotoCount:VISION_ASSET_TOTAL,datasetKey:'synthetic-baseline-v1',photoHashes:[]};
 const TOK_SAMPLE={pl:`Puszka szprota w oleju, partia ${LOT} została wstrzymana.`,en:`A can of sprats in oil, batch ${LOT}, has been put on hold.`};
 const X={life:0,tokTxt:TOK_SAMPLE.pl,tokIn:'1',tokOut:'1',tokCtx:2000,tokAns:300,tokCalls:10000,ragStep:-1,testPct:20,leak:false,shuf:1,thr:.5,prev:5,ragTimer:null};
@@ -1501,9 +1501,9 @@ const dataUrlBytes=u=>Uint8Array.from(atob(u.split(',')[1]),c=>c.charCodeAt(0));
 const visionItems=()=>[...VIS.train,...VIS.val,...VIS.test];
 const visionPhotoStatus=()=>{
  if(VIS.loading)return T('Ładowanie fotografii…','Loading photographic images…');
- if(VIS.photoCount===VIS.expectedPhotoCount)return T(`Fotografie: ${VIS.photoCount}/${VIS.expectedPhotoCount}.` ,`Photographic images: ${VIS.photoCount}/${VIS.expectedPhotoCount}.`);
+ if(VIS.photoCount===VIS.expectedPhotoCount)return T(`Obrazy wygenerowane: ${VIS.photoCount}/${VIS.expectedPhotoCount}. Klasy wad pochodzą z poleceń generowania i nie zostały zweryfikowane; wyniki oceny mogą być niewiarygodne.`,`Generated images: ${VIS.photoCount}/${VIS.expectedPhotoCount}. Defect classes come from generation prompts and have not been verified; evaluation results may be unreliable.`);
  if(VIS.photoCount)return T(`Fotografie: ${VIS.photoCount}/${VIS.expectedPhotoCount}; w miejsce pozostałych aplikacja wstawia obrazy syntetyczne.`,`Photographic images: ${VIS.photoCount}/${VIS.expectedPhotoCount}; the rest use the synthetic fallback.`);
- if(VIS.fallbackReason==='file')return T('Tryb file://: brak pliku assets/vision-realistic/web/photos.js, więc używane są rysowane puszki. Zbudujcie go poleceniem node tools/vision-bundle.mjs albo uruchomcie aplikację przez HTTP.','file:// mode: assets/vision-realistic/web/photos.js is missing, so the drawn cans are used. Build it with node tools/vision-bundle.mjs or serve the app over HTTP.');
+ if(VIS.fallbackReason==='file')return T('Tryb file://: brak pliku assets/vision-generated/web/photos.js, więc używane są rysowane puszki. Zbudujcie go poleceniem node tools/vision-bundle.mjs albo uruchomcie aplikację przez HTTP.','file:// mode: assets/vision-generated/web/photos.js is missing, so the drawn cans are used. Build it with node tools/vision-bundle.mjs or serve the app over HTTP.');
  return T('Fotografie są niedostępne; aplikacja używa obrazów syntetycznych.','Photographic images are unavailable; the synthetic fallback is in use.');
 };
 const visionFeatureDisclosure=()=>{

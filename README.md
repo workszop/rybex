@@ -4,6 +4,8 @@ Workshop app for running an AI project end to end for Rybex, a canned-fish manuf
 
 **Open:** https://workszop.github.io/rybex/
 
+The vision lab now loads the separately generated can dataset from `assets/vision-generated/web/`; the previous dataset remains in `assets/vision-realistic/web/`. Its defect classes are generation-prompt labels and have not been visually verified, so experiment scores are provisional. The generated artwork and framing differ from the original data, so pixel-rule performance and recorded AI responses may also differ. Rebuild the local-file bundle with `node tools/vision-bundle.mjs` after changing the new dataset.
+
 - One HTML file (`rybex-ai-workshop.html`), no build step. Next to it ship the vision photo set (`assets/vision-realistic/web/`) and four product images for the company site (`assets/products/`). Team work is stored in the browser and can be exported as a team file.
 - Rybex data: 210 photo-style can images (`assets/vision-realistic/web/`, 320×400 JPEG, about 5 MB; drawn images are the fallback when they cannot load; the photos load on the first visit to the vision lab or the image folder), plus synthetic sales history, sensor readings, complaints and company documents (12: procedures PROCES-01…08, a seamer workstation instruction, a quality FAQ, a procedure-change notice and one archived procedure version).
 - The vision pixel rules measure the photos (dent, label shift, batch-code sharpness). The set includes borderline cases (shallow dents, small label shifts, light smudges, harmless glare, soft print) so the thresholds involve a real trade-off.
