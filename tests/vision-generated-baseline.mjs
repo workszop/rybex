@@ -6,7 +6,9 @@ import path from 'node:path';
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
-  await page.goto(pathToFileURL(path.resolve('rybex-ai-workshop.html')).href + '#/lab/vision');
+  await page.goto(pathToFileURL(path.resolve('rybex-ai-workshop.html')).href + '#/lab/vision', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof visInit === 'function' && typeof team === 'function');
+  await page.evaluate(() => visInit()); // the photos load on first use, not when the lab opens
   await page.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 90000 });
   const result = await page.evaluate(() => ({
     photoCount: VIS.photoCount, baseline: visHumanEval(VIS.val),

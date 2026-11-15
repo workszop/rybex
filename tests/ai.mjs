@@ -9,7 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8796, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
-const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}${q}`;
+// rooms=0: the lab as the plain page (the walk-in 3D rooms have their own suite, tests/rooms.mjs integration).
+const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0${q}`;
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
 
@@ -67,7 +68,7 @@ try {
     await mock('replay', { method: 'POST', body: rec });
     await p.close();
     const ctx = await browser.newContext(); const q = await ctx.newPage(); q.errs = [];
-    await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`);
+    await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`);
     await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     await q.evaluate(() => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; });
     const rp = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { replayed: x.replayed, a: x.data && x.data.answer }; });
@@ -76,7 +77,7 @@ try {
     ok('unreachable Worker, not in replay -> network error', miss === 'network', miss);
     await ctx.close();
     const ctx3 = await browser.newContext(); const q3 = await ctx3.newPage();
-    await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`);
+    await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`);
     await q3.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     const par = await q3.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek';
       const msgs = [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }];
@@ -382,7 +383,7 @@ try {
     const openVision = async url => {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage(); p.errs = [];
       p.on('pageerror', e => p.errs.push(e.message));
-      await p.goto(url + '#/lab/vision');
+      await p.goto(url + (url.includes('?') ? '&' : '?') + 'rooms=0#/lab/vision');
       await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
       return p;
     };

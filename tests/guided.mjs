@@ -11,7 +11,8 @@ import { lowContrast } from './contrast.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8797, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
-const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}${q}`;
+// rooms=0: the lab as the plain page (the walk-in 3D rooms have their own suite, tests/rooms.mjs integration).
+const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0${q}`;
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
 
@@ -80,7 +81,7 @@ try {
     await p.waitForSelector('#proto .recap'); await p.evaluate(() => baseClicked('forecast', 'maint'));
     const r0 = await p.$eval('#proto .recap', e => ({ t: e.textContent, set: e.dataset.set, track: e.dataset.track }));
     ok('recap vision present on validation set', r0.track === 'vision' && r0.set === 'val' && /zestawu ćwiczeniowego/.test(r0.t), JSON.stringify(r0));
-    await p.focus('#vd'); for (let i = 0; i < 6; i++) await p.keyboard.press('ArrowRight');
+    await p.focus('#vd'); await p.keyboard.press('End');
     ok('recap follows the slider', r0.t !== await p.$eval('#proto .recap', e => e.textContent));
     ok('recap numbers equal the data contract', await p.evaluate(() => { const m = visEval(VIS.val, visTh()); const t = document.querySelector('#proto .recap').textContent; return t.includes(String(m.fn)) && t.includes(String(m.tp + m.fp)); }));
     for (const k of ['rag', 'complaints', 'forecast', 'maint']) { await p.evaluate(k => go('lab', k), k); await p.waitForSelector('#proto .recap'); ok(`recap on ${k}`, await p.$eval('#proto .recap', e => e.dataset.track) === k); }
@@ -510,8 +511,8 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('gate lower error beats the baseline on forecast', r === 'true', r);
       await f.close(); }
     { const v = await fresh('#/lab/vision');
-      const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4 }, test: { f1: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
-      ok('gate vision banner never reads a test-set value', r.best === '0.4' && /Test końcowy zrobiony/.test(r.txt) && !/Dopiero teraz/.test(r.txt), JSON.stringify(r));
+      const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4, r: .8 }, test: { f1: .9, r: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
+      ok('gate vision banner never reads a test-set value', r.best === '0.8' && /Test końcowy zrobiony/.test(r.txt) && !/Dopiero teraz/.test(r.txt), JSON.stringify(r));
       await v.close(); }
     // Review round 1: like-with-like banner, focus on an unsaved baseline, visible justification minimum.
     { const f = await fresh('#/lab/forecast');
@@ -1666,7 +1667,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const rec = await p.evaluate(async () => { S.ai.code = 'test-code'; await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
       await fetch(MOCK + '/replay', { method: 'POST', body: rec }); await p.close();
       const ctx = await browser.newContext(); const q = await ctx.newPage();
-      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
       await q.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; lab().rag.gen = 'llm'; render(); await aiCheck(); });
       const before = await q.$eval('#aiStatus', e => e.textContent);
       const r = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] });
@@ -2190,7 +2191,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await c.evaluate(() => go('lab', 'complaints')); await c.fill('#expNote', 'Słowa łapią wszystkie groźne zgłoszenia.'); await c.click('#sv');
     const c3 = await c.evaluate(() => ({ ban: $('#baseBanner').textContent, best: reportFacts().bestTxt, rep: reportHTML(), md: reportMD() }));
     ok('simplify2 complaints after the test: no "think about the test", final verdict shown', !/Dopiero teraz/.test(c3.ban) && /Test końcowy zrobiony/.test(c3.ban) && /Test końcowy: kategorie \d+ z 24 · groźne \d z 6\. Metoda odniesienia \(klasa większościowa\) na teście końcowym: kategorie \d+ z 24/.test(c3.ban), c3.ban);
-    ok('simplify2 report headline in counts, criterion without instruction', /^Test końcowy: kategorie \d+ z 24 · groźne \d z 6/.test(c3.best) && /Kryterium sukcesu: „Nic o zepsutej puszce nie ginie\.”/.test(c3.rep) && !/porównajcie z wynikiem/.test(c3.rep + c3.md), c3.best);
+    ok('simplify2 report headline in counts, criterion without instruction', /^Test końcowy: kategorie \d+ z 24 · groźne \d z 6/.test(c3.best) && /Kryterium sukcesu: „Nic o zepsutej puszce nie ginie\.”/.test(c3.rep) && !/porównajcie z wynikiem/.test(c3.rep + c3.md), JSON.stringify({ crit: (c3.rep.match(/Kryterium sukcesu[^<]{0,70}/) || [''])[0], cmp: (c3.rep + c3.md).includes('porównajcie z wynikiem'), best: c3.best.slice(0, 40) }));
     // 7b. The template follows the chosen method and keeps anonymisation; a diagram that contradicts the method is warned.
     await c.evaluate(() => go('arch')); await c.click('button[data-p=complaints]');
     const c7 = await c.evaluate(() => { const a = team().arch.sel, w1 = goLiveWarnings(team()); a.llm = true; const w2 = goLiveWarnings(team()); delete a.llm; return { llm: !!a.llm, anon: !!a.anon, w1, w2, q: $('#main').textContent }; });

@@ -33,18 +33,18 @@ const waitForServer = new Promise((resolve, reject) => {
   srv.once('exit', onExit);
 });
 
-const PNG_1X1 = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+const JPEG_1X1 = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==',
   'base64'
 );
 const manifest = {
   version: 1,
   images: [
-    { id: 'train_003', split: 'train', type: 'ok', file: 'train_003.png' },
-    { id: 'val_002', split: 'val', type: 'ok', file: 'val_002.png' },
-    { id: 'test_001', split: 'test', type: 'ok', file: 'test_001.png' },
+    { id: 'train_003', split: 'train', type: 'ok', file: 'train_003.jpg' },
+    { id: 'val_002', split: 'val', type: 'ok', file: 'val_002.jpg' },
+    { id: 'test_001', split: 'test', type: 'ok', file: 'test_001.jpg' },
     // Deliberately wrong: train_001 is code in the immutable original inventory.
-    { id: 'train_001', split: 'train', type: 'ok', file: 'train_001.png' },
+    { id: 'train_001', split: 'train', type: 'ok', file: 'train_001.jpg' },
   ],
 };
 
@@ -75,10 +75,10 @@ try {
     contentType: 'application/json',
     body: JSON.stringify(manifest),
   }));
-  await page.route('**/assets/vision-generated/web/*.png', route => route.fulfill({
+  await page.route('**/assets/vision-generated/web/*.jpg', route => route.fulfill({
     status: 200,
-    contentType: 'image/png',
-    body: PNG_1X1,
+    contentType: 'image/jpeg',
+    body: JPEG_1X1,
   }));
   await page.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}#/data`, { waitUntil: 'domcontentloaded' });
   const idle = await page.evaluate(() => ({ status: document.body.dataset.visionStatus, initialized: VIS.initialized }));
@@ -104,14 +104,14 @@ try {
   const shortState = { ...state, first: { ...state.first, url: state.first.url.slice(0, 24) }, second: { ...state.second, url: state.second.url.slice(0, 24) }, big: state.big.slice(0, 24), payload: state.payload.slice(-120) };
   ok('photos are not loaded until the image folder is opened', idle.status === 'idle' && idle.initialized === false, JSON.stringify(idle));
   ok('manifest becomes ready with expected and loaded counts', state.status === 'ready' && state.expected === 210 && state.photos === 3 && state.fallback === 207, JSON.stringify(shortState));
-  ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/png') && /assets\/vision-generated\/web\/train_003\.png$/.test(state.first.originalUrl), JSON.stringify(state.first));
+  ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/jpeg') && /assets\/vision-generated\/web\/train_003\.jpg$/.test(state.first.originalUrl), JSON.stringify(state.first));
   ok('manifest label mismatch is rejected without changing immutable truth', state.rejected === 1 && state.mismatch.id === 'train_001' && state.mismatch.type === 'code' && state.mismatch.bad && state.mismatch.source === 'synthetic', JSON.stringify(state.mismatch));
   ok('missing items visibly remain synthetic fallback', state.second.source === 'synthetic' && state.second.type === 'code' && state.second.url.startsWith('data:image/'), JSON.stringify(state.second));
-  ok('visBig and model payload contain data URLs, not photo paths', state.big.startsWith('data:image/') && !state.payload.includes('/assets/vision-generated/') && !state.payload.includes('train_003.png'), state.payload.slice(-200));
+  ok('visBig and model payload contain data URLs, not photo paths', state.big.startsWith('data:image/') && !state.payload.includes('/assets/vision-generated/') && !state.payload.includes('train_003.jpg'), state.payload.slice(-200));
     const zip = await page.evaluate(async () => {
       const blob = zipStore([
-        { name: 'train/train_001.png', data: dataUrlBytes(VIS.train[0].url) },
-        { name: 'val/val_001.png', data: dataUrlBytes(VIS.val[0].url) },
+        { name: 'train/train_001.jpg', data: dataUrlBytes(VIS.train[0].url) },
+        { name: 'val/val_001.jpg', data: dataUrlBytes(VIS.val[0].url) },
       ]);
       const bytes = new Uint8Array(await blob.arrayBuffer());
       return { size: bytes.length, signature: Array.from(bytes.slice(0, 4)) };

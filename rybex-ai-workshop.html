@@ -18,6 +18,7 @@
 </style>
 <noscript><style>html:not(.app-ready) body { visibility: visible; animation: none; }</style></noscript>
 <script src="https://cdn.jsdelivr.net/npm/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous" async></script>
+<link rel="stylesheet" href="rooms/rooms.css">
 <style>
 /* ============================================================
    edulab - Colors & Type foundation
@@ -681,6 +682,14 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}body *,body *::before,body *::after{animation:none!important}}
 /* Short desktop windows: a tighter page head, so the first action of a page is on screen */
 @media (min-width:769px) and (max-height:760px){.page-head{padding:14px var(--gutter) 16px}.app-title{font-size:2.1rem;margin-bottom:6px}.sec{padding-top:20px}}
+/* Walk-in rooms (rooms/*.js): the lab task in its own 3D room under the header; the lab sections are the station panels.
+   The room is a screen tall less the sticky bars, so opening a station can scroll its top right under them (the footer gives the 16 px). */
+#roomHost{position:relative;height:clamp(420px,calc(100vh - var(--hdr-h,0px) - 16px),1100px);border-top:1px solid var(--line)}
+body.in-room #main{padding-bottom:0}
+body.in-room .toast{left:24px;right:auto;transform:none;max-width:calc(100vw - min(560px,45vw) - 40px)}
+body.in-room #main .page-head{padding-top:14px;padding-bottom:14px}body.in-room #main .app-title{font-size:1.9rem;margin-bottom:8px}body.in-room #main .edu-lead{display:none}
+.room-slot .sec{padding:0;border:0;background:none}.room-slot .wrap{padding:0}.room-pane>*+*,.room-pane .sec+.sec{margin-top:18px}
+.room-slot .grid2,.room-slot .grid3,.room-slot .group-hero{grid-template-columns:minmax(0,1fr)}.room-slot .group-hero{padding:18px 20px;gap:16px}.room-slot .sec-head h2{font-size:24px}
 </style>
 </head>
 <body class="edu">
@@ -704,11 +713,19 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 </div>
 <div class="savewarn" id="saveWarn" role="alert" hidden></div>
 <main id="main" tabindex="-1"></main>
+<div id="roomHost" hidden></div>
 <footer class="foot" id="foot"></footer>
 <dialog id="insp" aria-labelledby="inspTitle"></dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="sr-only" id="live" aria-live="polite"></div>
 
+<script src="vendor/three/three.global.js"></script>
+<script src="rooms/engine.js"></script>
+<script src="rooms/room-vision.js"></script>
+<script src="rooms/room-rag.js"></script>
+<script src="rooms/room-complaints.js"></script>
+<script src="rooms/room-forecast.js"></script>
+<script src="rooms/room-maint.js"></script>
 <script>
 // ─── Constants ───
 const APP_ID='rybex-ai-workshop',STORE_KEY='rybexws',FILE_VERSION=3,TEAM_COUNT=8,MIN_EXPERIMENTS=3,PREVIEW_ROWS=40,TOAST_MS=8000,TOAST_ACTION_MS=20000,WEAK_SIM=.35,FONT_WAIT_MS=1500;
@@ -1262,11 +1279,14 @@ const VSHOTS=[0,4,8],MAX_VRUNS=10,KEEP_REASONS=2;
 // ─── State ───
 const defaultLab=()=>({vision:{th:null,testViews:0,revealed:false,method:'rules',vshots:0,mruns:[],vsel:'',prompts:[],active:'v1',draft:null},rag:{k:2,chunk:1,min:.12,msgs:[],testViews:0,revealed:false,gen:'extract',judge:false,mrun:null},compl:{kw:{...KW},safety:SAFETY_KW,testViews:0,revealed:false,sel:0,method:'rules',prompts:[],active:'v1',draft:null,shots:0,runs:[],rsel:'',curve:null,cmp:null},fc:{p:0,h:6,w:3,show:{mean:1,naive:0,snaive:1,ma:0,ts:1}},mt:{thr:4,win:1,f:{temp_c:1,vibration_mm_s:1,pressure_bar:0}}});
 const defaultTeam=()=>({name:'',track:null,decision:{},checks:{},notes:{},arch:{sel:{},infra:'hybrid',decisions:{}},log:[],lab:defaultLab(),goal:'',onboardedAt:'',seen:{testSave:true},site:{newsRead:false,contactSent:false,intranetOpened:false},inbox:[],quizzes:{},challenges:{},risks:{},badges:[]});
-let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision',rybex:'home'},teams:{},ai:{code:'',model:'deepseek'},trainer:false,example:false};
+let S={lang:'pl',team:1,view:'home',sub:{demos:'life',lab:'vision',rybex:'home'},teams:{},ai:{code:'',model:'deepseek'},trainer:false,example:false,rooms:true};
 const AIS={state:'nocode',err:'',checked:false,calls:0,inTok:0,outTok:0,cost:0,teamSpend:null,limits:null,rec:new Map(),replay:undefined,run:null,timeoutMs:AI_TIMEOUT_MS};
 const T=(pl,en)=>S.lang==='pl'?pl:en,langIx=()=>S.lang==='pl'?0:1;
 // Published 320×400 JPEG copies (≈5 MB); the full-size PNG renders are not shipped.
 const VISION_ASSET_DIR='assets/vision-generated/web/',VISION_SPLITS=['train','val','test'],VISION_SPLIT_COUNTS={train:90,val:60,test:60},VISION_ASSET_TOTAL=210;
+// JPEG quality of the copy sent to the model (built in loadVisionAssets): 320×400 is kept, the bytes shrink
+// so a nine-image request (8 labelled examples + the query) stays inside the Worker request budget.
+const VIS_PAYLOAD_Q=.6;
 const VIS={featureSource:'synthetic',initialized:false,loading:false,queued:false,readyPromise:null,status:'idle',error:'',fallbackReason:'',manifestVersion:null,manifestRejected:0,photoCount:0,fallbackCount:VISION_ASSET_TOTAL,expectedPhotoCount:VISION_ASSET_TOTAL,datasetKey:'synthetic-baseline-v1',photoHashes:[]};
 const TOK_SAMPLE={pl:`Puszka szprota w oleju, partia ${LOT} została wstrzymana.`,en:`A can of sprats in oil, batch ${LOT}, has been put on hold.`};
 const X={life:0,tokTxt:TOK_SAMPLE.pl,tokIn:'1',tokOut:'1',tokCtx:2000,tokAns:300,tokCalls:10000,ragStep:-1,testPct:20,leak:false,shuf:1,thr:.5,prev:5,ragTimer:null};
@@ -1323,7 +1343,7 @@ function normTeam(t){const d=defaultTeam();if(!isObj(t))return d;
  return d}
 function readStore(){const raw=localStorage.getItem(STORE_KEY);return raw?JSON.parse(raw):null}
 function normTeams(o){const r={};if(isObj(o))for(const k in o)r[k]=normTeam(o[k]);return r}
-try{const x=readStore();if(isObj(x)){if(x.lang==='en'||x.lang==='pl')S.lang=x.lang;if(+x.team>=1&&+x.team<=TEAM_COUNT)S.team=+x.team;if(NAV.some(n=>n[0]===x.view)||x.view==='rybex')S.view=x.view;if(isObj(x.sub)){if(DEMO_KEYS.includes(x.sub.demos))S.sub.demos=x.sub.demos;if(LAB_KEYS.includes(x.sub.lab))S.sub.lab=x.sub.lab;if(RYBEX_PAGES.includes(x.sub.rybex))S.sub.rybex=x.sub.rybex}S.teams=normTeams(x.teams);if(isObj(x.ai)){if(typeof x.ai.code==='string')S.ai.code=x.ai.code.slice(0,80);if(AI_MODELS[x.ai.model])S.ai.model=x.ai.model}}}catch(e){}
+try{const x=readStore();if(isObj(x)){if(x.lang==='en'||x.lang==='pl')S.lang=x.lang;if(+x.team>=1&&+x.team<=TEAM_COUNT)S.team=+x.team;if(NAV.some(n=>n[0]===x.view)||x.view==='rybex')S.view=x.view;if(isObj(x.sub)){if(DEMO_KEYS.includes(x.sub.demos))S.sub.demos=x.sub.demos;if(LAB_KEYS.includes(x.sub.lab))S.sub.lab=x.sub.lab;if(RYBEX_PAGES.includes(x.sub.rybex))S.sub.rybex=x.sub.rybex}S.teams=normTeams(x.teams);if(isObj(x.ai)){if(typeof x.ai.code==='string')S.ai.code=x.ai.code.slice(0,80);if(AI_MODELS[x.ai.model])S.ai.model=x.ai.model}if(typeof x.rooms==='boolean')S.rooms=x.rooms}}catch(e){}
 if(S.ai.code)AIS.state='idle';
 // While S.example is on, team() is the in-memory worked example (never stored); S.teams is not touched.
 let exTeam=null,exFrom=null;
@@ -1349,7 +1369,7 @@ const setHTML=(el,h)=>{if(el._h===h)return false;el._h=h;el.innerHTML=h;return t
 const ic=n=>`<i data-lucide="${n}" class="ic" aria-hidden="true"></i>`;
 const badge=(n,t='ink',lg)=>`<span class="badge ${lg?'badge-lg ':''}tone-${t}">${ic(n)}</span>`;
 function icons(root=document){if(window.lucide)window.lucide.createIcons({root})}
-function save(){if(S.example)return true;let ok=true;try{const cur=readStore()||{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,lang:S.lang,team:S.team,view:S.view==='trainer'?cur.view||'home':S.view,sub:S.sub,ai:S.ai,teams:{...(cur.teams||{}),[S.team]:team()}}))}catch(e){ok=false}saveFailed=!ok;renderSaveWarn();return ok}
+function save(){if(S.example)return true;let ok=true;try{const cur=readStore()||{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,lang:S.lang,team:S.team,view:S.view==='trainer'?cur.view||'home':S.view,sub:S.sub,ai:S.ai,rooms:S.rooms,teams:{...(cur.teams||{}),[S.team]:team()}}))}catch(e){ok=false}saveFailed=!ok;renderSaveWarn();return ok}
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
 function dl(name,data,type){const b=data instanceof Blob?data:new Blob([data],{type:type||'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
@@ -1446,7 +1466,8 @@ function statGrid(items,cls='grid4 stats4'){return`<div class="${cls}">${items.m
 const moreKey=d=>{const c=d.closest('[id]');return c?`${S.team}|${S.view}|${S.sub[S.view]||''}|${c.id}`:null};
 function bindMoreMetrics(){const M=X.moreOpen||(X.moreOpen={});
  document.addEventListener('toggle',e=>{const d=e.target;if(!(d instanceof Element)||!d.matches('details.more-metrics')||!d.isConnected)return;const k=moreKey(d);if(k)M[k]=d.open},true);
- new MutationObserver(()=>$$('details.more-metrics',mainEl).forEach(d=>{const k=moreKey(d);if(k&&Object.hasOwn(M,k)&&d.open!==M[k])d.open=M[k]})).observe(mainEl,{childList:true,subtree:true})}
+ // The lab's result panels live in #roomHost while a walk-in room is open: watch both containers.
+ const R=[mainEl,$('#roomHost')],mo=new MutationObserver(()=>R.forEach(r=>$$('details.more-metrics',r).forEach(d=>{const k=moreKey(d);if(k&&Object.hasOwn(M,k)&&d.open!==M[k])d.open=M[k]})));R.forEach(r=>mo.observe(r,{childList:true,subtree:true}))}
 function essentials(head,rest,{cls='grid3',extra='',recap='',open=false}={}){return`<div class="headline">${statGrid(head,'grid2')}</div>${recap}<details class="more-metrics"${open?' open':''}><summary>${T('Więcej miar','More metrics')}</summary>${rest.length?statGrid(rest,cls):''}${extra}</details>`}
 const KIND=k=>k==='maint'?{pos:T('minuta awarii','failure minute'),found:T('Minuty awarii z alarmem','Failure minutes with an alarm'),tp:T('min. z alarmem','min. with alarm'),fn:T('min. bez alarmu','min. without alarm')}:{pos:T('wada','defect'),found:T('Wykryte wady','Defects found'),tp:T('wykryta wada','defect found'),fn:T('przeoczona wada','missed defect')};
 // Maintenance headline counts whole breakdowns; the per-minute recall moves into the folded metrics.
@@ -1525,7 +1546,7 @@ function publishVisionContract(){
 }
 // Redraws a lab part while keeping what is being typed in the note field: its text, caret and focus.
 function keepNote(draw){const e=$('#expNote'),v=e&&[e.value,e.selectionStart,e.selectionEnd,document.activeElement===e];draw();const n=$('#expNote');if(!v||!n)return;n.value=v[0];if(v[3]){n.focus({preventScroll:true});n.setSelectionRange(v[1],v[2])}}
-function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){const fa=document.activeElement,had=!!fa&&fa!==document.body,fid=had?fa.id:null;keepNote(labVision);icons($('#proto'));const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true);
+function visionRefresh(){publishVisionContract();if(VIS.loading||AIS.run)return;if(S.view==='data'&&FSEL==='can_images/ (210)'){vData();icons(mainEl)}else if(S.view==='lab'&&S.sub.lab==='vision'&&$('#proto')){const fa=document.activeElement,had=!!fa&&fa!==document.body,fid=had?fa.id:null;keepNote(labVision);icons($('#proto'));if(X.room&&X.room.track==='vision'){renderDataViewer(TRACK_FILE.vision,X.room.data);icons(X.room.data);X.room.handle.setData(roomData('vision'))}const o=$('#baseOut');if(o&&!o.hidden)showBase('vision',true);
   // The photos arrived and the lab was redrawn: keep the keyboard focus where it was, never on BODY; the note keeps its text and caret.
   if(had&&(!document.activeElement||document.activeElement===document.body))(fid&&document.getElementById(fid)||mainEl).focus({preventScroll:true})}}
 function dataUrlFromBlob(blob){return new Promise((resolve,reject)=>{const rd=new FileReader();rd.onerror=()=>reject(rd.error||new Error('file_read'));rd.onload=()=>resolve(String(rd.result));rd.readAsDataURL(blob)})}
@@ -1573,8 +1594,9 @@ async function loadVisionAssets(){
   if(!isObj(manifest)||manifest.version!==1||!Array.isArray(manifest.images))throw new Error('manifest_shape');VIS.manifestVersion=manifest.version;
   const index=new Map();VIS.manifestRejected=0;manifest.images.forEach(e=>{if(!isObj(e)||!VISION_SPLITS.includes(e.split)||typeof e.id!=='string'||!['ok','dent','label','code'].includes(e.type))return;const it=VIS[e.split]&&VIS[e.split].find(x=>x.id===e.id);if(!it)return;if(it.type!==e.type){VIS.manifestRejected++;return}const file=/^[A-Za-z0-9_-]+\.(png|jpe?g|webp)$/i.test(String(e.file||''))?String(e.file):`${it.id}.jpg`;index.set(it.id,{it,file})});
   const manifestIds=[...index.keys()].sort();if(manifestIds.length){VIS.datasetKey=`vision-photo-v2:manifest-${hashStr(manifestIds.join('|'))}`;publishVisionContract();if(S.view==='lab'&&S.sub.lab==='vision'&&!AIS.run){keepNote(labVision);icons($('#proto'))}}
- const entries=[...index.values()];let cursor=0;const worker=async()=>{while(cursor<entries.length){const {it,file}=entries[cursor++],url=VISION_ASSET_DIR+file;try{const fullData=await visionPhotoData(file,url,bundle);if(!fullData)continue;const jpg=/\.jpe?g$/i.test(file),data=jpg?fullData:await scaledVisionDataUrl(fullData,'image/png');it.originalUrl=new URL(url,document.baseURI).href;it.url=data;it.source='photo';it.photoHash=hashStr(fullData);// Published JPEGs are already the 320×400 working size: use them as they are (no re-encoding).
- if(jpg)it.big=data;else try{it.big=await scaledVisionDataUrl(data,'image/jpeg',.9)}catch(e){it.big=data}
+ const entries=[...index.values()];let cursor=0;const worker=async()=>{while(cursor<entries.length){const {it,file}=entries[cursor++],url=VISION_ASSET_DIR+file;try{const fullData=await visionPhotoData(file,url,bundle);if(!fullData)continue;const jpg=/\.jpe?g$/i.test(file),data=jpg?fullData:await scaledVisionDataUrl(fullData,'image/png');it.originalUrl=new URL(url,document.baseURI).href;it.url=data;it.source='photo';it.photoHash=hashStr(fullData);// Gallery, preview and ZIP keep the published JPEG as fetched (it.url); the copy sent to the model (it.big)
+// is re-encoded at the same 320×400 working size with VIS_PAYLOAD_Q, which is what keeps the request small.
+ try{it.big=await scaledVisionDataUrl(data,'image/jpeg',VIS_PAYLOAD_Q)}catch(e){it.big=data}
  try{it.pf=photoFeatureRaw(await photoPixels(data))}catch(e){it.pf=null}VIS.photoCount++;VIS.fallbackCount=Math.max(0,VIS.expectedPhotoCount-VIS.photoCount);publishVisionContract()}catch(e){/* Keep the original synthetic item for this missing photo. */}}};await Promise.all(Array.from({length:Math.min(6,Math.max(1,entries.length))},worker));
  }catch(e){VIS.error=e&&e.message||'manifest';VIS.fallbackReason=location.protocol==='file:'?'file':'manifest'}
  finishVisionAssets();
@@ -1845,7 +1867,7 @@ function pathFocus(id){const t=team();if(id==='data'&&t.track&&!trackFileOk(t.tr
  // An action button the bar names (run or save the baseline, save the test result, export the report) is pressed, not
  // only focused: the bar's label already says what it does, so a second, identical button click is not needed. Fields,
  // the one-time test reveal and paid model runs keep the focus-only behaviour.
- if(PATH_ACTIONS.some(s=>el.matches(s))&&el.getAttribute('aria-disabled')!=='true'&&!el.disabled){el.scrollIntoView({block:'center',behavior:sm});el.click();return}
+ roomShow(el);if(PATH_ACTIONS.some(s=>el.matches(s))&&el.getAttribute('aria-disabled')!=='true'&&!el.disabled){el.scrollIntoView({block:'center',behavior:sm});el.click();return}
  if(!el.matches('input,button,textarea,select,[tabindex]'))el.setAttribute('tabindex','-1');el.scrollIntoView({block:'center',behavior:sm});el.focus({preventScroll:true})}
 const PATH_ACTIONS=['#runBase','#saveBase','#expH','#sv'];
 // The baseline card is shown but its result is not in the log yet.
@@ -1974,7 +1996,7 @@ function renderShell(){
  renderProg(false);renderSaveWarn();
  const d=document.body.dataset;d.example=String(S.example);d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'||S.view==='lab'||S.view==='rybex'?S.sub[S.view]:'';
  document.documentElement.lang=S.lang;document.title='AI Project Lab – Rybex';publishVisionContract()}
-function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver,rybex:vRybex,trainer:vTrainer})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});renderCaseBar();renderPathBar();icons()}
+function render(){clearInterval(X.ragTimer);aiAbort();const key=`${S.team}|${S.view}|${S.sub.lab}`,keep=key===X.formKey?['expNote','qi'].map(id=>{const e=$('#'+id);return e?[id,e.value]:null}).filter(Boolean):[];X.formKey=key;if(S.view!=='lab'||!roomOk())roomDispose();renderShell();({home:vHome,brief:vBrief,data:vData,demos:vDemos,lab:vLab,arch:vArch,deliver:vDeliver,rybex:vRybex,trainer:vTrainer})[S.view]();keep.forEach(([id,v])=>{const e=$('#'+id);if(e)e.value=v});renderCaseBar();renderPathBar();icons()}
 
 // ─── View: home ───
 // One memo per task: the same returned lot seen by the person who owns that problem. The brief shows it once a task is chosen; before that nothing is shown in its place.
@@ -2194,20 +2216,25 @@ function vData(){if(FSEL==='can_images/ (210)')visInit();const F=FILES(),t=team(
  mainEl.innerHTML=pageHead(`${T('Folder zespołu','Team folder')} – ${esc(t.name||T('Zespół','Team')+' '+S.team)}`,el[1]==='img'?T('Dane wizji to dostępne fotografie, a w miejsce brakujących jawnie oznaczone obrazy syntetyczne. Możecie pobrać pliki, żeby je obejrzeć u siebie – nie są potrzebne dalej, laboratorium ma te zdjęcia.','Vision data combines available photographic images with an explicit synthetic fallback. You may download the files to look at them on your computer – they are not needed later, the lab already has these images.'):T('Opis projektu, dane pięciu zadań, dokumenty procesów i wyniki zespołu. Otwórzcie plik swojego zadania i przeczytajcie kartę danych. Plik możecie pobrać, żeby obejrzeć go w Excelu – nie jest potrzebny dalej, laboratorium ma te dane.','The project description, the data of the five tasks, the process documents and the team’s outputs. Open your task’s file and read its data card. You may download the file to look at it in Excel – it is not needed later, the lab already has the data.'))
  +`<section class="sec"><h2 class="sr-only">${T('Pliki zespołu','Team files')}</h2><div class="wrap"><div class="folder"><div class="card"><div class="card-body" style="padding:12px"><div class="tree">${F.map(g=>`<div class="dir">${ic('folder')}${g.d}/</div>${g.f.map(f=>`<button type="button" class="${FSEL===f[0]?'on':''}" data-f="${esc(f[0])}" data-k="${f[1]}" ${FSEL===f[0]?'aria-current="true"':''}>${ic(f[1]==='img'?'images':f[1]==='svg'?'network':'file-text')}<span class="tree-name">${f[0]}</span>${trackFileOk(t.track,f[0])?`<span class="edu-chip tone-ink task-chip">${T('wasze zadanie','your task')}</span>`:''}</button>`).join('')}`).join('')}</div></div></div><div id="viewer" style="min-width:0;display:grid;gap:18px"></div></div></div></section>`;
  $$('.tree button').forEach(e=>e.onclick=()=>{FSEL=e.dataset.f;vData();icons(mainEl);const b=$(`.tree button[data-f="${CSS.escape(FSEL)}"]`);if(b)b.focus()});
- const k=el[1],v=$('#viewer'),dlBtn=(txt,id='dlb',alt)=>`<button type="button" class="${alt?'btn-ghost':'btn'}" id="${id}">${ic('download')}${txt}</button>`;
- if(k==='md'){v.innerHTML=card('file-text',el[0],`<pre class="tall">${esc(briefMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl('project_description.md',briefMD())}
+ renderDataViewer(el[0],$('#viewer'));
+ // The data step counts only when the team's own file is on screen (every track file is shown with its data card).
+ if(!t.seen.data&&trackFileOk(t.track,el[0])){t.seen.data=true;save();renderPathBar()}}
+// One file of the team folder with its data card, downloads and inspector, drawn into root (the data view's #viewer, or a
+// room's data station, which leaves the photo-source status to the experiment station: one #visionAssetStatus).
+function renderDataViewer(file,root){const el=FILES().flatMap(g=>g.f).find(f=>f[0]===file)||FILES()[0].f[0];if(el[1]==='img')visInit();
+ const k=el[1],v=root,dlBtn=(txt,id='dlb',alt)=>`<button type="button" class="${alt?'btn-ghost':'btn'}" id="${id}">${ic('download')}${txt}</button>`;
+ if(k==='md'){v.innerHTML=card('file-text',el[0],`<pre class="tall">${esc(briefMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb',v).onclick=()=>dl('project_description.md',briefMD())}
  else if(k==='img'){const seen=lab().vision.testViews>0,grp=(s,l,h)=>`<h4 style="margin:14px 0 8px">${l} (${VIS[s].length})</h4><div class="gal">${VIS[s].map((i,n)=>`<button type="button" class="thumb" data-set="${s}" data-i="${n}" aria-label="${esc(i.id)}"><img src="${i.url}" alt=""><span>${h?T('etykieta ukryta','label hidden'):typeName(i.type)}</span></button>`).join('')}</div>`;
-  v.innerHTML=dataCard('img')+trackQuote('data')+visionAssetStatusHtml()+card('images',T('can_images/ – wszystkie 210 zdjęć','can_images/ – all 210 images'),`<p class="edu-small">${T('Kliknijcie zdjęcie, aby je powiększyć. ZIP zawiera wszystkie obrazy i labels.csv.','Click an image to enlarge it. The ZIP has all images and labels.csv.')} ${seen?'':T('Etykiety testowe odblokują się po ocenie końcowej w Laboratorium.','Test labels unlock after the final evaluation in the Build lab.')} ${visionAssetSizeNote()}</p>${grp('train',T('Trening','Training'))}${grp('val',T('Zestaw ćwiczeniowy (walidacja)','Practice set (validation)'))}${grp('test',T('Test końcowy','Final test'),!seen)}`,{tone:'grape',foot:dlBtn(T('Pobierz wszystko (ZIP)','Download all (ZIP)'),'dlzip')});
-  $('#dlzip').onclick=()=>{const files=[{name:'labels.csv',data:toCSV(imgLabelRows())}];['train','val','test'].forEach(s=>VIS[s].forEach(i=>files.push({name:`${s}/${i.id}.${visExt(i.url)}`,data:dataUrlBytes(i.url)})));dl('can_images.zip',zipStore(files))};
+  v.innerHTML=dataCard('img')+trackQuote('data')+(v.id==='viewer'?visionAssetStatusHtml():'')+card('images',T('can_images/ – wszystkie 210 zdjęć','can_images/ – all 210 images'),`<p class="edu-small">${T('Kliknijcie zdjęcie, aby je powiększyć. ZIP zawiera wszystkie obrazy i labels.csv.','Click an image to enlarge it. The ZIP has all images and labels.csv.')} ${seen?'':T('Etykiety testowe odblokują się po ocenie końcowej w Laboratorium.','Test labels unlock after the final evaluation in the Build lab.')} ${visionAssetSizeNote()}</p>${grp('train',T('Trening','Training'))}${grp('val',T('Zestaw ćwiczeniowy (walidacja)','Practice set (validation)'))}${grp('test',T('Test końcowy','Final test'),!seen)}`,{tone:'grape',foot:dlBtn(T('Pobierz wszystko (ZIP)','Download all (ZIP)'),'dlzip')});
+  $('#dlzip',v).onclick=()=>{const files=[{name:'labels.csv',data:toCSV(imgLabelRows())}];['train','val','test'].forEach(s=>VIS[s].forEach(i=>files.push({name:`${s}/${i.id}.${visExt(i.url)}`,data:dataUrlBytes(i.url)})));dl('can_images.zip',zipStore(files))};
   $$('.thumb',v).forEach(b=>b.onclick=()=>openInspector(b.dataset.set,+b.dataset.i,b.dataset.set==='test'&&!seen))}
  else if(k==='sales'||k==='sensors'||k==='compl'){const rows=DATA[k],name=el[0],seen=lab().compl.testViews>0,isC=k==='compl',mask=isC?(r,c,i)=>c==='category'?(!seen&&i>=36?T('ukryta','hidden'):catName(r[c])):r[c]:null,head=isC?{id:T('Nr','No.'),product:T('Produkt','Product'),text:T('Treść zgłoszenia','Complaint text'),category:T('Kategoria','Category')}:null;
   v.innerHTML=dataCard(k)+card('table',name,`<p class="edu-small" data-preview="${Math.min(PREVIEW_ROWS,rows.length)}/${rows.length}">${T(`Podgląd: pierwsze ${PREVIEW_ROWS} z ${rows.length} wierszy. Pełny zbiór jest w pliku do pobrania (nieobowiązkowo – laboratorium ma te dane).`,`Preview: first ${PREVIEW_ROWS} of ${rows.length} rows. The full set is in the file to download (optional – the lab already has the data).`)}</p>${table(rows,PREVIEW_ROWS,mask,head)}${isC?`<p class="hint">${seen?T('Kategorie testu końcowego są odsłonięte, bo test został już wykonany.','Final-test categories are shown: the final test has been run.'):T('Kategorie testu końcowego (wiersze 37–60) odsłonią się po teście końcowym w Laboratorium.','Final-test categories (rows 37–60) are shown after the final test in the Build lab.')}</p>`:''}`,{tone:'blue',meta:`<span class="edu-chip tone-stone">${rows.length} ${T('wierszy','rows')}</span>`,foot:isC?`<div class="row">${dlBtn(T('Zestaw ćwiczeniowy (CSV)','Practice set (CSV)'),'dlc1')}${dlBtn(T('Test końcowy bez kategorii (CSV)','Final test without categories (CSV)'),'dlc2',1)}${seen?dlBtn(T('Pełny plik z kategoriami','Full file with categories'),'dlc3',1):''}</div>`:dlBtn(T('Pobierz CSV','Download CSV'))});
-  if(isC){$('#dlc1').onclick=()=>dl('complaints_dev.csv',toCSV(rows.slice(0,36)),'text/csv');$('#dlc2').onclick=()=>dl('complaints_test_unlabeled.csv',toCSV(rows.slice(36).map(({id,product,text})=>({id,product,text}))),'text/csv');if(seen)$('#dlc3').onclick=()=>dl('complaints.csv',toCSV(rows),'text/csv')}else $('#dlb').onclick=()=>dl(name,toCSV(rows),'text/csv')}
- else if(k.startsWith('doc:')){const d=DOCS.find(x=>x.id===k.slice(4)),i=langIx(),txt=`# ${d.id} ${d.t[i]}\n\n`+d.p[i].map((p,n)=>`§${n+1} ${p}`).join('\n\n');v.innerHTML=dataCard('doc')+trackQuote('data')+card('file-text',`${d.id} – ${d.t[i]}`,`<pre>${esc(txt)}</pre>`,{tone:'blue',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl(d.id+'.md',txt)}
- else if(k==='log'){v.innerHTML=card('notebook-pen','team_log.md',`<pre class="tall">${esc(logMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb').onclick=()=>dl('team_log.md',logMD())}
- else{const s=archSVG();v.innerHTML=card('network','architecture.svg',s?`<div class="diagram" style="--dw:${archWidth()}px">${s}</div>`:`<p>${T('Brak schematu – zbudujcie go w zakładce Architektura.','No diagram yet – build it in the Architecture tab.')}</p>`,{tone:'stone',foot:s?dlBtn(T('Pobierz SVG','Download SVG')):`<button type="button" class="btn-ghost" data-go="arch">${T('Przejdźcie do Architektury','Go to Architecture')}</button>`});if(s)$('#dlb').onclick=()=>dl('architecture.svg',s,'image/svg+xml');else $('[data-go]',v).onclick=()=>go('arch')}
- // The data step counts only when the team's own file is on screen (every track file is shown with its data card).
- if(!t.seen.data&&trackFileOk(t.track,el[0])){t.seen.data=true;save();renderPathBar()}}
+  if(isC){$('#dlc1',v).onclick=()=>dl('complaints_dev.csv',toCSV(rows.slice(0,36)),'text/csv');$('#dlc2',v).onclick=()=>dl('complaints_test_unlabeled.csv',toCSV(rows.slice(36).map(({id,product,text})=>({id,product,text}))),'text/csv');if(seen)$('#dlc3',v).onclick=()=>dl('complaints.csv',toCSV(rows),'text/csv')}else $('#dlb',v).onclick=()=>dl(name,toCSV(rows),'text/csv')}
+ else if(k.startsWith('doc:')){const d=DOCS.find(x=>x.id===k.slice(4)),i=langIx(),txt=`# ${d.id} ${d.t[i]}\n\n`+d.p[i].map((p,n)=>`§${n+1} ${p}`).join('\n\n');v.innerHTML=dataCard('doc')+trackQuote('data')+card('file-text',`${d.id} – ${d.t[i]}`,`<pre>${esc(txt)}</pre>`,{tone:'blue',foot:dlBtn(T('Pobierz','Download'))});$('#dlb',v).onclick=()=>dl(d.id+'.md',txt)}
+ else if(k==='log'){v.innerHTML=card('notebook-pen','team_log.md',`<pre class="tall">${esc(logMD())}</pre>`,{tone:'stone',foot:dlBtn(T('Pobierz','Download'))});$('#dlb',v).onclick=()=>dl('team_log.md',logMD())}
+ else{const s=archSVG();v.innerHTML=card('network','architecture.svg',s?`<div class="diagram" style="--dw:${archWidth()}px">${s}</div>`:`<p>${T('Brak schematu – zbudujcie go w zakładce Architektura.','No diagram yet – build it in the Architecture tab.')}</p>`,{tone:'stone',foot:s?dlBtn(T('Pobierz SVG','Download SVG')):`<button type="button" class="btn-ghost" data-go="arch">${T('Przejdźcie do Architektury','Go to Architecture')}</button>`});if(s)$('#dlb',v).onclick=()=>dl('architecture.svg',s,'image/svg+xml');else $('[data-go]',v).onclick=()=>go('arch')}
+}
 
 function openInspector(set,idx,hideLabel){visInit();const it=VIS[set][idx],th=visTh(),ph=VIS.featureSource==='photo',rows=[['dent',ph?T('Piksele odstające nad etykietą, ‰ (wgniecenie)','Outlier pixels above the label, ‰ (dent)'):T('Ciemne piksele (wgniecenie)','Dark pixels (dent)'),it.f.dent,th.d,it.f.dent>th.d,'>'],['shift',ph?T('Przesunięcie środka etykiety (px)','Label centre shift (px)'):T('Przesunięcie etykiety (px)','Label shift (px)'),it.f.shift,th.s,it.f.shift>th.s,'>'],['code',T('Energia krawędzi kodu','Code edge energy'),it.f.code,th.c,it.f.code<th.c,'<']],fired=rows.filter(r=>r[4]),pred=fired.length>0;
  const verdict=hideLabel?'':(it.bad&&pred?T('Wada wykryta','Defect caught'):it.bad?T('Wada przeoczona','Defect missed'):pred?T('Fałszywy alarm','False alarm'):T('Poprawnie OK','Correctly OK'));
@@ -2396,7 +2423,7 @@ function syncMeth(k,typed){const el=$('#methSaved'),t=team(),m=methOk(t,k),w=why
  el.dataset.saved=String(m&&w);el.textContent=m&&w?T('Zapisano – wybrana metoda i uzasadnienie trafią do raportu.','Saved – the chosen method and the justification go into the report.'):typed&&m&&txt?T('Uzasadnienie jest za krótkie – dopiszcie co najmniej jedno zdanie.','The justification is too short – write at least one sentence.'):typed&&!m&&txt?T('Zaznaczcie jeszcze metodę w tabeli.','Now tick the method in the table.'):'';
  const sm=$('#methSum');if(sm&&sm.textContent!==METH_SUM(k))sm.textContent=METH_SUM(k);if(typed)renderProg()}
 function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=TONE[k],dec=t.decision[k]||{m:-1,why:''};
- mainEl.innerHTML=pageHead(nm('lab'),T('Wybierzcie zadanie, uzasadnijcie metodę, przeprowadźcie co najmniej trzy eksperymenty i zapiszcie wnioski.','Pick a task, justify the method, run at least three experiments and record your conclusions.'),`<div class="tabs mt" id="trackTabs" role="navigation" aria-label="${T('Zadania','Tasks')}">${LAB_KEYS.map(x=>`<button type="button" data-k="${x}" class="${k===x?'on':''}" ${k===x?'aria-current="true"':''}>${ic(M[x].ic)}${M[x].title}${t.track===x?` <span class="edu-chip tone-ink">${T('wybrana','chosen')}</span>`:''}</button>`).join('')}</div>`)
+ mainEl.innerHTML=pageHead(nm('lab'),T('Wybierzcie zadanie, uzasadnijcie metodę, przeprowadźcie co najmniej trzy eksperymenty i zapiszcie wnioski.','Pick a task, justify the method, run at least three experiments and record your conclusions.'),`<div class="tabs mt" id="trackTabs" role="navigation" aria-label="${T('Zadania','Tasks')}">${LAB_KEYS.map(x=>`<button type="button" data-k="${x}" class="${k===x?'on':''}" ${k===x?'aria-current="true"':''}>${ic(M[x].ic)}${M[x].title}${t.track===x?` <span class="edu-chip tone-ink">${T('wybrana','chosen')}</span>`:''}</button>`).join('')}</div>${roomBar()}`)
  +`<section class="sec"><div class="wrap"><div class="group-hero tone-${tone} edu-block"><div><p class="edu-overline">${T('Zadanie','Task')}</p><p class="gh-title">${m.title}</p><p>${m.inp} → ${m.proc} → ${m.out}</p><p class="mt">${T('Zaczynamy od najprostszej metody, która w ogóle rozwiązuje zadanie. Potem spróbujecie ją pobić. To ta sama zasada, której użyjecie w projekcie końcowym.','We start with the simplest method that solves the task at all. Then you will try to beat it. It is the same principle you will use in the final project.')}</p><p class="row mt"><button type="button" class="btn" id="runBase">${ic('play')}${T('Uruchomcie metodę odniesienia','Run the baseline')}</button><button type="button" class="btn-ghost btn-sm" id="pickTrack" aria-pressed="${t.track===k}">${ic(t.track===k?'check':'flag')}${t.track===k?T('To zadanie naszego zespołu','This is our team’s task'):T('Wybierzcie jako zadanie zespołu','Choose as the team’s task')}</button></p><p class="edu-small" id="baseDef"><b>${T('Metoda odniesienia','The baseline')}</b> = ${BASE_DEF(k)}</p><p class="edu-small">${BASE_INFO(k)}</p></div><div id="heroProg"></div></div><div id="baseBanner" class="callout edu-block mt" aria-live="polite" hidden></div>${['forecast','maint'].includes(k)?'':goalLine(k)}<div id="baseOut" class="mt" aria-live="polite" hidden></div></div></section>`
  +jumpBar()+`<section class="sec" id="labData"><h2 class="sr-only">${T('Założenia zadania','Task assumptions')}</h2><div class="wrap"><div class="grid2">${card('database',T('Dane','Data'),`<p>${T('Plik','File')}: <code>${m.data}</code></p><p><button type="button" class="linkbtn" id="tod">${T('Zobaczcie kartę danych','See the data card')}</button></p>`,{tone})}${card('list-checks',T('Jak system wykonuje zadanie','How the task is done'),`<div class="grid3"><div><span class="edu-overline">${T('Wejście','Input')}</span><p>${m.inp}</p></div><div><span class="edu-overline">${T('Przetwarzanie','Processing')}</span><p>${m.proc}</p></div><div><span class="edu-overline">${T('Wyjście','Output')}</span><p>${m.out}</p></div></div>`,{tone})}</div>${k==='maint'?`<div class="mt">${personaQuote('anna','maint')}</div>`:''}
  <div class="mt" id="labMethod"><details class="meth-more"${Object.hasOwn(X.methOpen||{},k)?(X.methOpen[k]?' open':''):!(methOk(team(),k)&&whyOk(team(),k))?' open':''}><summary id="methSum">${METH_SUM(k)}</summary>${card('scale',T('Wybór metody','Method choice'),`<div class="tscroll" role="radiogroup" aria-label="${T('Metoda zespołu','Team method')}"><table><thead><tr><th>${T('Podejście','Approach')}</th><th>${T('Zalety','Pros')}</th><th>${T('Wady','Cons')}</th><th>${T('Koszt','Cost')}</th></tr></thead><tbody>${m.methods.map((r,i)=>`<tr><td class="mlist"><label><input type="radio" name="meth" value="${i}" ${dec.m===i?'checked':''}><span>${glx(r[0])}</span></label></td><td>${glx(r[1])}</td><td>${glx(r[2])}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></div><div class="field mt"><label for="methWhy">${T('Uzasadnienie wyboru (trafia do raportu)','Justification (goes into the report)')}</label><textarea id="methWhy" class="input" rows="2" maxlength="2000" aria-describedby="methWhyHint" placeholder="${T('Dlaczego ta metoda pasuje do zadania, danych i kosztów?','Why does this method fit the task, data and costs?')}">${esc(dec.why)}</textarea><p class="hint" id="methWhyHint" style="margin:4px 0 0">${METH_HINT(k)}</p><p class="hint" id="methSaved" role="status" aria-live="polite" style="margin:4px 0 0"></p></div>`,{tone})}</details></div></div></section>`
@@ -2405,13 +2432,47 @@ function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=
  renderHeroProg(k);bindJump();
  $$('#trackTabs button').forEach(b=>b.onclick=()=>{go('lab',b.dataset.k);const t=$(`#trackTabs button[data-k="${b.dataset.k}"]`);if(t&&S.view==='lab')t.focus()});
  $('#pickTrack').onclick=()=>guardRun(()=>{const tt=team();setTrack(tt,tt.track===k?null:k);save();render();const b=$('#pickTrack');if(b)b.focus()});
- $('#tod').onclick=()=>{FSEL=TRACK_FILE[k];go('data')};
+ $('#tod').onclick=()=>{if(X.room)return X.room.handle.open('data');FSEL=TRACK_FILE[k];go('data')};
  const dset=()=>{const tt=team();return tt.decision[k]||(tt.decision[k]={m:-1,why:''})};
  $$('input[name=meth]').forEach(r=>r.onchange=e=>{dset().m=+e.target.value;save();syncRevealGate();syncMeth(k,true)});$('#methWhy').oninput=e=>{dset().why=e.target.value;save();syncRevealGate();syncMeth(k,true)};syncMeth(k);
  $('#labMethod details').ontoggle=e=>{(X.methOpen||(X.methOpen={}))[k]=e.target.open};
- $('#runBase').onclick=()=>{(X.baseOn||(X.baseOn={}))[baseKey(k)]=true;if(!S.example){team().seen['baseRun.'+k]=true;save()}showBase(k);if(X.labRedraw)X.labRedraw();const o=$('#baseOut');if(o)o.scrollIntoView({block:'nearest'})};
+ $('#runBase').onclick=()=>{(X.baseOn||(X.baseOn={}))[baseKey(k)]=true;if(!S.example){team().seen['baseRun.'+k]=true;save()}showBase(k);if(X.labRedraw)X.labRedraw();const o=roomShow($('#baseOut'));if(o)o.scrollIntoView({block:'nearest'})};
  X.labRedraw=null;({vision:labVision,rag:labRag,complaints:labCompl,forecast:labFc,maint:labMaint})[k]();renderCmpList(k);
- if(baseRan(k)||t.log.some(l=>l.track===k&&l.base))showBase(k,!baseRan(k));renderBaseBanner(k);syncRevealGate()}
+ if(baseRan(k)||t.log.some(l=>l.track===k&&l.base))showBase(k,!baseRan(k));renderBaseBanner(k);syncRevealGate();roomSync(k)}
+// ─── Lab: walk-in rooms (rooms/*.js) ───
+// Room mode moves the lab sections just drawn into the five station panels of the track's room (never cloned, so ids,
+// handlers and typed text stay). #roomHost sits outside #main: re-renders keep the canvas and only swap the panels.
+// ?rooms=0 forces the page view (old test suites); S.rooms is the participant's choice; no WebGL2 -> page view with a notice.
+const ROOMS_OFF=new URLSearchParams(location.search).get('rooms')==='0',roomHost=$('#roomHost');
+const roomCan=()=>!!window.Rooms&&!X.roomFail&&Rooms.supported(),roomOk=()=>!ROOMS_OFF&&S.rooms!==false&&roomCan();
+const roomBar=()=>ROOMS_OFF?'':S.rooms===false?(roomCan()?`<p class="mt" style="margin-bottom:0"><button type="button" class="btn-ghost btn-sm" id="roomOn">${ic('box')}${T('Wejdźcie do pokoju 3D','Enter the 3D room')}</button></p>`:''):roomCan()?'':`<p class="hint mt" id="roomNote" style="margin-bottom:0">${T('Ta przeglądarka nie pokaże pokoju 3D (brak WebGL2), dlatego zadanie jest w zwykłym widoku strony.','This browser cannot show the 3D room (no WebGL2), so the task is shown as a plain page.')}</p>`;
+const ROOM_TITLES=()=>({brief:{pl:'Zadanie',en:'Brief'},data:{pl:'Dane',en:'Data'},method:{pl:'Metoda',en:'Method'},experiment:{pl:'Eksperyment',en:'Experiment'},results:{pl:'Wyniki',en:'Results'}});
+// What the room shows of the real data: can photos (data: URLs only, safe on file://), document codes, categories,
+// products and one product's monthly sales, and a vibration window around the first sensor event.
+function roomData(k){const i=langIx();if(k==='vision'){visInit();return{vision:{photos:VIS.train.slice(0,6).map(x=>x.url).filter(u=>/^data:/.test(u)),brand:'Rybex'}}}
+ if(k==='rag')return{rag:{docs:DOCS.map(d=>d.id)}};if(k==='complaints')return{complaints:{categories:CK.map(c=>CAT[c][i])}};
+ if(k==='forecast')return{forecast:{products:PRODUCTS.map(p=>p[i]),monthly:DATA.sales.filter(r=>r.product===PRODUCTS[0][0]).map(r=>r.units_k)}};
+ const R=DATA.sensors,a=Math.max(0,R.findIndex(r=>r.anomaly)-90);return{maint:{series:R.slice(a,a+120).map(r=>r.vibration_mm_s)}}}
+// An element inside a closed station (jump and path links, gate focus): open that station first.
+function roomShow(el){const sl=el&&X.room&&el.closest&&el.closest('#roomHost .room-slot');if(sl)X.room.handle.open(sl.dataset.station);return el}
+function roomDispose(){if(X.room){X.room.handle.dispose();X.room=null}roomHost.replaceChildren();roomHost.hidden=true;delete roomHost.dataset.roomStatus;document.body.classList.remove('in-room')}
+// Old panels stay in #roomHost while vLab re-renders #main; $() finds the new nodes because #main precedes #roomHost; $$('input[name=meth]') also binds the old radios harmlessly until setPanels.
+function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
+ const pane=(...n)=>{const d=document.createElement('div');d.className='room-pane';d.append(...n.filter(Boolean));return d};
+ const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));
+ const exp=pane(row,bd,bi,$('#baseBanner'),$('#baseOut'),$('#labProto')),meth=pane($('#labMethod')),brief=pane(hero,$('#labData')),res=pane($('#labExp')),data=pane();
+ renderDataViewer(TRACK_FILE[k],data);mainEl.replaceChildren($('.page-head',mainEl));
+ const P={brief,data,method:meth,experiment:exp,results:res},r=X.room;roomHost.hidden=false;document.body.classList.add('in-room');
+ if(r&&r.track===k&&r.lang===S.lang&&r.team===S.team&&r.handle.status!=='disposed'){r.handle.setPanels(P);r.data=data;return}
+ // Seen-progress: the team's data file counts as seen when the data station opens, as on the data page.
+ const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,
+  // A station opened with the room cut by the fold or by the sticky bars: scroll so the room's top sits just under them (the whole room and panel in view, the page heading fully above).
+  onOpen:s=>{const t=team(),b=roomHost.getBoundingClientRect(),top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h'))||0;if(b.bottom>innerHeight+2||b.top<top-2)window.scrollBy(0,b.top-top);
+   if(s==='data'&&!t.seen.data&&trackFileOk(t.track,TRACK_FILE[k])){t.seen.data=true;save();renderPathBar()}},
+  onExit2d:()=>guardRun(()=>{S.rooms=false;save();render();const b=$('#roomOn');if(b)b.focus()})});
+ X.room={track:k,lang:S.lang,team:S.team,handle:h,data};
+ // The 3D view failed after all (scripts half-loaded, a shader error): the page view with the notice.
+ if(h.status==='fallback'){X.roomFail=true;roomDispose();render()}}
 // The AI bar is shown only while the lab's method is the model (spec 4.18); method switches re-render #proto and call this.
 const aiWanted=k=>k==='vision'?lab().vision.method==='llm':k==='complaints'?lab().compl.method==='llm':k==='rag'?lab().rag.gen==='llm':false;
 function syncAiBar(){const slot=$('#aiSlot');if(!slot)return;const want=AI_TRACKS.includes(S.sub.lab)&&aiWanted(S.sub.lab);
@@ -2479,7 +2540,7 @@ const GATE_SHORT=()=>T('Uzasadnienie jest za krótkie – dopiszcie co najmniej 
 function tryReveal(k,L,after){const g=revealGate(k);
  if(g){const o=$('#baseOut'),unsaved=g==='baseline'&&o&&!o.hidden&&o.dataset.saved==='false'&&$('#saveBase'),dc=team().decision,d=Object.hasOwn(dc,k)?dc[k]:null,short=g==='why'&&!!(d&&typeof d.why==='string'&&d.why.trim());
   const msg=short?GATE_SHORT():g==='method'?GATE_METH():g==='why'?GATE_WHY():whyOk(team(),k)?GATE_BASE(!!unsaved):GATE_MSG(),gm=$('#gateMsg');toast(msg,{reason:short?'short':unsaved?'save':g});if(gm)gm.textContent=msg;
-  if(g==='baseline')(unsaved||$('#runBase')||{focus(){}}).focus();else{const det=$('#labMethod details');if(det)det.open=true;const w=g==='method'?$('input[name=meth]'):$('#methWhy');if(w)w.focus()}return}
+  if(g==='baseline')roomShow(unsaved||$('#runBase')||{focus(){}}).focus();else{const det=$('#labMethod details');if(det)det.open=true;const w=g==='method'?$('input[name=meth]'):$('#methWhy');if(w)roomShow(w).focus()}return}
  // The one-time test belongs to the chosen method: from the other panel, stop and offer the switch instead of revealing.
  const want=!L.revealed&&!L.testViews&&!S.trainer?chosenMode(team(),k):null,cur=L.method==='llm'?'llm':'rules';
  if(want&&want!==cur){const nm=x=>x==='llm'?T('model','the model'):T('reguły','the rules'),msg=T(`Wybraliście metodę: ${nm(want)}, a ten panel to ${nm(cur)}. Test końcowy odsłania się tylko raz, więc musi ocenić wybraną metodę.`,`You chose ${nm(want)}, but this panel is ${nm(cur)}. The final test is revealed only once, so the test must score the chosen method.`),gm=$('#gateMsg');
@@ -3361,7 +3422,7 @@ function provenChecks(t){const k=t.track,p={};if(!k)return p;
 // The gaps list on the results page; redrawn with the progress strip (also while the team name is typed), only when it changed.
 function paintGaps(){const gp=$('#delivGaps');if(!gp)return;const g=S.example?[]:reportGaps(team()),h=g.length?`<p style="margin:0">${S.example||pathState(team()).next?'':`${T('Ścieżka ukończona: raport możecie już wyeksportować. Jeśli zdążycie, uzupełnijcie go. ','Path complete: you can export the report now. If you have time, fill it in. ')}`}<b>${T('W raporcie brakuje jeszcze:','The report still lacks:')}</b></p><ul style="margin:6px 0 0;padding-left:20px">${g.map(([x,to])=>`<li><button type="button" class="linkbtn" data-gap="${to}">${esc(x)}</button></li>`).join('')}</ul><p class="hint" style="margin:6px 0 0">${T('Raport można wyeksportować mimo to – te miejsca będą w nim puste.','You can still export the report – these places will be empty in it.')}</p>`:'';
  if(!setHTML(gp,h))return;gp.hidden=!g.length;gp.dataset.n=g.length;
- gp.onclick=e=>{const b=e.target.closest('[data-gap]');if(!b)return;const to=b.dataset.gap;if(to==='name'){const n=$('#teamName');if(!n.offsetParent)$('#tbToggle').click();n.scrollIntoView({block:'center'});n.focus({preventScroll:true})}else if(to==='check'){const c=$('#checklist'),d=$('#checkDetails');if(d)d.open=true;c.scrollIntoView({block:'start'});c.focus({preventScroll:true})}else if(to==='meth'||to==='why'){go('lab',team().track);const d=$('#labMethod details');if(d)d.open=true;const w=to==='meth'?$('input[name=meth]'):$('#methWhy');if(w){w.scrollIntoView({block:'center'});w.focus({preventScroll:true})}}else go(...to.split('/'))}}
+ gp.onclick=e=>{const b=e.target.closest('[data-gap]');if(!b)return;const to=b.dataset.gap;if(to==='name'){const n=$('#teamName');if(!n.offsetParent)$('#tbToggle').click();n.scrollIntoView({block:'center'});n.focus({preventScroll:true})}else if(to==='check'){const c=$('#checklist'),d=$('#checkDetails');if(d)d.open=true;c.scrollIntoView({block:'start'});c.focus({preventScroll:true})}else if(to==='meth'||to==='why'){go('lab',team().track);const d=$('#labMethod details');if(d)d.open=true;const w=to==='meth'?$('input[name=meth]'):$('#methWhy');if(w){roomShow(w);w.scrollIntoView({block:'center'});w.focus({preventScroll:true})}}else go(...to.split('/'))}}
 function vDeliver(){const t=team(),P=NOTE_PROMPTS(),f=reportFacts(),pv=S.example?{}:provenChecks(t),pvOpen=Object.keys(pv).filter(c=>!t.checks[c]);
  mainEl.innerHTML=pageHead(nm('deliver'),T('Odhaczajcie wymagania, zapisujcie wnioski i wyeksportujcie raport z diagramem i najlepszym wynikiem.','Tick off requirements, record conclusions and export a report with the diagram and best result.'))
  +`<section class="sec"><h2 class="sr-only">${T('Podsumowanie','Summary')}</h2><div class="wrap"><div id="delivStats"></div><div id="delivGaps" class="callout edu-block mt" aria-live="polite" hidden></div><div class="row mt"><button type="button" class="btn" id="expH"${S.example?' disabled aria-describedby="exNoExport"':''}>${ic('download')}${T('Wyeksportujcie raport (HTML)','Export the report (HTML)')}</button><button type="button" class="btn-ghost" id="exp"${S.example?' disabled aria-describedby="exNoExport"':''}>${ic('download')}Markdown</button>${S.example?'':exampleBtn()}</div>${S.example?`<p class="hint" id="exNoExport">${T('W podglądzie przykładu eksport raportu jest wyłączony: przykład ilustruje formę skończonego projektu, to nie praca do oddania.','Report export is off in the example preview: the example illustrates the form of a finished project, it is not work to hand in.')}</p>`:''}<div class="mt">${card('file-check',T('Podsumowanie projektu','Project summary'),`<dl style="margin:0" id="delivSummary"></dl>`,{tone:'grape'})}</div><div class="mt">${personaQuote('hanna','report')}</div></div></section>`
