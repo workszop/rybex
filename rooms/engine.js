@@ -15,6 +15,7 @@
   'use strict';
   const STATIONS = ['brief', 'data', 'method', 'experiment', 'results'];
   const EYE = 1.65, RADIUS = 0.3, SPEED = 3.2, PITCH_MAX = Math.PI / 3, LOOK_RATE = 0.005, PR_MAX = 1.5;
+  const LABEL_PX = 34, LABEL_PX_FAR = 28; // station label height on screen (CSS px), near and far
   const TXT = {
     pl: { hint: 'Kliknijcie świecące stanowisko albo chodźcie: WASD / strzałki, przeciągnijcie, żeby się rozejrzeć.', bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
     en: { hint: 'Click a glowing station, or walk with WASD / arrows and drag to look around.', bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
@@ -55,18 +56,19 @@
       const m = new window.THREE.Mesh(new window.THREE.CylinderGeometry(r, r, h, 24), material);
       m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
     },
-    // Text on a canvas sprite, 0.32 m tall, readable from across the room.
+    // Text on a canvas sprite (a dark pill). Starts 0.32 m tall; the engine rescales station labels every frame so
+    // they keep a small, steady size on screen. userData.aspect = width / height.
     label(text) {
       const T = window.THREE, fs = 44, pad = 22, font = `600 ${fs}px "IBM Plex Sans", system-ui, sans-serif`;
       const probe = document.createElement('canvas').getContext('2d'); probe.font = font;
-      const w = Math.ceil(probe.measureText(text).width) + pad * 2, h = fs + pad * 1.4;
+      const w = Math.ceil(probe.measureText(text).width) + pad * 2, h = fs + 20;
       const tex = kit.canvasTexture(w, h, g => {
         g.fillStyle = 'rgba(28,25,23,.86)'; const r = h / 2;
         g.beginPath(); g.moveTo(r, 0); g.arcTo(w, 0, w, h, r); g.arcTo(w, h, 0, h, r); g.arcTo(0, h, 0, 0, r); g.arcTo(0, 0, w, 0, r); g.fill();
         g.font = font; g.fillStyle = '#FFD500'; g.textBaseline = 'middle'; g.fillText(text, pad, h / 2 + 2);
       });
       const s = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-      s.scale.set(0.32 * w / h, 0.32, 1); s.renderOrder = 10; return s;
+      s.scale.set(0.32 * w / h, 0.32, 1); s.renderOrder = 10; s.userData.aspect = w / h; return s;
     },
   };
 
@@ -313,13 +315,15 @@
       const dx = target[0] - pos[0], dz = target[2] - pos[2], len = Math.hypot(dx, dz) || 1;
       return { pos, target: [target[0] - dz / len * len * shift, target[1], target[2] + dx / len * len * shift] };
     },
-    // Station highlight by hand (the engine already pulses station meshes): on = true, false or an intensity.
+    // Highlight by hand for non-station props (the engine already pulses station meshes): on = true, false or an
+    // intensity. On a station mesh the engine's pulse overrides it every frame.
     glow(obj, on) {
       obj.traverse(o => {
         if (!o.isMesh) return;
         o.material = [].concat(o.material).map(m => {
           if (!m || !m.emissive) return m;
-          if (!m.userData.roomGlow) { m = m.clone(); m.userData.roomGlow = true; m.emissive.copy(m.color); if (m.map && !m.emissiveMap) m.emissiveMap = m.map; }
+          // Own flag (not the engine's roomGlow): a station mesh lit by hand still gets the engine highlight.
+          if (!m.userData.kitGlow) { m = m.clone(); m.userData.kitGlow = true; m.emissive.copy(m.color); if (m.map && !m.emissiveMap) m.emissiveMap = m.map; }
           m.emissiveIntensity = on === true ? 0.42 : on ? Number(on) : 0;
           return m;
         });
@@ -421,7 +425,7 @@
     setPanels(opts.panels || {});
 
     let station = 'none', disposed = false, pendingOpen = 0;
-    const handle = { open, close, setPanels, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null } };
+    const handle = { open, close, setPanels, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null, labels: () => null } };
     live.set(host, handle);
     const setStatus = s => { handle.status = s; rootEl.dataset.roomStatus = s; };
     const titleOf = s => tr(titles[s]) || (g3 && g3.byKey[s] && g3.byKey[s].label) || s;
@@ -502,7 +506,7 @@
         if (local.renderer) { local.renderer.dispose(); local.renderer.forceContextLoss(); }
         if (local.canvas) local.canvas.remove();
         if (spec && spec.dispose) { try { spec.dispose(); } catch (_) { /* reported by the caller */ } }
-        handle._debug = { cameraPos: () => null, project: () => null, info: () => null };
+        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null };
         throw e;
       }
     }
@@ -646,7 +650,18 @@
 
       // ---- loop ----
       let last = performance.now(), clock = 0, tickBroken = false;
-      const near = new T.Vector3();
+      const near = new T.Vector3(), fwd = new T.Vector3(), rel = new T.Vector3();
+      // Labels keep a steady on-screen size: LABEL_PX tall up close, easing to LABEL_PX_FAR at a distance (cap height
+      // about 14-17 px), fade out closer than ~1.5 m and hide while a panel is open (they would cover the view).
+      function sizeLabel(lab, hide) {
+        rel.copy(lab.position).sub(pos);
+        const depth = rel.dot(camera.getWorldDirection(fwd)), dist = rel.length(), vh = canvas.clientHeight || 1;
+        const px = LABEL_PX - (LABEL_PX - LABEL_PX_FAR) * Math.max(0, Math.min(1, (depth - 3) / 11));
+        const hw = Math.max(0.01, px * Math.max(depth, 0.1) * 2 * Math.tan(camera.fov * Math.PI / 360) / vh);
+        lab.scale.set(hw * (lab.userData.aspect || 4), hw, 1);
+        lab.material.opacity = hide ? 0 : Math.max(0, Math.min(1, (dist - 1.0) / 0.5));
+        lab.visible = lab.material.opacity > 0.01;
+      }
       function frame(now) {
         local.raf = 0; if (disposed) return;
         const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now; clock += dt;
@@ -674,9 +689,7 @@
           const dist = near.distanceTo(pos), base = reducedMotion ? 0.14 : 0.06 + 0.14 * (0.5 + 0.5 * Math.sin(clock * 2.4 + STATIONS.indexOf(k)));
           const v = k === hover || k === station ? 0.42 : dist < 2.4 ? 0.26 : base;
           for (const m of st.mats) m.emissiveIntensity = v;
-          // Labels fade out up close, where they would cover the station itself.
-          st.lab.material.opacity = Math.max(0, Math.min(1, (dist - 2.2) / 0.8));
-          st.lab.visible = st.lab.material.opacity > 0.01;
+          sizeLabel(st.lab, station !== 'none');
         }
         if (spec.tick && !tickBroken) { try { spec.tick(dt); } catch (err) { tickBroken = true; console.error('Rooms: room tick failed', err); } }
         renderer.render(scene, camera);
@@ -693,6 +706,15 @@
           return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height];
         },
         info: () => renderer.info,
+        // Station labels as drawn: projected height in CSS px, centre, and whether they show.
+        labels() {
+          const r = canvas.getBoundingClientRect(), up = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+          return STATIONS.filter(k => api.byKey[k]).map(k => {
+            const lab = api.byKey[k].lab, half = up.clone().multiplyScalar(lab.scale.y / 2);
+            const a = lab.position.clone().add(half).project(camera), c = lab.position.clone().sub(half).project(camera), m = lab.position.clone().project(camera);
+            return { key: k, visible: lab.visible && lab.material.opacity > 0.01, h: +(Math.abs(a.y - c.y) / 2 * r.height).toFixed(1), x: Math.round(r.left + (m.x + 1) / 2 * r.width), y: Math.round(r.top + (1 - m.y) / 2 * r.height) };
+          });
+        },
       };
       api.dispose = () => {
         cancelAnimationFrame(local.raf); local.raf = 0;
@@ -708,7 +730,7 @@
           }
         });
         renderer.dispose(); renderer.forceContextLoss(); canvas.remove();
-        handle._debug = { cameraPos: () => null, project: () => null, info: () => null };
+        handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null };
       };
       return api;
     }

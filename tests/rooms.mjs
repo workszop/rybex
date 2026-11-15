@@ -154,6 +154,24 @@ try {
     await p.screenshot({ path: path.join(SHOTS, 'fixture-panel.png') });
     await p.close();
 
+    // engine.labels: station labels keep a small on-screen size and step aside while a panel is open.
+    p = await fresh('', undefined, 'vision');
+    await p.waitForTimeout(300);
+    const labs = () => p.evaluate(() => window.__room._debug.labels && window.__room._debug.labels());
+    const l0 = await labs();
+    const vis0 = (l0 || []).filter(l => l.visible);
+    ok('engine.labels debug hook lists five labels', Array.isArray(l0) && l0.length === 5, JSON.stringify(l0));
+    ok('engine.labels at vision spawn every visible label is at most 40 px tall', vis0.length >= 3 && vis0.every(l => l.h <= 40), JSON.stringify(l0));
+    ok('engine.labels at vision spawn labels stay readable (at least 18 px tall)', vis0.length >= 3 && vis0.every(l => l.h >= 18), JSON.stringify(l0));
+    await p.click('.room-toolbar [data-station=method]'); await waitStation(p, 'method');
+    await p.waitForTimeout(400);
+    const l1 = await labs();
+    ok('engine.labels with a panel open the other stations\' labels are hidden', Array.isArray(l1) && l1.filter(l => l.key !== 'method').every(l => !l.visible), JSON.stringify(l1));
+    await p.click('.room-panel [data-room-close]'); await p.waitForTimeout(200);
+    const l2 = await labs();
+    ok('engine.labels closing the panel brings labels back', Array.isArray(l2) && l2.some(l => l.visible), JSON.stringify(l2));
+    await p.close();
+
     // engine.errors
     ok('engine.errors no page or console errors', errs.length === 0, errs.join(' | '));
     ok('engine.errors fixture station views are not blocked', warns.length === 0, warns.join(' | '));
