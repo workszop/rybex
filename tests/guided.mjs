@@ -81,7 +81,7 @@ try {
     await p.waitForSelector('#proto .recap'); await p.evaluate(() => baseClicked('forecast', 'maint'));
     const r0 = await p.$eval('#proto .recap', e => ({ t: e.textContent, set: e.dataset.set, track: e.dataset.track }));
     ok('recap vision present on validation set', r0.track === 'vision' && r0.set === 'val' && /zestawu ćwiczeniowego/.test(r0.t), JSON.stringify(r0));
-    await p.focus('#vd'); for (let i = 0; i < 6; i++) await p.keyboard.press('ArrowRight');
+    await p.focus('#vd'); await p.keyboard.press('End');
     ok('recap follows the slider', r0.t !== await p.$eval('#proto .recap', e => e.textContent));
     ok('recap numbers equal the data contract', await p.evaluate(() => { const m = visEval(VIS.val, visTh()); const t = document.querySelector('#proto .recap').textContent; return t.includes(String(m.fn)) && t.includes(String(m.tp + m.fp)); }));
     for (const k of ['rag', 'complaints', 'forecast', 'maint']) { await p.evaluate(k => go('lab', k), k); await p.waitForSelector('#proto .recap'); ok(`recap on ${k}`, await p.$eval('#proto .recap', e => e.dataset.track) === k); }
@@ -461,7 +461,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       for (const k of Object.keys(gen)) {
         const md = await p.evaluate(k => { const t = team(); t.track = k; t.log = [{ id: 'r1', ts: '', track: k, cfg: { x: 1 }, res: { primary: { m: 'F1', v: .5, base: .3, hi: true } }, note: '', testViews: 0 }]; return reportMD(); }, k);
         // Hidden-test tracks name the baseline in a plain sentence ("Metoda odniesienia (klasa większościowa) na …"); the others decline it after "wobec".
-        const plainT = ['vision', 'rag', 'complaints'].includes(k), nm = { vision: '„zawsze OK”', rag: 'wyszukiwanie dosłowne', complaints: 'klasa większościowa' }[k];
+        const plainT = ['vision', 'rag', 'complaints'].includes(k), nm = { vision: 'kontrola wzrokowa', rag: 'wyszukiwanie dosłowne', complaints: 'klasa większościowa' }[k];
         ok(`exit1 report declines the baseline name (${k})`, plainT ? md.includes(`Metoda odniesienia (${nm})`) && !/wobec/.test((md.match(/Najlepszy wynik[^\n]*/) || [''])[0]) : md.includes('wobec ' + gen[k]) && !nom.some(n => md.includes('wobec ' + n)), (md.match(/Najlepszy wynik[^\n]*/) || [''])[0]); }
       const en = await p.evaluate(() => { S.lang = 'en'; const r = [0, 1, 2].map(fp => recapText('vision', { tp: 1, fp, fn: 0 }, { set: 'val', n: 60 })); const md = reportMD(); S.lang = 'pl'; return { r, md }; });
       ok('exit1 English vision recap: false alarm forms', en.r[0].includes('1 can was truly defective, and there were no false alarms') && en.r[1].includes('1 was good (a false alarm)') && en.r[2].includes('2 were good (false alarms)'), JSON.stringify(en.r));
@@ -511,7 +511,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('gate lower error beats the baseline on forecast', r === 'true', r);
       await f.close(); }
     { const v = await fresh('#/lab/vision');
-      const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4 }, test: { f1: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
+      const r = await v.evaluate(() => { const t = team(); t.log = [{ id: 'b', ts: '', track: 'vision', cfg: { base: true, set: 'val' }, res: { val: { f1: 0 }, primary: { m: 'F1', v: 0, base: 0, hi: true } }, note: '', testViews: 0, base: true }, { id: 'e', ts: '', track: 'vision', cfg: { x: 1 }, res: { val: { f1: .4, r: .8 }, test: { f1: .9, r: .9 }, primary: { m: 'F1', v: .9, base: 0, hi: true, test: true } }, note: '', testViews: 1 }]; renderBaseBanner('vision'); const e = $('#baseBanner'); return { best: e.dataset.best, txt: e.textContent }; });
       ok('gate vision banner never reads a test-set value', r.best === '0.4' && /Test końcowy zrobiony/.test(r.txt) && !/Dopiero teraz/.test(r.txt), JSON.stringify(r));
       await v.close(); }
     // Review round 1: like-with-like banner, focus on an unsaved baseline, visible justification minimum.
@@ -2191,7 +2191,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await c.evaluate(() => go('lab', 'complaints')); await c.fill('#expNote', 'Słowa łapią wszystkie groźne zgłoszenia.'); await c.click('#sv');
     const c3 = await c.evaluate(() => ({ ban: $('#baseBanner').textContent, best: reportFacts().bestTxt, rep: reportHTML(), md: reportMD() }));
     ok('simplify2 complaints after the test: no "think about the test", final verdict shown', !/Dopiero teraz/.test(c3.ban) && /Test końcowy zrobiony/.test(c3.ban) && /Test końcowy: kategorie \d+ z 24 · groźne \d z 6\. Metoda odniesienia \(klasa większościowa\) na teście końcowym: kategorie \d+ z 24/.test(c3.ban), c3.ban);
-    ok('simplify2 report headline in counts, criterion without instruction', /^Test końcowy: kategorie \d+ z 24 · groźne \d z 6/.test(c3.best) && /Kryterium sukcesu: „Nic o zepsutej puszce nie ginie\.”/.test(c3.rep) && !/porównajcie z wynikiem/.test(c3.rep + c3.md), c3.best);
+    ok('simplify2 report headline in counts, criterion without instruction', /^Test końcowy: kategorie \d+ z 24 · groźne \d z 6/.test(c3.best) && /Kryterium sukcesu: „Nic o zepsutej puszce nie ginie\.”/.test(c3.rep) && !/porównajcie z wynikiem/.test(c3.rep + c3.md), JSON.stringify({ crit: (c3.rep.match(/Kryterium sukcesu[^<]{0,70}/) || [''])[0], cmp: (c3.rep + c3.md).includes('porównajcie z wynikiem'), best: c3.best.slice(0, 40) }));
     // 7b. The template follows the chosen method and keeps anonymisation; a diagram that contradicts the method is warned.
     await c.evaluate(() => go('arch')); await c.click('button[data-p=complaints]');
     const c7 = await c.evaluate(() => { const a = team().arch.sel, w1 = goLiveWarnings(team()); a.llm = true; const w2 = goLiveWarnings(team()); delete a.llm; return { llm: !!a.llm, anon: !!a.anon, w1, w2, q: $('#main').textContent }; });

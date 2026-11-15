@@ -46,7 +46,7 @@ try{
  const visible=()=>first.locator('#siteOpen').evaluate(e=>{const r=e.getBoundingClientRect(),bar=document.querySelector('#pathBar').getBoundingClientRect();return r.top>=bar.bottom&&r.bottom<=innerHeight});
  check(await visible(),'first-visit preview CTA fits 1280x720');
  check(await first.locator('.sp-name').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)>=28),'preview brand hierarchy');
- await first.click('#onboardGo');await first.waitForFunction(()=>!document.querySelector('#onboard'));
+ await first.fill('#onboardName','Zespół Szprot');await first.click('#onboardGo');await first.waitForFunction(()=>!document.querySelector('#onboard'));
  await first.waitForFunction(()=>{const r=document.querySelector('#siteOpen').getBoundingClientRect(),bar=document.querySelector('#pathBar').getBoundingClientRect();return r.top>=bar.bottom&&r.bottom<=innerHeight});
  check(await visible(),'preview CTA fits after onboarding');await first.close();
 }finally{await browser.close()}

@@ -352,6 +352,9 @@ try {
         const b = await app('#/lab/vision', q);
         await seedTeam(b, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'vision'); });
         if (!q) { await roomReady(b, 'vision'); await openSt(b, 'experiment'); }
+        // The baseline is scored on VIS.val: wait for the photo set, or the room and the plain page
+        // compare a synthetic fallback against photos and legitimately disagree.
+        await b.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 90000 });
         await b.click('#runBase');
         await b.waitForSelector('#baseOut:not([hidden])', { timeout: 5000 }).catch(() => {});
         const r = await b.evaluate(() => { const o = document.querySelector('#baseOut'); return o ? { v: o.dataset.v, vis: !o.hidden && o.getBoundingClientRect().height > 0, txt: o.innerText.replace(/\s+/g, ' ').trim(), st: (document.querySelector('#roomHost .room-root') || { dataset: {} }).dataset.roomStation } : null; });
