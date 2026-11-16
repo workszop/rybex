@@ -21,20 +21,21 @@
 
     // ---- materials ----
     const M = {
-      floor: kit.mat(0xb3b8ae, { map: kit.tile(tex.concrete(), W / 2.2, D / 2.2), rough: 0.42 }),
-      wall: kit.mat(0xf3f1ea, { map: tex.paintedWall('#eceae3'), rough: 0.9 }),
+      floor: kit.mat(0xb3b8ae, { map: kit.tile(tex.concrete(), W / 2.2, D / 2.2), rough: 0.58, roughMap: [W / 3.7, D / 3.7] }), // sealed concrete: worn matt, glossier where it is wiped
+      wall: kit.mat(0xf3f1ea, { map: tex.paintedWall('#eceae3'), rough: 0.9, bump: 1.2 }),
       plinth: kit.mat(0x5b6a62, { rough: 0.5 }),
       clad: kit.mat(0xe2e5e6, { map: tex.cladding('#d9dcdd'), rough: 0.6, metal: 0.15 }),
       roof: kit.mat(0x9da3a6, { map: tex.cladding('#c4c8ca'), rough: 0.7, metal: 0.1 }),
       frame: kit.mat(0x4d5d6b, { rough: 0.5, metal: 0.35 }),
-      stainless: kit.mat(0xe4e7ea, { map: tex.brushedSteel(), rough: 0.3, metal: 0.85 }),
-      galv: kit.mat(0xb9bec0, { map: tex.brushedSteel(), rough: 0.5, metal: 0.6 }),
-      yellow: kit.mat(0xf0bf00, { rough: 0.45 }),
+      stainless: kit.mat(0xe4e7ea, { map: tex.brushedSteel(), rough: 0.42, metal: 0.75, roughMap: [0.8, 0.8] }),
+      galv: kit.mat(0xb9bec0, { map: tex.brushedSteel(), rough: 0.55, metal: 0.7 }),
+      yellow: kit.mat(0xe2b300, { rough: 0.8 }),                       // floor paint: matt, worn
+      paintY: kit.mat(0xf0bf00, { rough: 0.3 }),                       // glossy machine enamel
       hazard: kit.mat(0xffffff, { map: tex.hazard(), rough: 0.5 }),
-      black: kit.mat(0x1d1e1f, { rough: 0.7 }),
-      darkPlastic: kit.mat(0x2a2d30, { rough: 0.45 }),
-      blue: kit.mat(0x1f5f9e, { rough: 0.45 }),
-      red: kit.mat(0xc0221c, { rough: 0.4 }),
+      black: kit.mat(0x1d1e1f, { rough: 0.82 }),                       // rubber, cable sheath: broad dull highlight
+      darkPlastic: kit.mat(0x2a2d30, { rough: 0.38 }),
+      blue: kit.mat(0x1f5f9e, { rough: 0.32, metal: 0.1 }),
+      red: kit.mat(0xc0221c, { rough: 0.3 }),
       green: kit.mat(0x2f8f47, { rough: 0.45 }),
       grate: kit.mat(0xffffff, { map: tex.grate(), rough: 0.35, metal: 0.7 }),
       cardboard: kit.mat(0xffffff, { map: tex.cardboard(), rough: 0.85 }),
@@ -129,12 +130,12 @@
       for (let x = 0; x < w; x += 16) { c.fillStyle = '#2a2e31'; c.fillRect(x, 0, 2, h); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(x + 2, 0, 1, h); }
       for (let y = 8; y < h; y += 16) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(0, y, w, 1); }
     }, { repeat: [(BELT_X1 - BELT_X0) / 0.8, 1] });
-    const beltMat = kit.mat(0xffffff, { map: beltTex, rough: 0.55 });
+    const beltMat = kit.mat(0xffffff, { map: beltTex, rough: 0.88 });
     const belt = kit.box(g, [BELT_X1 - BELT_X0, 0.02, 0.3], [(BELT_X0 + BELT_X1) / 2, BELT_Y - 0.01, BELT_Z], beltMat);
     belt.castShadow = false;
     const conv = kit.batch(g, M.stainless, { uv: 1 });
     const LEN = BELT_X1 - BELT_X0, CX = (BELT_X0 + BELT_X1) / 2;
-    conv.box([LEN, 0.14, 0.03], [CX, BELT_Y - 0.06, BELT_Z - 0.18]).box([LEN, 0.14, 0.03], [CX, BELT_Y - 0.06, BELT_Z + 0.18]);
+    conv.rbox([LEN, 0.14, 0.03], [CX, BELT_Y - 0.06, BELT_Z - 0.18], undefined, 0.008).rbox([LEN, 0.14, 0.03], [CX, BELT_Y - 0.06, BELT_Z + 0.18], undefined, 0.008);
     for (const sz of [-1, 1]) {                                      // guide rails on posts
       conv.box([LEN, 0.018, 0.018], [CX, BELT_Y + 0.07, BELT_Z + sz * 0.065]);
       for (let x = BELT_X0 + 0.5; x < BELT_X1; x += 1.0) conv.box([0.015, 0.1, 0.015], [x, BELT_Y + 0.03, BELT_Z + sz * 0.17]).box([0.015, 0.015, 0.1], [x, BELT_Y + 0.07, BELT_Z + sz * 0.12]);
@@ -153,8 +154,19 @@
 
     // ---- the seamer: stainless base, turret behind a polycarbonate guard, lid stack, HMI and a signal tower ----
     const SX = -6.6;
-    conv.box([1.8, 1.0, 1.1], [SX, 0.5, BELT_Z]);                     // base cabinet
-    conv.box([1.9, 0.05, 1.2], [SX, 1.02, BELT_Z]);                   // table top
+    conv.rbox([1.8, 1.0, 1.1], [SX, 0.5, BELT_Z], undefined, 0.025);  // base cabinet
+    conv.rbox([1.9, 0.05, 1.2], [SX, 1.02, BELT_Z], undefined, 0.012); // table top
+    // how it is built: the guard is polycarbonate in a stainless frame; the base has two service doors with
+    // handles, and a louvre next to the main motor
+    for (const dx of [-0.6, 0.6]) for (const dz of [-0.45, 0.45]) conv.box([0.03, 0.85, 0.03], [SX + 0.1 + dx, 1.48, BELT_Z + dz]);
+    for (const dz of [-0.45, 0.45]) conv.box([1.23, 0.03, 0.03], [SX + 0.1, 1.905, BELT_Z + dz]);
+    for (const dx of [-0.6, 0.6]) conv.box([0.03, 0.03, 0.9], [SX + 0.1 + dx, 1.905, BELT_Z]);
+    const fit = kit.batch(g, M.black, { shadow: false });
+    for (const dx of [-0.25, 0.35, 0.87]) fit.box([0.008, 0.9, 0.006], [SX + dx, 0.5, BELT_Z + 0.551]);
+    for (const dx of [0.29, 0.41]) fit.box([0.02, 0.16, 0.025], [SX + dx, 0.62, BELT_Z + 0.562]);
+    for (let i = 0; i < 6; i++) fit.box([0.34, 0.012, 0.012], [SX + 0.6, 0.2 + i * 0.03, BELT_Z + 0.553], [0.5, 0, 0]);
+    fit.box([0.5, 0.008, 0.006], [BELT_X1 + 0.35, 0.9, BELT_Z + 0.602]).box([0.008, 0.86, 0.006], [BELT_X1 + 0.35, 0.47, BELT_Z + 0.602]); // loader doors
+    fit.done();
     conv.cyl(0.33, 0.36, 0.7, [SX + 0.25, 1.4, BELT_Z]);              // seaming turret
     conv.cyl(0.42, 0.42, 0.12, [SX + 0.25, 1.81, BELT_Z]);
     conv.cyl(0.07, 0.07, 0.9, [SX - 0.45, 1.5, BELT_Z - 0.2]);        // lid stack column
@@ -164,7 +176,7 @@
     for (let i = 0; i < 18; i++) lids.cyl(0.04, 0.04, 0.008, [SX - 0.45, 1.1 + i * 0.012, BELT_Z - 0.2], [0, 0, 0], 16);
     kit.cyl(g, 0.16, 0.42, [SX - 0.55, 0.5, BELT_Z + 0.58], M.blue).rotation.z = Math.PI / 2; // main motor
     conv.box([0.06, 0.6, 0.06], [SX + 0.8, 1.35, BELT_Z + 0.58]);    // HMI arm
-    kit.box(g, [0.36, 0.28, 0.06], [SX + 0.8, 1.72, BELT_Z + 0.6], M.darkPlastic);
+    kit.rbox(g, [0.36, 0.28, 0.06], [SX + 0.8, 1.72, BELT_Z + 0.6], M.darkPlastic, 0.012);
     kit.screenPlane(g, [0.31, 0.22], [SX + 0.8, 1.72, BELT_Z + 0.632], 0, (c, w, h) => {
       c.fillStyle = '#0f2233'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 54);
       c.fillStyle = '#fff'; c.font = '700 34px system-ui'; c.fillText(tx('ZAMYKARKA L2', 'SEAMER L2'), 18, 38);
@@ -176,7 +188,8 @@
     const tower = [[0x2fd15a, true], [0xf0b400, false], [0xd02a20, false]];
     tower.forEach(([c, on], i) => { const m = new T.Mesh(new T.CylinderGeometry(0.04, 0.04, 0.07, 16), on ? new T.MeshBasicMaterial({ color: c }) : kit.mat(c, { rough: 0.3 })); m.position.set(SX - 0.75, 1.39 + i * 0.075, BELT_Z + 0.45); g.add(m); });
     // basket loader at the end of the line
-    conv.box([0.8, 1.3, 1.2], [BELT_X1 + 0.35, 0.65, BELT_Z]);
+    conv.rbox([0.8, 1.3, 1.2], [BELT_X1 + 0.35, 0.65, BELT_Z], undefined, 0.025);
+    for (const dx of [-0.34, 0.34]) for (const dz of [-0.49, 0.49]) conv.box([0.025, 0.4, 0.025], [BELT_X1 + 0.35 + dx, 1.5, BELT_Z + dz]);
     kit.box(g, [0.7, 0.4, 1.0], [BELT_X1 + 0.35, 1.5, BELT_Z], M.glass).castShadow = false;
     kit.box(g, [0.82, 0.06, 0.16], [BELT_X1 + 0.35, 1.3, BELT_Z + 0.55], M.hazard);
     // a stainless pipe pair along the back wall, dropping to the seamer
@@ -191,9 +204,9 @@
 
     // ---- camera gantry over the belt ----
     const GX = -1.8;
-    const alu = kit.batch(g, M.yellow);
-    for (const x of [GX - 0.4, GX + 0.4]) for (const z of [BELT_Z - 0.48, BELT_Z + 0.48]) alu.box([0.08, 2.2, 0.08], [x, 1.1, z]).box([0.22, 0.02, 0.22], [x, 0.01, z]);
-    alu.box([0.08, 0.08, 1.04], [GX - 0.4, 2.2, BELT_Z]).box([0.08, 0.08, 1.04], [GX + 0.4, 2.2, BELT_Z]).box([0.88, 0.08, 0.08], [GX, 2.2, BELT_Z - 0.48]).box([0.88, 0.08, 0.08], [GX, 2.2, BELT_Z + 0.48]);
+    const alu = kit.batch(g, M.paintY);
+    for (const x of [GX - 0.4, GX + 0.4]) for (const z of [BELT_Z - 0.48, BELT_Z + 0.48]) alu.rbox([0.08, 2.2, 0.08], [x, 1.1, z], undefined, 0.01).box([0.22, 0.02, 0.22], [x, 0.01, z]);
+    alu.rbox([0.08, 0.08, 1.04], [GX - 0.4, 2.2, BELT_Z], undefined, 0.01).rbox([0.08, 0.08, 1.04], [GX + 0.4, 2.2, BELT_Z], undefined, 0.01).rbox([0.88, 0.08, 0.08], [GX, 2.2, BELT_Z - 0.48], undefined, 0.01).rbox([0.88, 0.08, 0.08], [GX, 2.2, BELT_Z + 0.48], undefined, 0.01);
     alu.box([0.08, 0.06, 1.04], [GX, 1.62, BELT_Z]);
     alu.done();
     // inspection hood over the belt (dark inside) with a ring light and two cameras
@@ -213,13 +226,16 @@
     // light-barrier trigger on the belt rail
     cam.box([0.05, 0.08, 0.05], [GX - 0.6, BELT_Y + 0.1, BELT_Z + 0.2]).box([0.05, 0.08, 0.05], [GX - 0.6, BELT_Y + 0.1, BELT_Z - 0.2]);
     cam.done();
+    // the light barrier's beam across the belt: a can breaking it triggers the camera
+    kit.batch(g, new T.MeshBasicMaterial({ color: 0xff3524 }), { shadow: false, receive: false }).rod([GX - 0.6, BELT_Y + 0.1, BELT_Z - 0.175], [GX - 0.6, BELT_Y + 0.1, BELT_Z + 0.175], 0.003, 5).done();
     // the pusher that rejects cans, and the reject bin
     conv.box([0.16, 0.16, 0.2], [PUSH_X, BELT_Y + 0.12, BELT_Z - 0.32]);
     const pusher = kit.box(g, [0.12, 0.08, 0.04], [PUSH_X, BELT_Y + 0.05, BELT_Z - 0.2], M.red);
     conv.box([0.4, 0.02, 0.5], [PUSH_X, BELT_Y - 0.1, BELT_Z + 0.43], [0.45, 0, 0]); // chute
-    const binMat = kit.mat(0x2b62a8, { rough: 0.5 });
+    const binMat = kit.mat(0x2b62a8, { rough: 0.36 });
     const bin = kit.batch(g, binMat);
-    bin.box([0.7, 0.05, 0.6], [PUSH_X, 0.12, 0.3]).box([0.7, 0.62, 0.04], [PUSH_X, 0.43, 0.02]).box([0.7, 0.62, 0.04], [PUSH_X, 0.43, 0.58]).box([0.04, 0.62, 0.6], [PUSH_X - 0.33, 0.43, 0.3]).box([0.04, 0.62, 0.6], [PUSH_X + 0.33, 0.43, 0.3]);
+    bin.box([0.7, 0.05, 0.6], [PUSH_X, 0.12, 0.3]).rbox([0.7, 0.62, 0.04], [PUSH_X, 0.43, 0.02], undefined, 0.012).rbox([0.7, 0.62, 0.04], [PUSH_X, 0.43, 0.58], undefined, 0.012).rbox([0.04, 0.62, 0.6], [PUSH_X - 0.33, 0.43, 0.3], undefined, 0.012).rbox([0.04, 0.62, 0.6], [PUSH_X + 0.33, 0.43, 0.3], undefined, 0.012);
+    bin.rbox([0.76, 0.035, 0.66], [PUSH_X, 0.745, 0.3], undefined, 0.012); // rolled rim
     for (const x of [-0.28, 0.28]) for (const z of [0.06, 0.54]) bin.cyl(0.035, 0.035, 0.04, [PUSH_X + x, 0.04, z], [Math.PI / 2, 0, 0]);
     bin.done();
     kit.prop.sign(g, [0.36, 0.22], [PUSH_X, 0.55, 0.605], 0, signTex(tx('ODRZUT', 'REJECTS'), '#c0221c'));
@@ -271,7 +287,7 @@
     stack(-7.9, -4.9, 4); stack(-6.5, -4.9, 3); stack(-7.9, -3.7, 2);
     kit.prop.pallet(wood, [-5.1, -5.2]);
     // blue plastic crates by the seamer
-    const crates = kit.batch(g, kit.mat(0x2a6cb5, { rough: 0.55 }));
+    const crates = kit.batch(g, kit.mat(0x2a6cb5, { rough: 0.4 }));
     for (let i = 0; i < 5; i++) crates.box([0.6, 0.3, 0.4], [-8.4, 0.15 + i * 0.31, 2.2]);
     for (let i = 0; i < 3; i++) crates.box([0.6, 0.3, 0.4], [-8.4, 0.15 + i * 0.31, 2.7]);
     crates.done(); cart.done(); print.done();
@@ -290,8 +306,8 @@
     for (const dx of [-0.06, 0.04]) cables.rod([W / 2 - 0.3 + dx, 4.03, -D / 2], [W / 2 - 0.3 + dx, 4.03, D / 2], 0.018, 6);
     cables.done();
     // line control cabinet on the front wall, left of the door
-    const cabMat = kit.mat(0xd7d9d6, { rough: 0.5 });
-    kit.box(g, [1.6, 2.0, 0.5], [-6.0, 1.0, D / 2 - 0.25], cabMat);
+    const cabMat = kit.mat(0xd7d9d6, { rough: 0.38, metal: 0.15 });
+    kit.rbox(g, [1.6, 2.0, 0.5], [-6.0, 1.0, D / 2 - 0.25], cabMat, 0.02);
     const handles = kit.batch(g, M.black, { shadow: false });
     handles.box([0.02, 1.96, 0.01], [-6.0, 1.0, D / 2 - 0.505]).box([0.03, 0.18, 0.03], [-6.15, 1.1, D / 2 - 0.52]).box([0.03, 0.18, 0.03], [-5.85, 1.1, D / 2 - 0.52]);
     handles.done();
@@ -406,7 +422,7 @@
       if (next.length === photos.length && next.every((u, i) => u === photos[i])) return;
       photos = next; loadMon(); loadMemo(); monTex.redraw(); memoTex.redraw();
     }
-    const monHousing = kit.box(mon, [0.72, 0.5, 0.07], [0, 1.6, 0], M.stainless);
+    const monHousing = kit.rbox(mon, [0.72, 0.5, 0.07], [0, 1.6, 0], M.stainless, 0.018);
     const monScreen = new T.Mesh(new T.PlaneGeometry(0.64, 0.42), new T.MeshBasicMaterial({ map: monTex, toneMapped: false }));
     monScreen.position.set(0, 0, 0.036); monHousing.add(monScreen);
 
@@ -415,7 +431,7 @@
     const conBase = kit.batch(con, M.stainless);
     conBase.box([0.14, 0.95, 0.14], [0, 0.475, 0]).box([0.5, 0.03, 0.4], [0, 0.015, 0]);
     conBase.done();
-    const conBody = kit.box(con, [0.7, 0.42, 0.34], [0, 1.12, 0], M.stainless);
+    const conBody = kit.rbox(con, [0.7, 0.42, 0.34], [0, 1.12, 0], M.stainless, 0.025);
     conBody.rotation.x = -0.45;
     const drawHmi = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 48);
@@ -442,7 +458,7 @@
     qaSteel.done();
     const qaTop = kit.box(qa, [2.0, 0.008, 0.75], [0, 0.954, 0], kit.mat(0xeef0ef, { rough: 0.3 }));
     // monitor, keyboard, a can gauge, a lamp, a binder, a stool
-    const qaMon = kit.box(qa, [0.58, 0.36, 0.04], [-0.35, 1.32, -0.2], M.darkPlastic);
+    const qaMon = kit.rbox(qa, [0.58, 0.36, 0.04], [-0.35, 1.32, -0.2], M.darkPlastic, 0.01);
     const drawQa = (c, w, h) => {
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 44);
       c.fillStyle = '#fff'; c.font = '700 24px system-ui'; c.fillText(tx('KONTROLA JAKOŚCI · L2', 'QUALITY CONTROL · L2'), 14, 30);
@@ -467,7 +483,7 @@
 
     // ---- STATION results: big wall screen on the back wall ----
     const scrX = -6.0, scrY = 3.1;
-    const scrFrame = kit.box(g, [2.5, 1.46, 0.1], [scrX, scrY, -D / 2 + 0.07], M.stainless);
+    const scrFrame = kit.rbox(g, [2.5, 1.46, 0.1], [scrX, scrY, -D / 2 + 0.07], M.darkPlastic, 0.02);
     const drawRes = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 92); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(96, 46, 70, 30, 0, 0, Math.PI * 2); c.fill();
@@ -541,7 +557,7 @@
       film.box([0.84, n * 0.125 + 0.04, 1.24], [x, 0.144 + (n * 0.125 + 0.04) / 2, z]);
     }
     sheets.done(); film.done();
-    const jack = kit.batch(g, M.yellow);
+    const jack = kit.batch(g, M.paintY);
     jack.box([0.16, 0.06, 1.15], [6.0, 0.05, 3.6]).box([0.16, 0.06, 1.15], [6.4, 0.05, 3.6]).box([0.6, 0.35, 0.25], [6.2, 0.2, 4.25]).rod([6.2, 0.35, 4.3], [6.2, 1.15, 4.75], 0.02, 8).rod([6.0, 1.15, 4.75], [6.4, 1.15, 4.75], 0.02, 8);
     jack.done();
     kit.cyl(g, 0.1, 0.06, [6.2, 0.06, 4.33], M.black).rotation.z = Math.PI / 2;
@@ -551,18 +567,21 @@
     kit.cyl(g, 0.32, 0.05, [8.4, 0.875, 0.9], M.yellow);
 
     // ---- lights ----
-    g.add(new T.HemisphereLight(0xeef3f6, 0x5f5a52, 0.85));
-    const sun = new T.DirectionalLight(0xfff1dc, 2.3);
-    sun.position.set(-5, 12, 6); sun.target.position.set(1, 0, -1);
+    // Key: daylight from the window side (left of the door view), low enough to model the machines and lay their
+    // shadows across the floor towards the viewer's right. Fill: a weak sky/floor bounce plus the hall reflections.
+    g.add(new T.HemisphereLight(0xeaf1f6, 0x6a6257, 0.5));
+    const sun = new T.DirectionalLight(0xfff0d8, 3.6);
+    sun.position.set(-10.5, 9.5, 4.5); sun.target.position.set(1, 0, -0.8);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 10, bottom: -10, near: 1, far: 30 });
+    Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 9, bottom: -9, near: 1, far: 34 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 3;
     g.add(sun, sun.target);
-    for (const [x, z] of [[-5, 2.5], [2.5, 2.5], [-5, -3.2], [3, -3.2]]) { const p = new T.PointLight(0xfff3e2, 24, 14, 1.6); p.position.set(x, 4.4, z); g.add(p); }
+    for (const [x, z] of [[-5, 2.5], [2.5, 2.5], [-5, -3.2], [3, -3.2]]) { const p = new T.PointLight(0xfff3e2, 11, 14, 1.6); p.position.set(x, 4.4, z); g.add(p); }
     const ringLight = new T.PointLight(0xe8f4ff, 1.2, 1.6, 2); ringLight.position.set(GX, 1.2, BELT_Z); g.add(ringLight);
 
     wood.done(); conv.done(); lids.done(); galv.done(); walls.done(); clad.done(); plinth.done(); steel.done(); haz.done();
-    kit.envAll(g, 0.9);
+    kit.envAll(g, 1.0);
+    M.glass.envMapIntensity = 3; // thin and mostly clear: what shows is the reflection
 
     // ---- small canvas textures used above ----
     function signTex(text, color) {
@@ -621,7 +640,7 @@
       lights: 'none',
       background: 0xcfd4d6,
       fog: { color: 0xcfd4d6, near: 16, far: 46 },
-      spawn: { pos: [-3, 1.65, 4.9], yaw: -0.1 },
+      spawn: { pos: [-3, 1.65, 5.5], yaw: -0.14 },
       colliders: [
         [BELT_X0, BELT_Z - 0.6, BELT_X1 + 0.75, BELT_Z + 0.6],   // conveyor, gantry, seamer guard, loader
         [SX - 1.0, BELT_Z - 0.65, SX + 1.0, BELT_Z + 0.85],     // seamer
@@ -638,6 +657,21 @@
         [7.1, 2.3, 8.3, 5.3], [5.6, 4.6, 6.8, 6], [5.8, 2.95, 6.6, 4.9], [8.05, 0.55, 8.75, 1.25], // can pallets, jack, waste bin
         [-1.4, -5.75, -1.1, -5.3], [1.1, -5.75, 1.4, -5.3],        // shutter bollards
         ...[-7.5, -4.5, -1.5, 1.5, 4.5, 7.5].flatMap(x => [[x - 0.21, -D / 2, x + 0.21, -D / 2 + 0.43], [x - 0.21, D / 2 - 0.43, x + 0.21, D / 2]]), // columns
+      ],
+      contacts: [
+        { c: [CX, BELT_Z], s: [LEN, 0.5], k: 0.42 },                                              // under the conveyor
+        { c: [SX, BELT_Z], s: [1.8, 1.1], k: 0.62 }, { c: [BELT_X1 + 0.35, BELT_Z], s: [0.8, 1.2], k: 0.62 }, // seamer, loader
+        ...[-0.4, 0.4].flatMap(dx => [-0.48, 0.48].map(dz => ({ c: [GX + dx, BELT_Z + dz], s: [0.22, 0.22], k: 0.5, m: 0.1 }))), // gantry feet
+        { c: [PUSH_X, 0.3], s: [0.7, 0.6], k: 0.6 },                                              // reject bin
+        { c: [-4.75, 1.65], s: [1.36, 0.6], r: 0.5, k: 0.34 },                                    // memo board
+        { c: [-2.75, 0.55], s: [0.5, 0.5], k: 0.55 }, { c: [-0.9, 0.85], s: [0.5, 0.4], r: -0.35, k: 0.55 }, // monitor stand, console
+        { c: [6.0, -5.4], s: [2.0, 0.75], k: 0.4 }, { c: [5.8, -4.65], s: [0.44, 0.44], k: 0.5 }, // QA bench, stool
+        ...[[-7.9, -4.9], [-6.5, -4.9], [-7.9, -3.7], [-5.1, -5.2]].map(c => ({ c, s: [1.2, 0.8], k: 0.6 })), // pallets
+        { c: [-8.4, 2.45], s: [0.6, 0.9], k: 0.6 }, { c: [-6.0, D / 2 - 0.25], s: [1.6, 0.5], k: 0.6 }, // crates, control cabinet
+        { c: [2.6, -4.7], s: [1.0, 1.0], k: 0.45 }, { c: [3.85, -4.95], s: [0.75, 0.75], k: 0.45 }, // sauce tanks
+        ...[[7.7, 3.1], [7.7, 4.6], [6.2, 5.3]].map(c => ({ c, s: [0.8, 1.2], k: 0.6 })),         // can pallets
+        { c: [6.2, 3.7], s: [0.56, 1.3], k: 0.32 }, { c: [8.4, 0.9], s: [0.54, 0.54], k: 0.55 },  // pallet jack, waste bin
+        ...[-7.5, -4.5, -1.5, 1.5, 4.5, 7.5].flatMap(x => [-D / 2 + 0.25, D / 2 - 0.25].map(z => ({ c: [x, z], s: [0.42, 0.36], k: 0.5 }))), // columns
       ],
       stations: [
         { key: 'brief', label: { pl: 'Tablica z notatką', en: 'Memo board' }, meshes: [board], anchor: [-4.75, 1.3, 1.65], view: kit.view([-4.75 + Math.sin(0.5) * 1.6, 1.65, 1.65 + Math.cos(0.5) * 1.6], [-4.75, 1.3, 1.65]) },

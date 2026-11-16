@@ -7,6 +7,12 @@
 //   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.dispose();
 // setData passes new data to the room's own setData(data) (if it has one), e.g. photos that arrived after the mount.
 //
+// Look: the engine grounds and lights every room the same way. Contact shadows are laid under spec.contacts (default:
+// the colliders; false = none) and along the walls (spec.wallShade: false = none); materials given kit.envAll()
+// reflect a prefiltered HDR hall whose window sits on the side of the room's shadow-casting light; each station gets
+// a soft pool of light on the floor that follows its glow (station.pool: [x, z] to place it, false = none);
+// spec.exposure sets the tone-mapping exposure (default 1.25).
+//
 // Panels are MOVED into the room (append), never cloned, so ids, listeners and typed values stay.
 // dispose() takes them out of the slots again and leaves them detached (not in the document) for the app to reuse.
 // Titles and labels may be strings or { pl, en }.
@@ -46,8 +52,14 @@
       if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
       return t;
     },
-    mat(color, { rough = 0.8, metal = 0, map } = {}) {
-      return new window.THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, map: map || null });
+    // roughMap: [rx, ry] lays the shared smudge texture over the surface (rough is then the roughest value, the
+    // smudges are glossier), so large surfaces do not shine evenly. bump: relief height taken from the colour map
+    // (grout lines, block joints, carpet pile).
+    mat(color, { rough = 0.8, metal = 0, map, roughMap, bump } = {}) {
+      const m = new window.THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, map: map || null });
+      if (roughMap) m.roughnessMap = kit.tile(kit.tex.smudge(), roughMap[0], roughMap[1] == null ? roughMap[0] : roughMap[1]);
+      if (bump && map) { m.bumpMap = map; m.bumpScale = bump; }
+      return m;
     },
     box(parent, [w, h, d], [x, y, z], material) {
       const m = new window.THREE.Mesh(new window.THREE.BoxGeometry(w, h, d), material);
@@ -187,6 +199,27 @@
       for (let x = 4; x < w; x += 16) g.fillRect(x, 6, 9, h - 12);
       g.fillStyle = 'rgba(255,255,255,.25)'; for (let x = 4; x < w; x += 16) g.fillRect(x + 9, 6, 2, h - 12);
     }),
+    // Roughness variation (data, not colour): wiped patches, scuffs and streaks. Light = as rough as the material
+    // says, dark = glossier. Tileable; lay it at a different repeat than the colour map so the two do not line up.
+    smudge: () => {
+      let t = texCache.get('smudge');
+      if (t) return t;
+      t = cachedTex('smudge', 256, 256, (g, w, h) => {
+        const r = rng(131);
+        g.fillStyle = '#e2e2e2'; g.fillRect(0, 0, w, h);
+        blotches(g, w, h, r, 46, [18, 80], ['70,70,70', '255,255,255', '110,110,110']);
+        blotches(g, w, h, r, 10, [40, 110], ['40,40,40']);
+        g.lineCap = 'round';
+        for (let i = 0; i < 40; i++) {
+          const x = r() * w, y = r() * h, a = r() * Math.PI, len = 20 + r() * 70, v = r() < 0.6 ? 90 : 250;
+          g.strokeStyle = `rgba(${v},${v},${v},${0.05 + r() * 0.1})`; g.lineWidth = 2 + r() * 7;
+          wrap(w, h, x, y, len, (cx, cy) => { g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); g.stroke(); });
+        }
+        grain(g, w, h, 14, r);
+      });
+      t.colorSpace = window.THREE.NoColorSpace;
+      return t;
+    },
     // A screen image: drawFn(g, w, h) draws it, texture.redraw() draws it again (for data, or an image that has
     // just loaded). Cached per drawFn.
     screen(drawFn, { w = 512, h = 320 } = {}) {
@@ -283,6 +316,8 @@
       const put = (geo, [x, y, z], [rx, ry, rz] = [0, 0, 0], s) => { geo.applyMatrix4(m4.compose(new T.Vector3(x, y, z), q.setFromEuler(e.set(rx, ry, rz)), s ? new T.Vector3(...s) : one)); parts.push(geo); return api; };
       const api = {
         box: ([w, h, d], p, r) => put(new T.BoxGeometry(w, h, d), p, r),
+        // A box with bevelled edges (they catch a highlight); for parts the viewer gets close to.
+        rbox: ([w, h, d], p, r, radius = 0.015) => put(new T.RoundedBoxGeometry(w, h, d, 2, Math.min(radius, w / 2, h / 2, d / 2)), p, r),
         cyl: (rt, rb, h, p, r, seg = 16, open = false) => put(new T.CylinderGeometry(rt, rb, h, seg, 1, open), p, r),
         // A cylinder from point a to point b.
         rod(a, b, rad, seg = 10) { const A = new T.Vector3(...a), B = new T.Vector3(...b), d = B.clone().sub(A), geo = new T.CylinderGeometry(rad, rad, d.length(), seg); geo.applyMatrix4(m4.compose(A.add(B).multiplyScalar(0.5), q.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()), one)); parts.push(geo); return api; },
@@ -307,7 +342,7 @@
       m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.receiveShadow = true; parent.add(m); return m;
     },
     rbox(parent, [w, h, d], [x, y, z], material, radius = 0.03) {
-      const T = window.THREE, m = new T.Mesh(new T.RoundedBoxGeometry(w, h, d, 3, radius), material);
+      const T = window.THREE, m = new T.Mesh(new T.RoundedBoxGeometry(w, h, d, 3, Math.min(radius, w / 2, h / 2, d / 2)), material);
       m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m;
     },
     // A station view that leaves room for the panel docked on the right: the station ends up left of centre
@@ -341,7 +376,8 @@
     // Give every standard material under obj the shared reflection map (steel and wet floors need something to reflect).
     envAll(obj, intensity = 1) {
       const env = tex.env();
-      obj.traverse(o => { for (const m of [].concat(o.material || [])) if (m.isMeshStandardMaterial && !m.envMap) { m.envMap = env; m.envMapIntensity = intensity; } });
+      obj.traverse(o => { for (const m of [].concat(o.material || [])) if (m.isMeshStandardMaterial && !m.envMap) { m.envMap = env; m.envMapIntensity = intensity * (1 + 0.8 * m.metalness); } }); // metal is lit by its reflections alone
+      return obj;
     },
     // Common fittings for any room.
     prop: {
@@ -458,8 +494,8 @@
     // Office swivel chair into batches: b.dark (seat, back, arms) and b.metal (column, star base). Faces +z at rotY 0.
     chair(b, [x, z], rotY = 0) {
       const at = frameAt(x, z, rotY), r = [0, rotY, 0];
-      b.dark.box([0.5, 0.08, 0.48], at(0, 0.48, 0), r);
-      const back = new window.THREE.BoxGeometry(0.46, 0.56, 0.06); back.rotateX(-0.12); back.rotateY(rotY); b.dark.add(back, at(0, 0.86, -0.25));
+      b.dark.rbox([0.5, 0.08, 0.48], at(0, 0.48, 0), r, 0.03);  // upholstery: soft edges
+      const back = new window.THREE.RoundedBoxGeometry(0.46, 0.56, 0.06, 2, 0.028); back.rotateX(-0.12); back.rotateY(rotY); b.dark.add(back, at(0, 0.86, -0.25));
       for (const sx of [-0.26, 0.26]) b.dark.box([0.05, 0.03, 0.26], at(sx, 0.67, 0.02), r).box([0.03, 0.18, 0.03], at(sx, 0.58, -0.04), r);
       b.metal.cyl(0.028, 0.028, 0.34, at(0, 0.28, 0)).cyl(0.04, 0.04, 0.08, at(0, 0.14, 0));
       for (let k = 0; k < 5; k++) { const a = rotY + k * Math.PI * 2 / 5, ex = Math.sin(a) * 0.28, ez = Math.cos(a) * 0.28; b.metal.rod([x, 0.09, z], [x + ex, 0.06, z + ez], 0.018, 6).cyl(0.025, 0.025, 0.03, [x + ex, 0.025, z + ez], [Math.PI / 2, a, 0], 8); }
@@ -480,11 +516,74 @@
     monitor(parent, bDark, [x, y, z], rotY, drawFn, [w, h] = [0.56, 0.33]) {
       const at = frameAt(x, z, rotY), r = [0, rotY, 0];
       bDark.box([0.22, 0.015, 0.16], at(0, y + 0.008, 0), r).box([0.05, 0.16, 0.03], at(0, y + 0.09, -0.02), r);
-      bDark.box([w + 0.03, h + 0.03, 0.03], at(0, y + 0.17 + h / 2, 0), r);
+      bDark.rbox([w + 0.03, h + 0.03, 0.03], at(0, y + 0.17 + h / 2, 0), r, 0.008);
       const p = at(0, y + 0.17 + h / 2, 0.0155);
       return kit.screenPlane(parent, [w, h], p, rotY, drawFn);
     },
   });
+
+  // ---- grounding and reflections (built per mount, they need the renderer) ----
+  // A neutral studio hall rendered once into a prefiltered HDR environment: grey shell, ceiling strips far brighter
+  // than white and one large soft window on the side the room's key light comes from (az, radians around y).
+  // Metal, glass and glossy paint get highlights with real intensity instead of a flat grey reflection.
+  function makeEnv(T, renderer, az) {
+    const s = new T.Scene(), made = [];
+    const lin = (r, g, b, side = T.BackSide) => { const m = new T.MeshBasicMaterial({ side, fog: false }); m.color.setRGB(r, g, b, T.LinearSRGBColorSpace); made.push(m); return m; };
+    const add = (geo, mat, [x, y, z], ry = 0) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; s.add(m); made.push(geo); return m; };
+    const wall = lin(0.42, 0.42, 0.41);
+    add(new T.BoxGeometry(22, 8, 22), [wall, wall, lin(0.2, 0.2, 0.195), lin(0.09, 0.085, 0.08), wall, wall], [0, 1.5, 0]);
+    const strip = lin(15, 14.6, 13.8, T.DoubleSide);
+    for (const x of [-6, -2, 2, 6]) add(new T.BoxGeometry(0.16, 0.05, 6), strip, [x, 5.3, 0]);
+    add(new T.PlaneGeometry(9, 2.6), lin(3.2, 3.1, 2.85, T.DoubleSide), [Math.sin(az) * 10.6, 2.6, Math.cos(az) * 10.6], az);
+    add(new T.PlaneGeometry(22, 0.9), lin(0.62, 0.62, 0.6, T.DoubleSide), [-Math.sin(az) * 10.8, 1.2, -Math.cos(az) * 10.8], az);
+    const pm = new T.PMREMGenerator(renderer), rt = pm.fromScene(s, 0.035, 0.1, 40);
+    pm.dispose(); made.forEach(o => o.dispose());
+    return rt;
+  }
+  // Soft falloff for contact shadows: opaque black in the middle, clear at the edges (used 9-sliced: the footprint
+  // itself is nearly all 'middle', the fade happens in the margin around it).
+  function falloffTex(T, additive) {
+    const n = 64, c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'), img = g.createImageData(n, n), d = img.data, sm = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const u = (x + 0.5) / n, v = (y + 0.5) / n, i = (y * n + x) * 4;
+      const lim = t => Math.pow(Math.max(0, Math.min(1, t)), 1.9); // dense at the object, a long thin tail
+      const a = additive ? Math.pow(sm(1 - Math.hypot(u - 0.5, v - 0.5) * 2), 1.6) : lim(1 - Math.abs(u - 0.5) * 2) * lim(1 - Math.abs(v - 0.5) * 2);
+      const k = additive ? 255 : 0; d[i] = d[i + 1] = d[i + 2] = k; d[i + 3] = Math.round(a * 255);
+    }
+    g.putImageData(img, 0, 0);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  }
+  // Contact shadows: one mesh of soft dark patches where things stand. Each item is [x0, z0, x1, z1] (a footprint,
+  // as in colliders) or { c: [x, z], s: [w, d], r: rotY, k: strength 0..1, y: height of the surface, m: outer margin }.
+  // The falloff keeps the same width whatever the footprint (9-slice), so long conveyors and small feet both read.
+  function contactShadows(T, items, bounds) {
+    const pos = [], uv = [], col = [];
+    const quad = (P, U, k) => { for (const i of [0, 1, 2, 0, 2, 3]) { pos.push(P[i][0], P[i][1], P[i][2]); uv.push(U[i][0], U[i][1]); col.push(0, 0, 0, k); } };
+    for (const it0 of items) {
+      const it = Array.isArray(it0) ? { c: [(it0[0] + it0[2]) / 2, (it0[1] + it0[3]) / 2], s: [it0[2] - it0[0], it0[3] - it0[1]], k: it0[4] } : it0;
+      const [w, dp] = it.s, k = it.k == null ? 0.5 : it.k, y = (it.y || 0) + 0.008, mo = it.m == null ? 0.3 : it.m, mi = Math.min(0.05, w / 2, dp / 2);
+      const cs = Math.cos(it.r || 0), sn = Math.sin(it.r || 0), at = (lx, lz) => [it.c[0] + lx * cs + lz * sn, y, it.c[1] - lx * sn + lz * cs];
+      const xs = [-w / 2 - mo, -w / 2 + mi, w / 2 - mi, w / 2 + mo], zs = [-dp / 2 - mo, -dp / 2 + mi, dp / 2 - mi, dp / 2 + mo], us = [0, 0.5, 0.5, 1];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+        if (xs[i + 1] - xs[i] < 1e-4 || zs[j + 1] - zs[j] < 1e-4) continue;
+        quad([at(xs[i], zs[j + 1]), at(xs[i + 1], zs[j + 1]), at(xs[i + 1], zs[j]), at(xs[i], zs[j])], [[us[i], us[j + 1]], [us[i + 1], us[j + 1]], [us[i + 1], us[j]], [us[i], us[j]]], k);
+      }
+    }
+    if (bounds) { // where the floor meets the walls: a darker band all round
+      const { x0, z0, x1, z1 } = bounds, wd = 0.7, k = 0.34, y = 0.007;
+      quad([[x0, y, z1], [x0 + wd, y, z1], [x0 + wd, y, z0], [x0, y, z0]], [[0.5, 0.5], [0, 0.5], [0, 0.5], [0.5, 0.5]], k);
+      quad([[x1 - wd, y, z1], [x1, y, z1], [x1, y, z0], [x1 - wd, y, z0]], [[0, 0.5], [0.5, 0.5], [0.5, 0.5], [0, 0.5]], k);
+      quad([[x0, y, z0 + wd], [x1, y, z0 + wd], [x1, y, z0], [x0, y, z0]], [[0.5, 0], [0.5, 0], [0.5, 0.5], [0.5, 0.5]], k);
+      quad([[x0, y, z1], [x1, y, z1], [x1, y, z1 - wd], [x0, y, z1 - wd]], [[0.5, 0.5], [0.5, 0.5], [0.5, 0], [0.5, 0]], k);
+    }
+    if (!pos.length) return null;
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setAttribute('color', new T.Float32BufferAttribute(col, 4));
+    const mesh = new T.Mesh(geo, new T.MeshBasicMaterial({ map: falloffTex(T, false), vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    mesh.renderOrder = 2; mesh.name = 'room-contact';
+    return mesh;
+  }
 
   function el(tag, attrs = {}, kids = []) {
     const e = document.createElement(tag);
@@ -603,9 +702,10 @@
 
     // A throw half-way (shader compile, bad spec) must not leave a WebGL context, listeners or a frame loop behind.
     function create3d(T, spec) {
-      const local = { raf: 0, off: [], renderer: null, canvas: null };
+      const local = { raf: 0, off: [], renderer: null, canvas: null, env: null };
       try { return build3d(T, spec, local); } catch (e) {
         cancelAnimationFrame(local.raf); local.off.forEach(f => f());
+        if (local.env) local.env.dispose();
         if (local.renderer) { local.renderer.dispose(); local.renderer.forceContextLoss(); }
         if (local.canvas) local.canvas.remove();
         if (spec && spec.dispose) { try { spec.dispose(); } catch (_) { /* reported by the caller */ } }
@@ -620,10 +720,12 @@
       const api = { byKey: {}, glideTo: () => 0, dispose: () => {}, setData: d => { if (spec.setData) { try { spec.setData(d); } catch (err) { console.warn('Rooms: room setData failed', err); } } } };
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PR_MAX));
       renderer.outputColorSpace = T.SRGBColorSpace;
-      renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
+      // Neutral keeps the brand yellow and blue at their own hue up to the highlights (ACES bleaches and shifts them).
+      renderer.toneMapping = T.NeutralToneMapping;
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
       rootEl.prepend(canvas);
 
+      renderer.toneMappingExposure = spec.exposure || 1.25;
       const scene = new T.Scene();
       scene.background = new T.Color(spec.background != null ? spec.background : 0xdfe3e6);
       if (spec.fog) scene.fog = new T.Fog(spec.fog.color, spec.fog.near, spec.fog.far);
@@ -666,6 +768,26 @@
         api.byKey[st.key] = { ...st, label: text, mats, lab };
       }
       spec.scene.traverse(o => { if (o.isMesh || o.isSprite) pickables.push(o); });
+
+      // ---- reflections: swap the kit's placeholder cube map for the HDR hall, its window on the key light's side ----
+      let keyAz = 0.6; spec.scene.traverse(o => { if (o.isDirectionalLight && o.castShadow) keyAz = Math.atan2(o.position.x - o.target.position.x, o.position.z - o.target.position.z); });
+      const cube = texCache.get('env');
+      if (cube) {
+        const env = local.env = makeEnv(T, renderer, keyAz);
+        spec.scene.traverse(o => { for (const m of [].concat(o.material || [])) if (m.envMap === cube) m.envMap = env.texture; });
+      }
+      // ---- grounding: contact shadows under everything that stands on the floor (spec.contacts, else the colliders)
+      // and a soft pool of light on the floor at each station. Both sit outside spec.scene: never picked, so a
+      // click on them still walks. ----
+      if (spec.contacts !== false) { const cs = contactShadows(T, spec.contacts || spec.colliders || [], spec.wallShade === false ? null : b); if (cs) scene.add(cs); }
+      const poolTex = falloffTex(T, true), poolGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+      for (const k of STATIONS) {
+        const st = api.byKey[k]; if (!st || st.pool === false) continue;
+        const a = st.anchor, v = (st.view && st.view.pos) || a, p = st.pool || [a[0] + (v[0] - a[0]) * 0.3, a[2] + (v[2] - a[2]) * 0.3];
+        const m = new T.Mesh(poolGeo, new T.MeshBasicMaterial({ map: poolTex, color: 0xffe9b0, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+        m.position.set(Math.max(b.x0 + 0.5, Math.min(b.x1 - 0.5, p[0])), 0.01, Math.max(b.z0 + 0.5, Math.min(b.z1 - 0.5, p[1]))); m.scale.set(2.6, 1, 2.6); m.renderOrder = 3;
+        scene.add(m); st.poolMesh = m;
+      }
 
       // ---- movement, collision ----
       const cols = spec.colliders || [];
@@ -817,6 +939,7 @@
           const dist = near.distanceTo(pos), base = reducedMotion ? 0.14 : 0.06 + 0.14 * (0.5 + 0.5 * Math.sin(clock * 2.4 + STATIONS.indexOf(k)));
           const v = k === hover || k === station ? 0.42 : dist < 2.4 ? 0.26 : base;
           for (const m of st.mats) m.emissiveIntensity = v;
+          if (st.poolMesh) st.poolMesh.material.opacity = 0.16 + v;
           sizeLabel(st.lab, station !== 'none');
         }
         declutter();
@@ -861,6 +984,7 @@
             m.dispose();
           }
         });
+        if (local.env) { local.env.dispose(); local.env = null; }
         renderer.dispose(); renderer.forceContextLoss(); canvas.remove();
         handle._debug = { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null };
       };

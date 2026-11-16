@@ -25,19 +25,19 @@
     const cartonBase = cartonBaseCanvas();
 
     const M = {
-      floor: kit.mat(0xb9bab3, { map: kit.tile(tex.concrete(), W / 2.2, D / 2.2), rough: 0.5 }),
-      wall: kit.mat(0xf0eee8, { map: tex.paintedWall('#e4e2da'), rough: 0.9 }),
+      floor: kit.mat(0xb9bab3, { map: kit.tile(tex.concrete(), W / 2.2, D / 2.2), rough: 0.6, roughMap: [W / 3.7, D / 3.7] }), // sealed concrete, polished by the forklift lanes
+      wall: kit.mat(0xf0eee8, { map: tex.paintedWall('#e4e2da'), rough: 0.9, bump: 1.2 }),
       clad: kit.mat(0xe2e5e6, { map: tex.cladding('#d6dadb'), rough: 0.6, metal: 0.15 }),
       roof: kit.mat(0xa4a9ab, { map: tex.cladding('#c4c8ca'), rough: 0.7, metal: 0.1 }),
       frame: kit.mat(0x4d5d6b, { rough: 0.5, metal: 0.35 }),
-      upright: kit.mat(0x1f5f9e, { rough: 0.45, metal: 0.3 }),
-      beam: kit.mat(0xe8731c, { rough: 0.45, metal: 0.25 }),
+      upright: kit.mat(0x1f5f9e, { rough: 0.34, metal: 0.2 }),          // powder-coated racking
+      beam: kit.mat(0xe8731c, { rough: 0.34, metal: 0.2 }),
       galv: kit.mat(0xb9bec0, { map: tex.brushedSteel(), rough: 0.5, metal: 0.6 }),
       yellow: kit.mat(0xf0bf00, { rough: 0.5 }),
       green: kit.mat(0x2f8f47, { rough: 0.55 }),
       hazard: kit.mat(0xffffff, { map: tex.hazard(), rough: 0.5 }),
-      black: kit.mat(0x1d1e1f, { rough: 0.75 }),
-      dark: kit.mat(0x2a2d30, { rough: 0.5 }),
+      black: kit.mat(0x1d1e1f, { rough: 0.84 }),
+      dark: kit.mat(0x2a2d30, { rough: 0.38 }),
       white: kit.mat(0xf2f2ef, { rough: 0.5 }),
       wood: kit.mat(0xc49a63, { map: tex.cardboard(), rough: 0.85 }),
       carton: kit.mat(0xffffff, { map: tex.cardboard(), rough: 0.85 }),
@@ -340,7 +340,7 @@
     const CX = 5.05, CY = 5.3, CW = 6.2, CH = 2.0;
     const CZ = -D / 2 + 0.55;
     const chart = new T.Group(); chart.position.set(CX, CY, CZ); g.add(chart);
-    const chartBody = kit.box(chart, [CW + 0.16, CH + 0.16, 0.1], [0, 0, 0], M.dark);
+    const chartBody = kit.rbox(chart, [CW + 0.16, CH + 0.16, 0.1], [0, 0, 0], M.dark, 0.02);
     const drawChart = (c, w, h) => {
       c.fillStyle = '#f3f6f4'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 74); c.fillStyle = '#fff'; c.font = '800 40px system-ui'; c.fillText(tx('PROGNOZA POPYTU · WYNIKI', 'DEMAND FORECAST · RESULTS'), 28, 50);
@@ -379,14 +379,16 @@
     desk.done(); grey.done(); dark.done(); seat.done(); white.done(); wood.done();
 
     // ---- lights: daylight from the yard and the skylights, high bays ----
-    g.add(new T.HemisphereLight(0xeef3f6, 0x5f5a52, 1.0));
-    const sun = new T.DirectionalLight(0xfff1dc, 3.0);
-    sun.position.set(2, 9, -22); sun.target.position.set(4, 0, -2);
+    // Key from the right of the door view (the yard side), across the aisle: cartons get a lit and a shaded face
+    // and the racks throw their shadows over the floor.
+    g.add(new T.HemisphereLight(0xeef3f6, 0x5f5a52, 0.5));
+    const sun = new T.DirectionalLight(0xfff0d8, 3.3);
+    sun.position.set(15, 11, -11); sun.target.position.set(0, 0, 0);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: 1, far: 50 });
+    Object.assign(sun.shadow.camera, { left: -13, right: 13, top: 12, bottom: -12, near: 1, far: 44 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04; sun.shadow.radius = 3;
     g.add(sun, sun.target);
-    for (const [x, z] of [[-6.5, -2], [-6.5, 3.5], [0, -3], [0, 3], [6, -3], [6, 3]]) { const p = new T.PointLight(0xfff3e2, 30, 16, 1.6); p.position.set(x, 6.4, z); g.add(p); }
+    for (const [x, z] of [[-6.5, -2], [-6.5, 3.5], [0, -3], [0, 3], [6, -3], [6, 3]]) { const p = new T.PointLight(0xfff3e2, 13, 16, 1.6); p.position.set(x, 6.4, z); g.add(p); }
     kit.envAll(g, 0.8);
 
     // ---- motion: the dock-1 traffic light breathes (still under reduced motion) ----
@@ -410,6 +412,7 @@
       lights: 'none',
       background: 0xd4d8da,
       fog: { color: 0xd4d8da, near: 20, far: 60 },
+      exposure: 1.38,
       spawn: { pos: [-4.5, 1.65, 5.4], yaw: -0.55 },
       colliders: [
         [-W / 2, RZ - 3 * BAY / 2 - 0.1, -W / 2 + RACK_D + 0.15, RZ + 3 * BAY / 2 + 0.1], // wall run

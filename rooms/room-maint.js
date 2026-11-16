@@ -17,24 +17,24 @@
 
     // ---- materials ----
     const M = {
-      floor: kit.mat(0xffffff, { map: kit.tile(tex.tiles('#a65d42'), W / 0.6, D / 0.6), rough: 0.55 }),
-      wallLow: kit.mat(0xffffff, { map: tex.paintedWall('#c9d3c8'), rough: 0.85 }),
-      wallUp: kit.mat(0xffffff, { map: tex.paintedWall('#ecebe5'), rough: 0.9 }),
+      floor: kit.mat(0xffffff, { map: kit.tile(tex.tiles('#a65d42'), W / 0.6, D / 0.6), rough: 0.62, roughMap: [W / 3.1, D / 3.1], bump: 1.5 }), // quarry tiles: recessed grout, glossier where hosed down
+      wallLow: kit.mat(0xffffff, { map: tex.paintedWall('#c9d3c8'), rough: 0.6, bump: 1.2 }),   // washable gloss dado
+      wallUp: kit.mat(0xffffff, { map: tex.paintedWall('#ecebe5'), rough: 0.9, bump: 1.2 }),
       ceiling: kit.mat(0xb9b8b3, { map: tex.concrete(), rough: 0.95 }),
       plinth: kit.mat(0x4a524c, { rough: 0.6 }),
-      steel: kit.mat(0xd9dde0, { map: tex.brushedSteel(), rough: 0.32, metal: 0.85 }),
+      steel: kit.mat(0xd9dde0, { map: tex.brushedSteel(), rough: 0.4, metal: 0.78, roughMap: [0.8, 0.8] }),
       clad: kit.mat(0xe2e5e7, { map: tex.brushedSteel(), rough: 0.38, metal: 0.75 }),
       galv: kit.mat(0xb9bec0, { map: tex.brushedSteel(), rough: 0.5, metal: 0.6 }),
-      paintBlue: kit.mat(0x2d5f8f, { rough: 0.5, metal: 0.2 }),
+      paintBlue: kit.mat(0x2d5f8f, { rough: 0.34, metal: 0.15 }),      // machine enamel: sharp highlight
       paintGrey: kit.mat(0x6c757b, { rough: 0.55, metal: 0.3 }),
       pipeRed: kit.mat(0xb3261e, { rough: 0.45, metal: 0.2 }),
       pipeGreen: kit.mat(0x3f7f4c, { rough: 0.5, metal: 0.2 }),
       pipeBlue: kit.mat(0x2c6cb0, { rough: 0.5, metal: 0.2 }),
       yellow: kit.mat(0xf0bf00, { rough: 0.45 }),
       hazard: kit.mat(0xffffff, { map: tex.hazard(), rough: 0.5 }),
-      black: kit.mat(0x1d1e1f, { rough: 0.7 }),
-      dark: kit.mat(0x2a2d30, { rough: 0.45 }),
-      cabinet: kit.mat(0xd5d7d2, { rough: 0.45, metal: 0.1 }),
+      black: kit.mat(0x1d1e1f, { rough: 0.84 }),                       // rubber: broad dull highlight
+      dark: kit.mat(0x2a2d30, { rough: 0.38 }),
+      cabinet: kit.mat(0xd5d7d2, { rough: 0.36, metal: 0.15 }),
       wood: kit.mat(0xb08a5e, { map: tex.cardboard(), rough: 0.7 }),
       grate: kit.mat(0xffffff, { map: tex.grate(), rough: 0.35, metal: 0.7 }),
       glass: new T.MeshStandardMaterial({ color: 0xcfdde5, roughness: 0.05, transparent: true, opacity: 0.25, depthWrite: false }),
@@ -224,7 +224,7 @@
       c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 54); c.fillStyle = '#fff'; c.font = '800 26px system-ui'; c.fillText(tx('INSTRUKCJA BHP', 'SAFETY RULES'), 14, 36);
       c.fillStyle = '#1c1917'; c.font = '600 17px system-ui'; tx(['1. Ochronniki słuchu', '2. Blokada LOTO przed', '   otwarciem retorty', '3. Gorące rury: rękawice', '4. Wpis do dziennika'], ['1. Ear protection', '2. LOTO before opening', '   a retort', '3. Hot pipes: gloves', '4. Write it in the log']).forEach((t, i) => c.fillText(t, 14, 92 + i * 30));
     }), rough: 0.7 }));
-    kit.box(g, [0.9, 0.7, 0.6], [2.6, 0.35, 4.5], kit.mat(0x2e8b57, { rough: 0.5 }));
+    kit.rbox(g, [0.9, 0.7, 0.6], [2.6, 0.35, 4.5], kit.mat(0x2e8b57, { rough: 0.4 }), 0.025);
     const tray = kit.batch(g, M.galv, { shadow: false });
     tray.box([0.3, 0.01, D], [W / 2 - 0.3, 4.3, 0]).box([0.01, 0.08, D], [W / 2 - 0.15, 4.34, 0]).box([0.01, 0.08, D], [W / 2 - 0.45, 4.34, 0]);
     tray.box([W, 0.01, 0.3], [0, 4.45, D / 2 - 0.3]);
@@ -296,7 +296,7 @@
 
     // ---- STATION data: sensor cabinet on the right wall, LEDs blinking ----
     const cab = new T.Group(); cab.position.set(6.62, 0, -1.2); cab.rotation.y = -Math.PI / 2; g.add(cab);
-    const cabBody = kit.box(cab, [1.2, 2.0, 0.5], [0, 1.1, 0], M.cabinet);
+    const cabBody = kit.rbox(cab, [1.2, 2.0, 0.5], [0, 1.1, 0], M.cabinet, 0.02);
     kit.box(cab, [1.24, 0.1, 0.54], [0, 0.05, 0], M.black).castShadow = false;
     const cabFront = kit.batch(cab, M.black, { shadow: false });
     cabFront.box([0.02, 1.9, 0.02], [0, 1.1, 0.255]).box([0.03, 0.2, 0.04], [-0.08, 1.15, 0.27]).box([0.03, 0.2, 0.04], [0.08, 1.15, 0.27]);
@@ -333,13 +333,13 @@
 
     // ---- STATION method: engineer desk on the right wall, with drawings and a hard hat ----
     const desk = new T.Group(); desk.position.set(6.55, 0, 3.0); desk.rotation.y = -Math.PI / 2; g.add(desk);
-    const deskTop = kit.box(desk, [1.6, 0.04, 0.8], [0, 0.74, 0], M.wood);
+    const deskTop = kit.rbox(desk, [1.6, 0.04, 0.8], [0, 0.74, 0], M.wood, 0.008);
     const deskLegs = kit.batch(desk, M.paintGrey);
     for (const x of [-0.75, 0.75]) deskLegs.box([0.05, 0.72, 0.7], [x, 0.36, 0]);
     deskLegs.box([0.4, 0.6, 0.6], [0.5, 0.42, 0]);                            // drawer unit
     deskLegs.box([1.4, 0.03, 0.3], [0, 1.6, -0.25]);                          // shelf
     deskLegs.done();
-    const deskMon = kit.box(desk, [0.6, 0.38, 0.04], [-0.25, 1.1, -0.2], M.dark);
+    const deskMon = kit.rbox(desk, [0.6, 0.38, 0.04], [-0.25, 1.1, -0.2], M.dark, 0.01);
     const drawEng = (c, w, h) => {
       c.fillStyle = '#f2f5f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 42);
       c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText(tx('UTRZYMANIE RUCHU · PLAN', 'MAINTENANCE · PLAN'), 12, 28);
@@ -385,7 +385,7 @@
     const conB = kit.batch(con, M.cabinet);
     conB.box([0.7, 1.0, 0.45], [0, 0.5, 0]);
     conB.done();
-    const conTop = kit.box(con, [0.76, 0.32, 0.5], [0, 1.12, 0.02], M.cabinet);
+    const conTop = kit.rbox(con, [0.76, 0.32, 0.5], [0, 1.12, 0.02], M.cabinet, 0.025);
     conTop.rotation.x = -0.5;
     const drawCon = (c, w, h) => {
       c.fillStyle = '#e9eef1'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 46);
@@ -405,7 +405,7 @@
 
     // ---- STATION results: trend screen on the back wall ----
     const TX = 1.6, TY = 2.1;
-    const trendFrame = kit.box(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.steel);
+    const trendFrame = kit.rbox(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.dark, 0.02);
     const drawTrend = (c, w, h) => {
       c.fillStyle = '#0d151b'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#e6eef3'; c.font = '700 34px system-ui'; c.fillText(tx('Drgania · retorta', 'Vibration · retort'), 30, 52);
@@ -430,14 +430,16 @@
     trendScreen.position.set(0, 0, 0.041); trendFrame.add(trendScreen);
 
     // ---- lights ----
-    g.add(new T.HemisphereLight(0xf1f4f6, 0x6d5f55, 1.05));
-    const sun = new T.DirectionalLight(0xfff1dc, 1.7);
-    sun.position.set(-11, 9, 2); sun.target.position.set(0, 0, -0.5);
+    // Key from the far left of the door view, so the retorts and consoles are modelled and their shadows come
+    // forward across the tiles; weak fill, the hall reflections do the rest.
+    g.add(new T.HemisphereLight(0xf1f4f6, 0x6d5f55, 0.45));
+    const sun = new T.DirectionalLight(0xfff0d8, 3.0);
+    sun.position.set(-9, 9, -7.5); sun.target.position.set(0.5, 0, 0);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 8, bottom: -8, near: 1, far: 30 });
+    Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 9, bottom: -9, near: 1, far: 34 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     g.add(sun, sun.target);
-    for (const [x, z] of [[-4, 1.5], [2.5, 1.5], [-3.5, -2.5], [3, -2.6]]) { const p = new T.PointLight(0xfff3e2, 14, 11, 1.6); p.position.set(x, 4.0, z); g.add(p); }
+    for (const [x, z] of [[-4, 1.5], [2.5, 1.5], [-3.5, -2.5], [3, -2.6]]) { const p = new T.PointLight(0xfff3e2, 6.5, 11, 1.6); p.position.set(x, 4.0, z); g.add(p); }
 
     shells.done(); saddles.done(); reds.done(); blacks.done();
     kit.envAll(g, 0.9);
