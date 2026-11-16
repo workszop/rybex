@@ -19,22 +19,22 @@
 
     // ---- materials ----
     const M = {
-      carpet: kit.mat(0xffffff, { map: kit.tile(tex.carpet('#56606b'), W, D), rough: 0.95 }),
+      carpet: kit.mat(0xffffff, { map: kit.tile(tex.carpet('#56606b'), W, D), rough: 1, bump: 1.4 }),
       wall: kit.mat(0xffffff, { map: tex.plaster('#f0eee8'), rough: 0.92 }),
       accent: kit.mat(0xffffff, { map: tex.plaster('#2a5d8f'), rough: 0.9 }),
       ceiling: kit.mat(0xffffff, { map: kit.tile(tex.ceiling(), W / 1.2, D / 1.2), rough: 0.95 }),
       skirting: kit.mat(0x3b3f44, { rough: 0.6 }),
       frame: kit.mat(0x5b6066, { rough: 0.45, metal: 0.5 }),
-      white: kit.mat(0xf4f4f1, { rough: 0.5 }),
-      oak: kit.mat(0xffffff, { map: tex.wood('#c79a66'), rough: 0.55 }),
+      white: kit.mat(0xf4f4f1, { rough: 0.38 }),                        // powder-coated steel
+      oak: kit.mat(0xffffff, { map: tex.wood('#c79a66'), rough: 0.5, roughMap: [1.3, 1.3] }), // lacquered veneer, worn where arms rest
       lam: kit.mat(0xe9e8e3, { rough: 0.55 }),
       grey: kit.mat(0x9aa0a5, { rough: 0.5, metal: 0.4 }),
-      dark: kit.mat(0x23262a, { rough: 0.5 }),
+      dark: kit.mat(0x23262a, { rough: 0.36 }),                         // monitor plastic
       fabric: kit.mat(0x3c6f8f, { rough: 0.95 }),
       seat: kit.mat(0x2b2e33, { rough: 0.85 }),
       pot: kit.mat(0xe7e3da, { rough: 0.7 }),
       leaf: kit.mat(0x3f7a3a, { rough: 0.7 }),
-      alu: kit.mat(0xc9ccce, { map: tex.brushedSteel(), rough: 0.35, metal: 0.8 }),
+      alu: kit.mat(0xc9ccce, { map: tex.brushedSteel(), rough: 0.38, metal: 0.75 }),
       glass: new T.MeshStandardMaterial({ color: 0xdfeaf0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.12, depthWrite: false }),
       lamp: new T.MeshBasicMaterial({ color: 0xfbfaf6, toneMapped: false }),
       paper: kit.mat(0xfbfbf8, { rough: 0.8 }),
@@ -280,7 +280,7 @@
     dark.box([0.32, 0.22, 0.01], [TVX + 0.3 + Math.sin(0.3) * -0.11, 0.86, -4.4 - Math.cos(0.3) * 0.11], [-0.25, 0.3, 0]);
     dark.cyl(0.13, 0.15, 0.03, [TVX - 0.2, 0.755, -4.6], [0, 0, 0], 3);                     // conference phone
     const tv = new T.Group(); tv.position.set(TVX, 1.55, -D / 2 + 0.05); g.add(tv);
-    const tvBody = kit.box(tv, [1.48, 0.86, 0.05], [0, 0, 0], M.dark);
+    const tvBody = kit.rbox(tv, [1.48, 0.86, 0.05], [0, 0, 0], M.dark, 0.012);
     const drawRes = (c, w, h) => {
       c.fillStyle = '#eef2f5'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 74); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(70, 37, 52, 22, 0, 0, Math.PI * 2); c.fill();
@@ -314,7 +314,7 @@
       const list = docs.length ? docs : ['PROCES'];
       list.forEach((code, i) => { const x = 20 + (i % 3) * 150, y = 214 + Math.floor(i / 3) * 52; c.fillStyle = '#e1eaf2'; c.fillRect(x, y, 138, 40); c.fillStyle = '#1f3f6f'; c.font = '700 19px system-ui'; c.fillText(code, x + 12, y + 27); });
     };
-    const kMon = kit.box(kiosk, [0.74, 0.48, 0.04], [0, 1.42, -0.04], M.dark);
+    const kMon = kit.rbox(kiosk, [0.74, 0.48, 0.04], [0, 1.42, -0.04], M.dark, 0.012);
     kMon.rotation.x = -0.28;
     const kScreen = new T.Mesh(new T.PlaneGeometry(0.7, 0.44), new T.MeshBasicMaterial({ map: tex.screen(drawKiosk, { w: 640, h: 402 }), toneMapped: false }));
     kScreen.position.set(0, 0, 0.021); kMon.add(kScreen);
@@ -348,14 +348,14 @@
     oak.done(); lam.done(); grey.done(); dark.done(); seat.done(); paper.done(); greenB.pot.done(); greenB.leaf.done();
 
     // ---- lights: daylight through the windows, LED panels ----
-    g.add(new T.HemisphereLight(0xf4f6f8, 0x6b625a, 0.8));
-    const sun = new T.DirectionalLight(0xfff0d8, 6.0);
+    g.add(new T.HemisphereLight(0xf4f6f8, 0x6b625a, 0.42));
+    const sun = new T.DirectionalLight(0xfff0d8, 5.2);
     sun.position.set(14, 6.2, 1.5); sun.target.position.set(0.5, 0, -1.5);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 34 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
     g.add(sun, sun.target);
-    for (const [x, z] of [[-2.7, -3.3], [-2.7, 1.5], [1.8, -3.3], [1.8, 1.5]]) { const p = new T.PointLight(0xfff6ea, 8, 9, 1.6); p.position.set(x, H - 0.25, z); g.add(p); }
+    for (const [x, z] of [[-2.7, -3.3], [-2.7, 1.5], [1.8, -3.3], [1.8, 1.5]]) { const p = new T.PointLight(0xfff6ea, 4.2, 9, 1.6); p.position.set(x, H - 0.25, z); g.add(p); }
     kit.envAll(g, 0.6);
 
     function roundedTop(w, dd, h) {
@@ -400,6 +400,7 @@
       lights: 'none',
       background: 0xe9ecee,
       fog: { color: 0xe9ecee, near: 14, far: 40 },
+      exposure: 1.4, // an office: brighter than the halls
       spawn: { pos: [-1.0, 1.65, 4.9], yaw: -0.13 },
       colliders: [
         [POD[0] - 1.3, POD[1] - 1.25, POD[0] + 1.3, POD[1] + 1.25],          // desk pod with chairs

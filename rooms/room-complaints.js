@@ -17,15 +17,15 @@
     const CAT_COL = ['#c0392b', '#e08a00', '#7a4fa0', '#1f6fb2', '#2f8f47', '#5b6770'];
 
     const M = {
-      floor: kit.mat(0xffffff, { map: kit.tile(tex.vinyl('#bdb7ab'), W / 2, D / 2), rough: 0.5 }),
+      floor: kit.mat(0xffffff, { map: kit.tile(tex.vinyl('#bdb7ab'), W / 2, D / 2), rough: 0.56, roughMap: [W / 2.7, D / 2.7] }), // polished vinyl, scuffed on the walkways
       wall: kit.mat(0xffffff, { map: tex.plaster('#f2f0ea'), rough: 0.92 }),
       accent: kit.mat(0xffffff, { map: tex.plaster('#f1d57a'), rough: 0.9 }),
       ceiling: kit.mat(0xffffff, { map: kit.tile(tex.ceiling(), W / 1.2, D / 1.2), rough: 0.95 }),
       skirting: kit.mat(0x5d5a52, { rough: 0.6 }),
-      desk: kit.mat(0xffffff, { map: tex.wood('#d8c3a0'), rough: 0.55 }),
-      white: kit.mat(0xf3f3f0, { rough: 0.5 }),
+      desk: kit.mat(0xffffff, { map: tex.wood('#d8c3a0'), rough: 0.5, roughMap: [1.3, 1.3] }),
+      white: kit.mat(0xf3f3f0, { rough: 0.38 }),
       grey: kit.mat(0x8f969b, { rough: 0.45, metal: 0.45 }),
-      dark: kit.mat(0x24272b, { rough: 0.5 }),
+      dark: kit.mat(0x24272b, { rough: 0.36 }),
       seat: kit.mat(0x2e4a5f, { rough: 0.85 }),
       feltY: kit.mat(0xe6b422, { rough: 0.98 }),
       feltG: kit.mat(0x6f7a80, { rough: 0.98 }),
@@ -311,7 +311,7 @@
     white.box([0.9, 0.75, 0.6], [-4.95, 0.375, 2.5]).box([0.6, 0.3, 0.5], [-4.95, 0.9, 2.5]);
     dark.box([0.45, 0.02, 0.32], [-4.95, 1.06, 2.5]);
     // wallboard on the left wall: shift, opening hours, no counts
-    kit.box(g, [0.06, 0.66, 1.16], [-W / 2 + 0.03, 1.95, 0.0], M.dark);
+    kit.rbox(g, [0.06, 0.66, 1.16], [-W / 2 + 0.03, 1.95, 0.0], M.dark, 0.012);
     kit.screenPlane(g, [1.1, 0.6], [-W / 2 + 0.065, 1.95, 0.0], Math.PI / 2, (c, w, h) => {
       c.fillStyle = '#16191c'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 44px system-ui'; c.fillText(tx('OBSŁUGA KLIENTA', 'CUSTOMER SERVICE'), 30, 70);
       c.fillStyle = '#cfd6db'; c.font = '600 32px system-ui'; c.fillText(tx('Pn–Pt 8:00–16:00', 'Mon–Fri 8:00–16:00'), 30, 140); c.fillText(tx('Infolinia: wew. 214', 'Hotline: ext. 214'), 30, 190);
@@ -333,14 +333,14 @@
     desk.done(); white.done(); grey.done(); dark.done(); seat.done(); paper.done(); greenB.pot.done(); greenB.leaf.done();
 
     // ---- lights ----
-    g.add(new T.HemisphereLight(0xf6f4ee, 0x6d665a, 0.85));
-    const sun = new T.DirectionalLight(0xfff2de, 3.2);
+    g.add(new T.HemisphereLight(0xf6f4ee, 0x6d665a, 0.42));
+    const sun = new T.DirectionalLight(0xfff2de, 3.6);
     sun.position.set(-14, 6, 2); sun.target.position.set(0, 0, -0.5);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 34 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 4;
     g.add(sun, sun.target);
-    for (const [x, z] of [[-2.8, -2.75], [0.9, -2.75], [-2.8, 0.1], [0.9, 0.1], [3.9, -1.3]]) { const p = new T.PointLight(0xfff4e4, 6.5, 8, 1.6); p.position.set(x, 2.1, z); g.add(p); }
+    for (const [x, z] of [[-2.8, -2.75], [0.9, -2.75], [-2.8, 0.1], [0.9, 0.1], [3.9, -1.3]]) { const p = new T.PointLight(0xfff4e4, 3.2, 8, 1.6); p.position.set(x, 2.1, z); g.add(p); }
     kit.envAll(g, 0.6);
 
     function yardTex() {
@@ -360,6 +360,7 @@
       lights: 'none',
       background: 0xeceae4,
       fog: { color: 0xeceae4, near: 14, far: 40 },
+      exposure: 1.32,
       spawn: { pos: [1.0, 1.65, 3.65], yaw: 0.2 },
       colliders: [
         [POD[0] - 1.95, POD[1] - 1.25, POD[0] + 1.95, POD[1] + 1.25],          // agent pod with chairs
