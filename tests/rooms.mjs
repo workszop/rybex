@@ -324,6 +324,8 @@ try {
     const roomReady = (p, k) => p.waitForSelector(`#roomHost .room-root[data-room-track="${k}"][data-room-status="ready"]`, { timeout: 15000 }).then(() => true, () => false);
     const station = p => p.evaluate(() => { const r = document.querySelector('#roomHost .room-root'); return r ? r.dataset.roomStation : null; });
     const openSt = (p, s) => p.evaluate(s => X.room.handle.open(s), s);
+    // The vision lab gates its run button on the photo set: wait for the app's own state, not a timer.
+    const readyPhotos = q => q.waitForFunction(() => typeof VIS !== 'undefined' && VIS.photoCount >= VIS.expectedPhotoCount, null, { timeout: 60000 }).catch(() => {});
     const inSlot = (p, s, sel) => p.evaluate(([s, sel]) => !!document.querySelector(`#roomHost .room-slot[data-station="${s}"] ${sel}`), [s, sel]);
     const dupIds = p => p.evaluate(() => { const c = {}; document.querySelectorAll('[id]').forEach(e => c[e.id] = (c[e.id] || 0) + 1); return Object.keys(c).filter(k => c[k] > 1); });
     const seedTeam = (p, fn) => p.evaluate(`(${fn})(); save(); render();`);
@@ -441,6 +443,7 @@ try {
       await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const a0 = aborted.length;
+      await readyPhotos(p);
       await p.click('#visRun');
       const live = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
       await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);
@@ -592,6 +595,7 @@ try {
       await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const s0 = aborted.length;
+      await readyPhotos(p);
       await p.click('#visRun');
       const started = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
       await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);

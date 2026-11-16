@@ -365,7 +365,7 @@ try {
     ok('photo rules catch every dent and smudged code on validation', r.val.dent === '6/6' && r.val.code === '6/6', JSON.stringify(r.val));
     const txt = await p.$eval('#proto', e => e.textContent);
     ok('lab text no longer says the rules use the synthetic image', !/syntetycznego obrazu|synthetic image/i.test(txt), txt.match(/.{0,60}syntetycz.{0,60}/)?.[0] || '');
-    await p.click('#visRes .thumb[data-i="0"]');
+    await p.evaluate(() => { const b = document.querySelector('#visRes .gal-filter [data-gf=all]'); if (b) b.click(); }); await p.click('#visRes .thumb[data-i="0"]');
     ok('inspector shows photo feature names', /odstające|outlier/i.test(await p.textContent('#insp')));
     await p.keyboard.press('Escape');
     await p.$eval('#vd', e => { e.value = e.max; e.dispatchEvent(new Event('input', { bubbles: true })); });
@@ -393,7 +393,7 @@ try {
     ok('file:// loads all 210 photos and measures them', viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
     ok('file:// photos are the same bytes as the served JPEGs (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
     ok('file:// rules score the same as over HTTP', Math.abs(viaFile.f1 - viaHttp.f1) < 1e-9, `${viaFile.f1} vs ${viaHttp.f1}`);
-    await p.click('#visRes .thumb[data-i="0"]');
+    await p.evaluate(() => { const b = document.querySelector('#visRes .gal-filter [data-gf=all]'); if (b) b.click(); }); await p.click('#visRes .thumb[data-i="0"]');
     ok('file:// inspector shows the photo', /^data:image\/jpeg/.test(await p.$eval('#insp img', e => e.src).catch(() => '')));
     ok('no page errors (file)', !p.errs.length, p.errs.join(' | '));
     await p.close();
