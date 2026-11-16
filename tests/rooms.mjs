@@ -85,7 +85,34 @@ try {
       ok('engine.guide last station: onward closes, nothing is next', g3.next === 'none' && !/\d\./.test(g3.onward), JSON.stringify(g3));
       await g.click('.room-onward'); const g4o = await waitStation(g, 'none'), g4 = await gs();
       ok('engine.guide all visited: the guide says so and offers no button', g4o && g4.guideShown && g4.btnHidden && g4.text.length > 10, JSON.stringify(g4));
+      // opts.seen: a walk kept by the app goes on where it stood (unknown names ignored).
+      const gk = await fresh('&seen=brief,data,bogus');
+      const k0 = await gk.evaluate(() => { const r = document.querySelector('.room-root'); return { next: r.dataset.roomNext, done: [...r.querySelectorAll('.room-toolbar .is-done')].map(b => b.dataset.station).join(), text: r.querySelector('.room-guide-text').textContent, tip: r.querySelector('.room-guide-tip').hidden }; });
+      ok('engine.guide opts.seen: those stations are done, the third is next', k0.next === 'method' && k0.done === 'brief,data' && /3/.test(k0.text) && k0.tip, JSON.stringify(k0));
+      await gk.close();
       await g.close();
+    }
+
+    // engine.font: while Raleway is still downloading, a room's late-font redraws wait; a disposed room takes its
+    // own away. The stylesheet is served here and the font file never answers, so the font stays pending.
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await ctx.route(/fonts\.googleapis\.com/, r => r.fulfill({ contentType: 'text/css', body: "@font-face{font-family:Raleway;font-weight:500 800;src:url(https://fonts.gstatic.com/stalled.woff2) format('woff2')}" }));
+      await ctx.route(/fonts\.gstatic\.com/, () => {});
+      const f = await ctx.newPage();
+      await f.goto(FIX(), { waitUntil: 'domcontentloaded' }); // the load event would wait for the stalled font
+      await f.waitForFunction(() => { const r = document.querySelector('.room-root'); return r && r.dataset.roomStatus !== 'loading'; }, null, { timeout: 15000 });
+      const n = () => f.evaluate(() => Rooms._debug.fontWaiters());
+      const n1 = await n();
+      await f.evaluate(() => window.__room.dispose());
+      const n2 = await n();
+      await f.evaluate(() => { window.__mount(); window.__mount(); window.__mount(); });
+      const n3 = await n();
+      await f.evaluate(() => window.__room.dispose());
+      const n4 = await n();
+      ok('engine.font pending font: the mounted room waits with its text redraws', n1 > 0, String(n1));
+      ok('engine.font dispose drops that room\'s redraws; three mounts in a row leave one room\'s worth', n2 === 0 && n3 === n1 && n4 === 0, JSON.stringify([n1, n2, n3, n4]));
+      await ctx.close();
     }
 
     // engine.open
@@ -496,6 +523,23 @@ try {
         await c.evaluate(() => { const t = team(), e = t.log[0]; t.log.push({ ...e, id: 'gx1', base: undefined, cfg: { p: 0, h: 6, w: 3 } }); save(); renderPathBar(); });
         const g3 = await gs();
         ok('integration.guide one experiment saved: experiment 2 of 3, count 1/3', /Eksperyment 2 z 3/.test(g3.todo) && g3.tag === '1/3', JSON.stringify(g3));
+        // The walk is kept in the team: a language switch, a reload and a team switch each mount the room again.
+        const ws = () => c.evaluate(() => { const r = document.querySelector('#roomHost .room-root'); return { next: r.dataset.roomNext, guide: r.querySelector('.room-guide-text').textContent, done: [...r.querySelectorAll('.room-toolbar .is-done')].map(b => b.dataset.station).join() }; });
+        const setTeamSel = async t => { await c.evaluate(t => { const s = document.querySelector('#teamSel'); s.value = t; s.dispatchEvent(new Event('change', { bubbles: true })); }, t); await roomReady(c, 'forecast'); };
+        await c.click('#langSeg button[data-l="en"]'); await roomReady(c, 'forecast');
+        const w1 = await ws();
+        ok('integration.guide language switch: the walk goes on (experiment 2 of 3, three stations done)', w1.next === 'experiment' && /Experiment 2 of 3/.test(w1.guide) && w1.done === 'brief,data,method', JSON.stringify(w1));
+        await c.click('#langSeg button[data-l="pl"]'); await roomReady(c, 'forecast');
+        await c.reload(); await c.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 15000 }); await roomReady(c, 'forecast');
+        const w2 = await ws();
+        ok('integration.guide reload: the walk goes on', w2.next === 'experiment' && /Eksperyment 2 z 3/.test(w2.guide) && w2.done === 'brief,data,method', JSON.stringify(w2));
+        await setTeamSel('2');
+        const w3 = await ws();
+        ok('integration.guide another team starts its own walk', w3.next === 'brief' && w3.done === '', JSON.stringify(w3));
+        await setTeamSel('1');
+        const w4 = await ws();
+        ok('integration.guide back to the first team: its walk is still there', w4.next === 'experiment' && w4.done === 'brief,data,method', JSON.stringify(w4));
+        await openSt(c, 'experiment');
         await openSt(c, 'results');
         const g4 = await gs();
         ok('integration.guide results station early: onward leads back to the experiments', g4.next === 'experiment' && g4.foot && /4\./.test(g4.onward), JSON.stringify(g4));

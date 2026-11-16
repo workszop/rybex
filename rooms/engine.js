@@ -6,6 +6,7 @@
 //   const room = Rooms.mount({ host, track: 'vision', lang: 'pl', data, titles, panels, onOpen, onClose, onExit2d });
 //   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.refresh(); room.dispose();
 // refresh() asks opts.guide again (the app calls it when the task's state changed).
+// opts.seen: stations already opened in an earlier mount (the app records them in onOpen), so the walk goes on where it stood.
 // setData passes new data to the room's own setData(data) (if it has one), e.g. photos that arrived after the mount.
 //
 // Look: the engine grounds and lights every room the same way. Contact shadows are traced from whatever stands
@@ -66,8 +67,11 @@
   // that moment, so the download starts here, and anything that drew text before the font arrived is drawn again
   // once it is in (whenFont). Without the font (offline, file:// without network) the text stays in system-ui.
   const FONT_SAMPLE = 'Aąćęłńóśźż0', fontWaiters = new Set();
-  let fontPending = false;
-  const whenFont = fn => { if (fontPending) fontWaiters.add(fn); };
+  let fontPending = false, fontScope = null;
+  // A mount collects the redraws registered while it builds (fontScope) and drops them on dispose, so a room that
+  // is gone before the font arrives is neither kept alive nor redrawn.
+  const whenFont = fn => { if (!fontPending) return; fontWaiters.add(fn); if (fontScope) fontScope.add(fn); };
+  const fontScoped = (scope, fn) => { const prev = fontScope; fontScope = scope; try { return fn(); } finally { fontScope = prev; } };
   if (document.fonts && document.fonts.load) {
     fontPending = true;
     Promise.all([500, 600, 700, 800].map(w => document.fonts.load(`${w} 16px Raleway`, FONT_SAMPLE)))
@@ -149,7 +153,7 @@
   const css = c => typeof c === 'number' ? '#' + c.toString(16).padStart(6, '0') : c;
   const shade = (c, k) => { const n = parseInt(css(c).slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(v * k))); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; };
   const texCache = new Map(), screenCache = new WeakMap();
-  const cachedTex = (key, w, h, draw) => { let t = texCache.get(key); if (!t) { t = kit.canvasTexture(w, h, draw, { repeat: [1, 1] }); texCache.set(key, t); } return t; };
+  const cachedTex = (key, w, h, draw) => { let t = texCache.get(key); if (!t) { t = fontScoped(null, () => kit.canvasTexture(w, h, draw, { repeat: [1, 1] })); texCache.set(key, t); } return t; };
   // Per-pixel grain on our own canvas (never on a canvas holding an image, so file:// stays untainted).
   function grain(g, w, h, amt, r) {
     const img = g.getImageData(0, 0, w, h), d = img.data;
@@ -279,7 +283,7 @@
     // just loaded). Cached per drawFn.
     screen(drawFn, { w = 512, h = 320 } = {}) {
       let t = screenCache.get(drawFn);
-      if (t) return t;
+      if (t) { whenFont(t.redraw); return t; } // a cached screen used by a new room: that room waits for the font too
       const T = window.THREE, c = document.createElement('canvas'); c.width = w; c.height = h;
       t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
       t.redraw = () => { const g = c.getContext('2d'); g.clearRect(0, 0, w, h); drawFn(g, w, h, t); t.needsUpdate = true; };
@@ -707,7 +711,8 @@
     // The guide: what to open next, with a button that goes there. Shown while no station is open.
     const guideText = el('p', { class: 'room-guide-text' }), guideBtn = el('button', { type: 'button', class: 'room-guide-btn' }), guideTip = el('p', { class: 'room-guide-tip' }, G.tip);
     const hint = el('div', { class: 'room-hint room-guide' }, [el('div', { class: 'room-guide-row' }, [guideText, guideBtn]), guideTip]);
-    const seen = new Set();
+    // Stations opened so far. opts.seen restores a walk the app kept (the room is mounted again on a language or team switch).
+    const seen = new Set((Array.isArray(opts.seen) ? opts.seen : []).filter(s => STATIONS.includes(s)));
     const liveEl = el('div', { class: 'room-live', 'aria-live': 'polite', role: 'status' });
     const btns = {};
     const bar = el('div', { class: 'room-toolbar', role: 'toolbar', 'aria-label': L.bar });
@@ -746,7 +751,7 @@
     // one visit): { station, text } = go there and do that, { done: true, text } = nothing left, { tags: { experiment:
     // '1/3' } } = a count shown on a toolbar button. Without a station (or without opts.guide) the visit order leads.
     const nextOf = () => STATIONS.find(s => !seen.has(s)) || null;
-    let onwardTo = null;
+    let onwardTo = null, guideTo = null; // where the panel's onward button and the guide's button lead
     function progress() {
       let ov = null;
       if (opts.guide) { try { ov = opts.guide([...seen]) || null; } catch (e) { console.warn('Rooms: guide failed', e); } }
@@ -758,7 +763,7 @@
         const tag = ov && ov.tags && ov.tags[s], tagEl = btns[s].querySelector('.room-tag'); tagEl.textContent = tag || ''; tagEl.hidden = !tag;
         const lab = g3 && g3.byKey[s] && g3.byKey[s].lab; if (lab && lab.userData.setState) lab.userData.setState(st);
       }
-      rootEl.dataset.roomNext = nx || 'none';
+      guideTo = nx; rootEl.dataset.roomNext = nx || 'none';
       guideText.textContent = led ? ov.text : !nx ? G.done : seen.size ? `${G.step(numOf(nx), N)}. ${doOf(nx)}` : G.start;
       guideBtn.hidden = !nx; if (nx) guideBtn.textContent = `${G.go}: ${numOf(nx)}. ${titleOf(nx)} \u2192`;
       guideTip.hidden = seen.size > 0;
@@ -803,7 +808,7 @@
       if (onClose) onClose();
     }
     function step(d) { if (station === 'none') return; const s = STATIONS[(STATIONS.indexOf(station) + d + STATIONS.length) % STATIONS.length]; open(s); }
-    function setData(d) { if (g3) g3.setData(d); }
+    function setData(d) { if (g3) fontScoped(fontOwned, () => g3.setData(d)); }
     function setPanels(panels) {
       const had = panel.contains(document.activeElement);
       for (const s of STATIONS) if (panels && panels[s]) slots[s].replaceChildren(panels[s]);
@@ -818,7 +823,7 @@
     on(nextBtn, 'click', () => step(1));
     on(closeBtn, 'click', close);
     on(onwardBtn, 'click', () => { if (onwardTo) open(onwardTo); else close(); });
-    on(guideBtn, 'click', () => { const nx = nextOf(); if (nx) visit(nx); });
+    on(guideBtn, 'click', () => { if (guideTo) visit(guideTo); });
     on(window, 'keydown', e => {
       if (e.key !== 'Escape' || station === 'none' || e.defaultPrevented) return;
       const a = document.activeElement;
@@ -828,10 +833,11 @@
 
     // ---- 3D ----
     let g3 = null;
+    const fontOwned = new Set(); // this room's late-font redraws
     try {
       const T = window.THREE, build = builders[track];
       if (!T || !build || !supported()) throw new Error(!T ? 'THREE missing' : !build ? `no room "${track}"` : 'WebGL unavailable');
-      g3 = create3d(T, build({ THREE: T, kit, lang, data, reducedMotion }));
+      g3 = fontScoped(fontOwned, () => create3d(T, build({ THREE: T, kit, lang, data, reducedMotion })));
     } catch (e) {
       g3 = null;
       console.warn('Rooms: 3D view unavailable, using the panel list.', e && e.message);
@@ -1145,6 +1151,7 @@
     function dispose() {
       if (disposed) return;
       disposed = true; clearTimeout(pendingOpen);
+      for (const f of fontOwned) fontWaiters.delete(f); fontOwned.clear();
       if (g3) { try { g3.dispose(); } catch (e) { console.warn('Rooms: dispose failed', e); } g3 = null; }
       domOff.forEach(f => f()); domOff.length = 0;
       if (live.get(host) === handle) live.delete(host);
@@ -1163,5 +1170,6 @@
     define(track, build) { builders[track] = build; },
     mount,
     kit,
+    _debug: { fontWaiters: () => fontWaiters.size },
   };
 })();

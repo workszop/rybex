@@ -39,6 +39,7 @@
   const ST = { brief: [-4, 2.5], data: [-4, -1.5], method: [0, -4.2], experiment: [4, -1.5], results: [2.5, 0.3] };
   const COLORS = { brief: 0x1E8FC2, data: 0x00A651, method: 0x7A5AC2, experiment: 0xE5322D, results: 0xF0C800 };
   const LABELS = { pl: { brief: 'Tablica z notatką', data: 'Monitor z danymi', method: 'Biurko jakości', experiment: 'Konsola kamery', results: 'Wydruk wyników' }, en: { brief: 'Memo board', data: 'Data monitor', method: 'QA desk', experiment: 'Camera console', results: 'Results printout' } };
+  // ?seen=brief,data: stations opened in an earlier mount.
   // ?i18n=1: one title and one label passed as { pl, en } instead of a string.
   const i18n = q.get('i18n') === '1', LABELS_BOTH = { pl: 'Monitor z danymi', en: 'Data monitor' };
   window.__fxLabels = [];
@@ -85,7 +86,7 @@
   }[track] || {};
   const host = document.querySelector('#host');
   window.__fxNode = document.querySelector('#fxInput');
-  window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: DATA, titles: titles(), panels: { ...PANELS }, onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
+  window.__mount = () => (window.__room = Rooms.mount({ host, track, lang, data: DATA, titles: titles(), panels: { ...PANELS }, seen: (q.get('seen') || '').split(',').filter(Boolean), onExit2d: () => { window.__fxExit = (window.__fxExit || 0) + 1; } }));
   window.__mount();
 })();
 </script>

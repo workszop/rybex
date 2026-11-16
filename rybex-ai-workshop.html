@@ -2587,8 +2587,10 @@ function roomGuide(k,seen){const t=team(),n=expOf(t,k),M=MIN_EXPERIMENTS,tags={e
  if(n<M)return at('experiment',T(`Eksperyment ${n+1} z ${M}: zmieńcie jedno ustawienie, uruchomcie i zapiszcie wynik.`,`Experiment ${n+1} of ${M}: change one setting, run it and save the result.`));
  if(t.track===k){const s7=step7(t);if(s7==='meth')return at('method',T('Eksperymenty gotowe. Wybierzcie metodę i uzasadnijcie wybór.','Experiments done. Choose the method and justify the choice.'));
   if(s7!=='done'){const h=PATH_STEPS(t).find(s=>s.id==='iterate').hint;return at('experiment',T('Eksperymenty gotowe. Teraz test końcowy: ','Experiments done. Now the final test: ')+h+'.')}}
- if(!seen.includes('results'))return at('results',T(`Macie ${n} eksperymenty. Porównajcie przebiegi.`,`You have ${n} experiments. Compare the runs.`));
+ if(!seen.includes('results'))return at('results',T(`Macie ${n} ${plural(n,['eksperyment','eksperymenty','eksperymentów'],[])}. Porównajcie przebiegi.`,`You have ${n} experiments. Compare the runs.`));
  return{done:true,tags,text:T('Laboratorium gotowe: eksperymenty zapisane i porównane. Kolejny krok pokazuje pasek u góry.','Lab done: experiments saved and compared. The bar at the top shows the next step.')}}
+// The walk is kept in the team (seen['room.<track>.<station>']), so it survives the room being mounted again (language or team switch, reload).
+const ROOM_STATIONS=['brief','data','method','experiment','results'],roomSeen=k=>ROOM_STATIONS.filter(s=>team().seen['room.'+k+'.'+s]);
 function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
  const pane=(...n)=>{const d=document.createElement('div');d.className='room-pane';d.append(...n.filter(Boolean));return d};
  const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));
@@ -2597,9 +2599,10 @@ function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d
  const P={brief,data,method:meth,experiment:exp,results:res},r=X.room;roomHost.hidden=false;document.body.classList.add('in-room');roomHost.style.setProperty('--room-head',Math.ceil(mainEl.getBoundingClientRect().height)+2+'px');
  if(r&&r.track===k&&r.lang===S.lang&&r.team===S.team&&r.handle.status!=='disposed'){r.handle.setPanels(P);r.data=data;return}
  // Seen-progress: the team's data file counts as seen when the data station opens, as on the data page.
- const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,guide:seen=>roomGuide(k,seen),
+ const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,seen:roomSeen(k),guide:seen=>roomGuide(k,seen),
   // A station opened with the room cut by the fold or by the sticky bars: scroll so the room's top sits just under them (the whole room and panel in view, the page heading fully above).
   onOpen:s=>{const t=team(),b=roomHost.getBoundingClientRect(),top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h'))||0;if(b.bottom>innerHeight+2||b.top<top-2)window.scrollBy(0,b.top-top);
+   if(ROOM_STATIONS.includes(s)&&!t.seen['room.'+k+'.'+s]){t.seen['room.'+k+'.'+s]=true;save()}
    if(s==='data'&&!t.seen.data&&trackFileOk(t.track,TRACK_FILE[k])){t.seen.data=true;save();renderPathBar()}},
   onExit2d:()=>guardRun(()=>{S.rooms=false;save();render();const b=$('#roomOn');if(b)b.focus()})});
  X.room={track:k,lang:S.lang,team:S.team,handle:h,data};
