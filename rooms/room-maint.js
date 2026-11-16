@@ -405,7 +405,7 @@
 
     // ---- STATION results: trend screen on the back wall ----
     const TX = 1.6, TY = 2.1;
-    const trendFrame = kit.rbox(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.dark, 0.02);
+    const trendFrame = kit.rbox(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.steel, 0.02);
     const drawTrend = (c, w, h) => {
       c.fillStyle = '#0d151b'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#e6eef3'; c.font = '700 34px system-ui'; c.fillText(tx('Drgania · retorta', 'Vibration · retort'), 30, 52);

@@ -483,7 +483,7 @@
 
     // ---- STATION results: big wall screen on the back wall ----
     const scrX = -6.0, scrY = 3.1;
-    const scrFrame = kit.rbox(g, [2.5, 1.46, 0.1], [scrX, scrY, -D / 2 + 0.07], M.darkPlastic, 0.02);
+    const scrFrame = kit.rbox(g, [2.5, 1.46, 0.1], [scrX, scrY, -D / 2 + 0.07], M.stainless, 0.02);
     const drawRes = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 92); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(96, 46, 70, 30, 0, 0, Math.PI * 2); c.fill();

@@ -7,8 +7,9 @@
 //   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.dispose();
 // setData passes new data to the room's own setData(data) (if it has one), e.g. photos that arrived after the mount.
 //
-// Look: the engine grounds and lights every room the same way. Contact shadows are laid under spec.contacts (default:
-// the colliders; false = none) and along the walls (spec.wallShade: false = none); materials given kit.envAll()
+// Look: the engine grounds and lights every room the same way. Contact shadows are traced from whatever stands
+// within 0.4 m of the floor (spec.contacts: a hand-made list instead, with a band along the walls unless
+// spec.wallShade is false; contacts: false = none); materials given kit.envAll()
 // reflect a prefiltered HDR hall whose window sits on the side of the room's shadow-casting light; each station gets
 // a soft pool of light on the floor that follows its glow (station.pool: [x, z] to place it, false = none);
 // spec.exposure sets the tone-mapping exposure (default 1.25).
@@ -583,6 +584,48 @@
     return mesh;
   }
 
+  // Contact shadows from the room itself: every lit, opaque part that lies within 0.4 m of the floor (feet, legs,
+  // plinths, pallets, the undersides of cabinets, the foot of the walls) is drawn top-down into a canvas, blurred and
+  // laid on the floor. Table tops, seats and anything else held up in the air leave the floor under them clear.
+  function footprintShadows(T, root, b) {
+    const pad = 0.6, PX = Math.min(25, 1024 / (b.x1 - b.x0 + pad * 2), 1024 / (b.z1 - b.z0 + pad * 2)), TOP = 0.4;
+    const w = Math.ceil((b.x1 - b.x0 + pad * 2) * PX), h = Math.ceil((b.z1 - b.z0 + pad * 2) * PX);
+    const mk = (cw, ch) => { const c = document.createElement('canvas'); c.width = Math.max(1, cw); c.height = Math.max(1, ch); return c; };
+    const src = mk(w, h), g = src.getContext('2d'); g.fillStyle = g.strokeStyle = '#000'; g.lineWidth = 1.5; g.lineJoin = 'round';
+    const X = x => (x - b.x0 + pad) * PX, Z = z => (z - b.z0 + pad) * PX;
+    const m = new T.Matrix4(), box = new T.Box3(), v = [new T.Vector3(), new T.Vector3(), new T.Vector3()];
+    root.updateMatrixWorld(true);
+    root.traverse(o => {
+      if (!o.isMesh || !o.visible) return;
+      const mat = [].concat(o.material)[0], geo = o.geometry, p = geo && geo.attributes.position;
+      if (!mat || !p || mat.transparent || mat.isMeshBasicMaterial) return;
+      if (!geo.boundingBox) geo.computeBoundingBox();
+      const idx = geo.index, nTri = Math.floor((idx ? idx.count : p.count) / 3);
+      for (let k = 0, n = o.isInstancedMesh ? o.count : 1; k < n; k++) {
+        if (o.isInstancedMesh) { o.getMatrixAt(k, m); m.premultiply(o.matrixWorld); } else m.copy(o.matrixWorld);
+        box.copy(geo.boundingBox).applyMatrix4(m);
+        if (box.min.y > TOP || box.max.y < 0.03) continue; // held up in the air, or a marking painted on the floor
+        g.beginPath();
+        for (let t = 0; t < nTri; t++) {
+          let high = false;
+          for (let c = 0; c < 3; c++) { v[c].fromBufferAttribute(p, idx ? idx.getX(t * 3 + c) : t * 3 + c).applyMatrix4(m); if (v[c].y > TOP) { high = true; break; } }
+          if (high) continue;
+          g.moveTo(X(v[0].x), Z(v[0].z)); g.lineTo(X(v[1].x), Z(v[1].z)); g.lineTo(X(v[2].x), Z(v[2].z)); g.closePath();
+        }
+        g.fill(); g.stroke();
+      }
+    });
+    // Blur by halving (no canvas filter needed): a tight layer close to the object over a wide faint one.
+    const half = c => { const d = mk(c.width >> 1, c.height >> 1), dg = d.getContext('2d'); dg.imageSmoothingEnabled = true; dg.drawImage(c, 0, 0, d.width, d.height); return d; };
+    const tight = half(half(src)), wide = half(half(tight));
+    const out = mk(w, h), og = out.getContext('2d'); og.imageSmoothingEnabled = true; og.imageSmoothingQuality = 'high';
+    og.globalAlpha = 0.55; og.drawImage(wide, 0, 0, w, h); og.globalAlpha = 0.6; og.drawImage(tight, 0, 0, w, h);
+    const tex = new T.CanvasTexture(out); tex.colorSpace = T.SRGBColorSpace;
+    const mesh = new T.Mesh(new T.PlaneGeometry(w / PX, h / PX).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    mesh.position.set(b.x0 - pad + w / PX / 2, 0.008, b.z0 - pad + h / PX / 2); mesh.renderOrder = 2; mesh.name = 'room-contact';
+    return mesh;
+  }
+
   function el(tag, attrs = {}, kids = []) {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) { if (v === true) e.setAttribute(k, ''); else if (v !== false && v != null) e.setAttribute(k, v); }
@@ -774,10 +817,11 @@
         const env = local.env = makeEnv(T, renderer, keyAz);
         spec.scene.traverse(o => { for (const m of [].concat(o.material || [])) if (m.envMap === cube) m.envMap = env.texture; });
       }
-      // ---- grounding: contact shadows under everything that stands on the floor (spec.contacts, else the colliders)
+      // ---- grounding: contact shadows under everything that stands on the floor (spec.contacts, else traced from the
+      // room's own geometry)
       // and a soft pool of light on the floor at each station. Both sit outside spec.scene: never picked, so a
       // click on them still walks. ----
-      if (spec.contacts !== false) { const cs = contactShadows(T, spec.contacts || spec.colliders || [], spec.wallShade === false ? null : b); if (cs) scene.add(cs); }
+      if (spec.contacts !== false) { const cs = spec.contacts ? contactShadows(T, spec.contacts, spec.wallShade === false ? null : b) : footprintShadows(T, spec.scene, b); if (cs) scene.add(cs); }
       const poolTex = falloffTex(T, true), poolGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
       for (const k of STATIONS) {
         const st = api.byKey[k]; if (!st || st.pool === false) continue;
