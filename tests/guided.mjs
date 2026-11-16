@@ -21,6 +21,7 @@ await new Promise(r => srv.stdout.once('data', r));
 // Without this a failed browser launch leaves the mock server running and the command never returns.
 const browser = await chromium.launch().catch(e => { srv.kill(); throw e; });
 let pass = 0, fail = 0;
+const openLane = (pg, k) => pg.evaluate(k => { const c = document.querySelector(`.chip[data-o="${k}"]`); const d = c && c.closest('details'); if (d) d.open = true; }, k);
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };
 
 async function fresh(hash = '#/home', q = '', vp = { width: 1440, height: 900 }, opt = {}) {
@@ -743,13 +744,13 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('report lists active warnings in words', await p.evaluate(() => reportMD().includes(GO_LIVE_WARN_TXT(team(), 'hitl')) && reportHTML().includes(esc(GO_LIVE_WARN_TXT(team(), 'privacy')))));
     await p.click('#goLive [data-fix=hitl]');
     ok('fix button adds human verification to the diagram', await p.evaluate(() => team().arch.sel.hitl === true && !goLiveWarnings(team()).includes('hitl')) && await p.$eval('.chip[data-o=hitl]', e => e.getAttribute('aria-pressed') === 'true') && await p.$eval('#goLive', e => !e.dataset.warn.includes('hitl')));
-    await p.click('.chip[data-o=hitl]'); await p.click('#goLive [data-d=stopAuthority] [data-o=operator]');
+    await openLane(p,'hitl'); await p.click('.chip[data-o=hitl]'); await p.click('#goLive [data-d=stopAuthority] [data-o=operator]');
     ok('reverse inconsistency: a person confirms but no human check in the diagram', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('hitl')));
-    await p.click('.chip[data-o=acl]'); ok('access control does not clear the privacy warning', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('privacy')) && !(await p.$('#goLive [data-fix=acl]')));
+    await openLane(p,'acl'); await p.click('.chip[data-o=acl]'); ok('access control does not clear the privacy warning', await p.$eval('#goLive', e => e.dataset.warn.split(' ').includes('privacy')) && !(await p.$('#goLive [data-fix=acl]')));
     ok('privacy warning says access control does not change what leaves the plant', await p.evaluate(() => { const x = GO_LIVE_WARN_TXT(team(), 'privacy'); return x.includes('Reklamacje zawierają dane kontaktowe klientów.') && x.includes('nie zmieniają tego, co wychodzi na zewnątrz') && reportMD().includes('nie zmieniają tego, co wychodzi na zewnątrz') && !/nie ma uprawnień i audytu/.test(reportMD() + reportHTML()); }));
     await p.click('#goLive [data-fix=anon]');
     ok('anonymisation fix selects anon only and clears the warning', await p.evaluate(() => team().arch.sel.anon === true && team().arch.decisions.runWhere === 'cloud') && await p.$eval('#goLive', e => !e.dataset.warn.includes('privacy')) && await p.$eval('.chip[data-o=anon]', e => e.getAttribute('aria-pressed') === 'true'));
-    await p.click('.chip[data-o=anon]'); await p.click('#goLive [data-fix=local]');
+    await openLane(p,'anon'); await p.click('.chip[data-o=anon]'); await p.click('#goLive [data-fix=local]');
     ok('local fix sets runWhere and infra to local and clears the warning', await p.evaluate(() => team().arch.decisions.runWhere === 'local' && team().arch.infra === 'local' && !team().arch.sel.anon) && await p.$eval('#goLive', e => !e.dataset.warn.includes('privacy')) && await p.$eval('[data-i=local]', e => e.getAttribute('aria-pressed') === 'true'));
     ok('privacy rule by track and runWhere', await p.evaluate(() => { const w = (track, rw, sel = {}) => { const t = defaultTeam(); t.track = track; t.arch.infra = rw; t.arch.decisions.runWhere = rw; Object.assign(t.arch.sel, sel); return goLiveWarnings(t).includes('privacy'); };
       return w('complaints', 'hybrid') && w('rag', 'cloud') && w('complaints', 'cloud', { acl: true }) && !w('complaints', 'cloud', { anon: true }) && !w('vision', 'cloud') && !w('forecast', 'cloud') && !w('complaints', 'local'); }));

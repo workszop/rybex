@@ -1,6 +1,7 @@
 // Regression checks for the UX_AUDIT.md acceptance criteria.
 // Usage: serve the project on port 8794, then: node regression.mjs [chromium|firefox] [--firefox-path=...]
 // Needs Playwright importable from the current directory.
+const openLane = (pg, k) => pg.evaluate(k => { const c = document.querySelector(`.chip[data-o="${k}"]`); const d = c && c.closest('details'); if (d) d.open = true; }, k);
 import { chromium, firefox } from 'playwright';
 import fs from 'fs';
 import { lowContrast as contrastWalker } from '../tests/contrast.mjs';
@@ -140,7 +141,7 @@ console.log('\nUX-010 data folder');
 
 console.log('\nUX-011 keyboard');
 { const p = await fresh(undefined, '#/arch'); ok('011 all interactive focusable', await p.$$eval('.chip,.tabs button', e => e.every(x => x.tagName === 'BUTTON')));
-  await p.focus('.chip[data-o=erp]'); await p.keyboard.press('Enter'); ok('011 enter toggles', await p.evaluate(() => !!team().arch.sel.erp)); ok('011 focus stays after toggle', await p.evaluate(() => document.activeElement.dataset.o === 'erp')); await p.keyboard.press('Space'); ok('011 space toggles', await p.evaluate(() => !team().arch.sel.erp)); await p.focus('.chip[data-o=erp]'); await p.keyboard.press('Space'); ok('011 diagram via keyboard', !!(await p.$('#archOut svg')));
+  await openLane(p,'erp'); await p.focus('.chip[data-o=erp]'); await p.keyboard.press('Enter'); ok('011 enter toggles', await p.evaluate(() => !!team().arch.sel.erp)); ok('011 focus stays after toggle', await p.evaluate(() => document.activeElement.dataset.o === 'erp')); await p.keyboard.press('Space'); ok('011 space toggles', await p.evaluate(() => !team().arch.sel.erp)); await openLane(p,'erp'); await p.focus('.chip[data-o=erp]'); await p.keyboard.press('Space'); ok('011 diagram via keyboard', !!(await p.$('#archOut svg')));
   await p.evaluate(() => document.activeElement.blur()); await p.keyboard.press('2'); await p.waitForFunction(() => S.view === 'brief'); ok('011 shortcut 2', true); await p.fill('#teamName', '123'); ok('011 digits in field no nav', await p.evaluate(() => S.view) === 'brief'); ok('011 topic cards buttons', await p.$$eval('[data-t]', e => e.length === 5 && e.every(x => x.tagName === 'BUTTON')));
   await p.click('#main [data-t=vision]'); ok('brief task click does not open the lab', await p.evaluate(() => S.view === 'brief' && team().track === 'vision'));
   await p.evaluate(() => go('data')); await p.waitForSelector('.tree button'); ok('011 tree buttons', await p.$$eval('.tree button', e => e.length === 19)); await p.focus('.tree button[data-k=sales]'); await p.keyboard.press('Enter'); ok('011 tree keeps focus', await p.evaluate(() => document.activeElement.dataset.k) === 'sales');
@@ -157,7 +158,7 @@ console.log('\nUX-013 inspector');
   await shot(p, 'inspector', false); await p.keyboard.press('Escape'); ok('013 esc closes', !(await p.evaluate(() => document.querySelector('#insp').open))); }
 
 console.log('\nUX-014 undo');
-{ const p = await fresh(undefined, '#/arch'); await p.click('.chip[data-o=hitl]'); await p.click('.chip[data-o=erp]'); await p.selectOption('#tplSel','rag'); await p.click('#tplLoad'); ok('014 template applied', await p.evaluate(() => !team().arch.sel.erp && !!team().arch.sel.llm)); await p.click('#toast button'); ok('014 undo template', await p.evaluate(() => !!team().arch.sel.erp && !team().arch.sel.llm));
+{ const p = await fresh(undefined, '#/arch'); await openLane(p,'hitl'); await openLane(p,'erp'); await p.click('.chip[data-o=hitl]'); await p.click('.chip[data-o=erp]'); await p.selectOption('#tplSel','rag'); await p.click('#tplLoad'); ok('014 template applied', await p.evaluate(() => !team().arch.sel.erp && !!team().arch.sel.llm)); await p.click('#toast button'); ok('014 undo template', await p.evaluate(() => !!team().arch.sel.erp && !team().arch.sel.llm));
   await p.click('#clr'); await p.click('#toast button'); ok('014 undo clear', await p.evaluate(() => !!team().arch.sel.hitl)); await p.evaluate(() => go('lab', 'maint')); await p.waitForSelector('#sv'); await tweak(p, 'maint'); await p.click('#sv'); await nav(p, 'deliver'); await p.click('button[data-d="0"]'); ok('014 deleted', await p.evaluate(() => team().log.length) === 0); await p.click('#toast button'); ok('014 undo delete', await p.evaluate(() => team().log.length) === 1); await p.reload(); await ready(p); ok('014 undo persisted', await p.evaluate(() => team().log.length) === 1); }
 
 console.log('\nUX-016 navigation');
