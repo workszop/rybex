@@ -444,7 +444,7 @@
     const hmi = new T.Mesh(new T.PlaneGeometry(0.46, 0.3), new T.MeshBasicMaterial({ map: tex.screen(drawHmi, { w: 512, h: 334 }), toneMapped: false }));
     hmi.position.set(-0.06, 0.02, 0.171); conBody.add(hmi);
     const estop = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 0.03, 20), M.red); estop.rotation.x = Math.PI / 2; estop.position.set(0.27, 0.1, 0.18); conBody.add(estop);
-    const ring2 = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.01, 20), M.yellow); ring2.rotation.x = Math.PI / 2; ring2.position.set(0.27, 0.1, 0.172); conBody.add(ring2);
+    const ring2 = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.01, 20), M.paintY); ring2.rotation.x = Math.PI / 2; ring2.position.set(0.27, 0.1, 0.172); conBody.add(ring2);
     for (const [y, col] of [[0, 0x2fd15a], [-0.09, 0xf0f0f0]]) { const b = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, 0.02, 14), kit.mat(col, { rough: 0.3 })); b.rotation.x = Math.PI / 2; b.position.set(0.27, y - 0.02, 0.18); conBody.add(b); }
 
     // ---- STATION method: QA bench in its bay at the back wall ----
@@ -564,7 +564,7 @@
     const wbin = kit.batch(g, kit.mat(0x2f6f3a, { rough: 0.5 }));
     wbin.cyl(0.3, 0.27, 0.85, [8.4, 0.425, 0.9], [0, 0, 0], 20);
     wbin.done();
-    kit.cyl(g, 0.32, 0.05, [8.4, 0.875, 0.9], M.yellow);
+    kit.cyl(g, 0.32, 0.05, [8.4, 0.875, 0.9], M.paintY);
 
     // ---- lights ----
     // Key: daylight from the window side (left of the door view), low enough to model the machines and lay their

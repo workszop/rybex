@@ -202,9 +202,7 @@
     // Roughness variation (data, not colour): wiped patches, scuffs and streaks. Light = as rough as the material
     // says, dark = glossier. Tileable; lay it at a different repeat than the colour map so the two do not line up.
     smudge: () => {
-      let t = texCache.get('smudge');
-      if (t) return t;
-      t = cachedTex('smudge', 256, 256, (g, w, h) => {
+      const t = cachedTex('smudge', 256, 256, (g, w, h) => {
         const r = rng(131);
         g.fillStyle = '#e2e2e2'; g.fillRect(0, 0, w, h);
         blotches(g, w, h, r, 46, [18, 80], ['70,70,70', '255,255,255', '110,110,110']);
@@ -770,7 +768,7 @@
       spec.scene.traverse(o => { if (o.isMesh || o.isSprite) pickables.push(o); });
 
       // ---- reflections: swap the kit's placeholder cube map for the HDR hall, its window on the key light's side ----
-      let keyAz = 0.6; spec.scene.traverse(o => { if (o.isDirectionalLight && o.castShadow) keyAz = Math.atan2(o.position.x - o.target.position.x, o.position.z - o.target.position.z); });
+      let keyAz = spec.lights !== 'none' ? Math.atan2(0.35, 0.25) : 0.6; /* the engine's own sun, or a guess */ spec.scene.traverse(o => { if (o.isDirectionalLight && o.castShadow) keyAz = Math.atan2(o.position.x - o.target.position.x, o.position.z - o.target.position.z); });
       const cube = texCache.get('env');
       if (cube) {
         const env = local.env = makeEnv(T, renderer, keyAz);
