@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Raleway:wght@500;600;700;800&display=swap">
 
 
 <style>
@@ -687,7 +687,13 @@ kbd{font-family:var(--font-mono);font-size:12px;background:var(--paper-3);paddin
 #roomHost{position:relative;height:clamp(420px,calc(100vh - var(--hdr-h,0px) - 16px),1100px);border-top:1px solid var(--line)}
 body.in-room #main{padding-bottom:0}
 body.in-room .toast{left:24px;right:auto;transform:none;max-width:calc(100vw - min(560px,45vw) - 40px)}
-body.in-room #main .page-head{padding-top:14px;padding-bottom:14px}body.in-room #main .app-title{font-size:1.9rem;margin-bottom:8px}body.in-room #main .edu-lead{display:none}
+/* In the room only what the walk needs stays: menu, path bar, the task tabs and the room. The team bar, the page title
+   (kept for screen readers) and the footer come back in the 2D view. */
+body.in-room #main .page-head{padding-top:4px;padding-bottom:0;border-bottom:0}body.in-room #main .edu-lead,body.in-room .teambar,body.in-room .foot{display:none}
+body.in-room #main .app-title{position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body.in-room #trackTabs{margin-top:0}
+/* --room-head: the height of the tab row above the room (roomSync measures it), so the room ends at the window's bottom edge. */
+body.in-room #roomHost{height:clamp(420px,calc(100vh - var(--hdr-h,0px) - var(--room-head,0px)),1100px)}
 .room-slot .sec{padding:0;border:0;background:none}.room-slot .wrap{padding:0}.room-pane>*+*,.room-pane .sec+.sec{margin-top:18px}
 .room-slot .grid2,.room-slot .grid3,.room-slot .group-hero{grid-template-columns:minmax(0,1fr)}.room-slot .group-hero{padding:18px 20px;gap:16px}.room-slot .sec-head h2{font-size:24px}
 </style>
@@ -756,6 +762,53 @@ body.in-room #main .page-head{padding-top:14px;padding-bottom:14px}body.in-room 
 .rybex-frame .rf-dots i{background:var(--paper-3);box-shadow:inset 0 0 0 1px var(--line-2)}
 .rybex-frame .rf-back{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
 .rybex-frame .rf-back:hover{background:var(--paper-2)}
+</style>
+<style id="focus-pass-2">
+/* ── Focus pass 2 (2026-11-15): the middle of the screen ──────────────────
+   Bigger evidence, fewer competing cells, a type floor. Same convention:
+   rules here override the base sheet, keep them together. */
+
+/* 1. Photo galleries: evidence at a readable size, mismatches first, correct ones hideable */
+.thumb{width:120px}
+.thumb img{height:134px}
+.thumb span{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;padding:3px 4px}
+.gal{gap:10px}
+.gal-filter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+
+/* 2. Method choice as cards; the 4-column table moves behind a disclosure */
+.meth-cards{display:grid;gap:8px;padding:2px 0}
+.meth-card{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:10px 12px}
+.meth-card:hover{background:var(--paper-2)}
+.meth-card.on{border-color:var(--ink);background:var(--paper-2);box-shadow:inset 0 0 0 1px var(--ink)}
+.meth-card input{margin:3px 0 0;flex:none;width:16px;height:16px}
+.mc-txt{display:grid;gap:3px;min-width:0}
+.mc-name{font-size:16px}
+.mc-l{display:flex;gap:6px;align-items:baseline;font-size:14px;line-height:1.4;color:var(--ink-2)}
+.mc-l i{font-style:normal;font-weight:700;flex:none;width:10px}
+.mc-p{color:var(--green-600)}
+.mc-m{color:var(--red-600)}
+.mc-cost{font-size:14px;color:var(--ink-3)}
+.mc-cost i{font-style:normal;font-weight:600;margin-right:4px;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.meth-table{margin-top:12px;border-top:1px solid var(--line-2);padding-top:10px}
+.meth-table>summary{cursor:pointer;font-weight:600;font-size:14px}
+.meth-table>table{margin-top:10px}
+
+/* 3. Architecture: each lane counts what is chosen and marks the chips the team's task usually needs */
+.lane-n{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);font-weight:500}
+.chip{padding:4px 10px;font-size:13.5px}
+.chip .need-t{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-left:6px}
+.chip.need[aria-pressed="true"] .need-t{color:var(--paper)}
+
+/* 4. Type floor: nothing a participant must read stays below 14px */
+.hint{font-size:14px}
+.edu-overline{font-size:13px}
+.edu-chip{font-size:12px}
+
+/* 5. The task hero carries one statement, not a wall of purple */
+.group-hero{padding:14px 20px;gap:16px}
+.group-hero .gh-title{font-size:23px;margin-bottom:2px}
+.group-hero p:not(.gh-title):not(.edu-overline){font-size:14.5px;line-height:1.45;margin:4px 0}
+.group-hero .gh-num{font-size:26px}
 </style>
 </head>
 <body class="edu">
@@ -1528,6 +1581,9 @@ function guardRun(fn){if(!AIS.run)return fn();toast(T('Trwa przebieg modelu. Zac
 function softRender(){if(AIS.run){X.renderPending=true;return}render()}
 function withUndo(msg,fn){const snap=JSON.stringify(team()),ex=S.example;fn();const ok=save();render();if(!ok)return;toast(msg,{action:[T('Cofnij','Undo'),()=>{if(S.example!==ex)return;setTeam(normTeam(JSON.parse(snap)));save();render();announce(T('Cofnięto','Undone'))}]})}
 function statGrid(items,cls='grid4 stats4'){return`<div class="${cls}">${items.map(([v,l,t])=>`<div class="stat ${t?'tone-'+t:'neutral'} edu-block"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`}
+// Focus pass 2: every photo gallery opens with the mismatches first and can hide the correct ones.
+// The tiles stay in the DOM (tests count them); the filter only toggles `hidden` on the correct ones.
+function bindGalFilter(root){$$('.gal-filter [data-gf]',root).forEach(b=>b.onclick=()=>{const bar=b.parentElement,box=bar.nextElementSibling;$$('.thumb',box).forEach(t=>{t.hidden=b.dataset.gf==='wrong'&&!['fn','fp','err'].includes(t.dataset.cls)});$$('[data-gf]',bar).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));bar.dataset.mode=b.dataset.gf})}
 // "More metrics" keeps its open state across redraws of the same result panel (key: team, view, sub view, panel id).
 const moreKey=d=>{const c=d.closest('[id]');return c?`${S.team}|${S.view}|${S.sub[S.view]||''}|${c.id}`:null};
 function bindMoreMetrics(){const M=X.moreOpen||(X.moreOpen={});
@@ -2058,7 +2114,6 @@ function renderShell(){
  $('#teamExport').innerHTML=ic('download')+T('Pobierzcie plik zespołu','Download team file');$('#teamImport').innerHTML=ic('upload')+T('Wczytajcie plik zespołu','Load team file');
  const tc=$('#trChip');tc.hidden=!S.trainer||S.example;tc.textContent=T('Tryb prowadzącego','Trainer mode');if(S.view==='trainer')tc.setAttribute('aria-current','page');else tc.removeAttribute('aria-current');
  $('#langSeg').setAttribute('aria-label',T('Język','Language'));$$('#langSeg button').forEach(b=>{const on=b.dataset.l===S.lang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
- $('#foot').innerHTML=T('Skróty: klawisze <kbd>1</kbd>–<kbd>7</kbd> przełączają widoki. Zdjęcia są wczytywane lokalnie, a stan zespołu zapisuje się tylko w tej przeglądarce.','Shortcuts: keys <kbd>1</kbd>–<kbd>7</kbd> switch views. Photo data is loaded locally and team state is stored only in this browser.');
  renderProg(false);renderSaveWarn();
  const d=document.body.dataset;d.example=String(S.example);d.view=S.view;d.team=S.team;d.lang=S.lang;d.sub=S.view==='demos'||S.view==='lab'||S.view==='rybex'?S.sub[S.view]:'';
  document.documentElement.lang=S.lang;document.title='AI Project Lab – Rybex';publishVisionContract()}
@@ -2492,7 +2547,7 @@ function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=
  mainEl.innerHTML=pageHead(nm('lab'),T('Wybierzcie zadanie, uzasadnijcie metodę, przeprowadźcie co najmniej trzy eksperymenty i zapiszcie wnioski.','Pick a task, justify the method, run at least three experiments and record your conclusions.'),`<div class="tabs mt" id="trackTabs" role="navigation" aria-label="${T('Zadania','Tasks')}">${LAB_KEYS.map(x=>`<button type="button" data-k="${x}" class="${k===x?'on':''}" ${k===x?'aria-current="true"':''}>${ic(M[x].ic)}${M[x].title}${t.track===x?` <span class="edu-chip tone-ink">${T('wybrana','chosen')}</span>`:''}</button>`).join('')}</div>${roomBar()}`)
  +`<section class="sec"><div class="wrap"><div class="group-hero tone-${tone} edu-block"><div><p class="edu-overline">${T('Zadanie','Task')}</p><p class="gh-title">${m.title}</p><p>${m.inp} → ${m.proc} → ${m.out}</p><p class="mt">${T('Zaczynamy od najprostszej metody, która w ogóle rozwiązuje zadanie. Potem spróbujecie ją pobić. To ta sama zasada, której użyjecie w projekcie końcowym.','We start with the simplest method that solves the task at all. Then you will try to beat it. It is the same principle you will use in the final project.')}</p><p class="row mt"><button type="button" class="btn" id="runBase">${ic('play')}${T('Uruchomcie metodę odniesienia','Run the baseline')}</button><button type="button" class="btn-ghost btn-sm" id="pickTrack" aria-pressed="${t.track===k}">${ic(t.track===k?'check':'flag')}${t.track===k?T('To zadanie naszego zespołu','This is our team’s task'):T('Wybierzcie jako zadanie zespołu','Choose as the team’s task')}</button></p><p class="edu-small" id="baseDef"><b>${T('Metoda odniesienia','The baseline')}</b> = ${BASE_DEF(k)}</p><p class="edu-small">${BASE_INFO(k)}</p></div><div id="heroProg"></div></div><div id="baseBanner" class="callout edu-block mt" aria-live="polite" hidden></div>${['forecast','maint'].includes(k)?'':goalLine(k)}<div id="baseOut" class="mt" aria-live="polite" hidden></div></div></section>`
  +jumpBar()+`<section class="sec" id="labData"><h2 class="sr-only">${T('Założenia zadania','Task assumptions')}</h2><div class="wrap"><div class="grid2">${card('database',T('Dane','Data'),`<p>${T('Plik','File')}: <code>${m.data}</code></p><p><button type="button" class="linkbtn" id="tod">${T('Zobaczcie kartę danych','See the data card')}</button></p>`,{tone})}${card('list-checks',T('Jak system wykonuje zadanie','How the task is done'),`<div class="grid3"><div><span class="edu-overline">${T('Wejście','Input')}</span><p>${m.inp}</p></div><div><span class="edu-overline">${T('Przetwarzanie','Processing')}</span><p>${m.proc}</p></div><div><span class="edu-overline">${T('Wyjście','Output')}</span><p>${m.out}</p></div></div>`,{tone})}</div>${k==='maint'?`<div class="mt">${personaQuote('anna','maint')}</div>`:''}
- <div class="mt" id="labMethod"><details class="meth-more"${Object.hasOwn(X.methOpen||{},k)?(X.methOpen[k]?' open':''):!(methOk(team(),k)&&whyOk(team(),k))?' open':''}><summary id="methSum">${METH_SUM(k)}</summary>${card('scale',T('Wybór metody','Method choice'),`<div class="tscroll" role="radiogroup" aria-label="${T('Metoda zespołu','Team method')}"><table><thead><tr><th>${T('Podejście','Approach')}</th><th>${T('Zalety','Pros')}</th><th>${T('Wady','Cons')}</th><th>${T('Koszt','Cost')}</th></tr></thead><tbody>${m.methods.map((r,i)=>`<tr><td class="mlist"><label><input type="radio" name="meth" value="${i}" ${dec.m===i?'checked':''}><span>${glx(r[0])}</span></label></td><td>${glx(r[1])}</td><td>${glx(r[2])}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></div><div class="field mt"><label for="methWhy">${T('Uzasadnienie wyboru (trafia do raportu)','Justification (goes into the report)')}</label><textarea id="methWhy" class="input" rows="2" maxlength="2000" aria-describedby="methWhyHint" placeholder="${T('Dlaczego ta metoda pasuje do zadania, danych i kosztów?','Why does this method fit the task, data and costs?')}">${esc(dec.why)}</textarea><p class="hint" id="methWhyHint" style="margin:4px 0 0">${METH_HINT(k)}</p><p class="hint" id="methSaved" role="status" aria-live="polite" style="margin:4px 0 0"></p></div>`,{tone})}</details></div></div></section>`
+ <div class="mt" id="labMethod"><details class="meth-more"${Object.hasOwn(X.methOpen||{},k)?(X.methOpen[k]?' open':''):!(methOk(team(),k)&&whyOk(team(),k))?' open':''}><summary id="methSum">${METH_SUM(k)}</summary>${card('scale',T('Wybór metody','Method choice'),`<div class="tscroll" role="radiogroup" aria-label="${T('Metoda zespołu','Team method')}"><div class="meth-cards">${m.methods.map((r,i)=>`<label class="meth-card${dec.m===i?' on':''}"><input type="radio" name="meth" value="${i}" ${dec.m===i?'checked':''}><span class="mc-txt"><b class="mc-name">${glx(r[0])}</b><span class="mc-l"><i class="mc-p">+</i><span>${glx(r[1])}</span></span><span class="mc-l"><i class="mc-m">−</i><span>${glx(r[2])}</span></span><span class="mc-cost"><i>zł</i>${glx(r[3])}</span></span></label>`).join('')}</div><details class="meth-table"><summary>${T('Porównajcie wszystkie metody w tabeli','Compare every method in a table')}</summary><table><thead><tr><th>${T('Podejście','Approach')}</th><th>${T('Zalety','Pros')}</th><th>${T('Wady','Cons')}</th><th>${T('Koszt','Cost')}</th></tr></thead><tbody>${m.methods.map(r=>`<tr><td class="mlist">${glx(r[0])}</td><td>${glx(r[1])}</td><td>${glx(r[2])}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></details></div><div class="field mt"><label for="methWhy">${T('Uzasadnienie wyboru (trafia do raportu)','Justification (goes into the report)')}</label><textarea id="methWhy" class="input" rows="2" maxlength="2000" aria-describedby="methWhyHint" placeholder="${T('Dlaczego ta metoda pasuje do zadania, danych i kosztów?','Why does this method fit the task, data and costs?')}">${esc(dec.why)}</textarea><p class="hint" id="methWhyHint" style="margin:4px 0 0">${METH_HINT(k)}</p><p class="hint" id="methSaved" role="status" aria-live="polite" style="margin:4px 0 0"></p></div>`,{tone})}</details></div></div></section>`
  +`<section class="sec" id="labProto"><div class="wrap"><div class="sec-head">${badge(m.ic,tone,1)}<h2>${T('Prototyp i eksperymenty','Prototype and experiments')}</h2></div><div id="aiSlot"></div><div id="proto"></div><div id="challengeSlot"></div></div></section>`
  +`<section class="sec" id="labExp"><div class="wrap">${card('columns-2',T('Porównajcie dwa przebiegi','Compare two runs'),`<p class="hint" style="margin-top:0">${T('Zaznaczcie dwa zapisane wyniki, żeby zobaczyć obok siebie, co się zmieniło i o ile.','Tick two saved results to see side by side what changed and by how much.')}</p><div id="cmpList"></div>`,{tone})}</div></section>`;
  renderHeroProg(k);bindJump();
@@ -2528,7 +2583,7 @@ function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d
  const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));
  const exp=pane(row,bd,bi,$('#baseBanner'),$('#baseOut'),$('#labProto')),meth=pane($('#labMethod')),brief=pane(hero,$('#labData')),res=pane($('#labExp')),data=pane();
  renderDataViewer(TRACK_FILE[k],data);mainEl.replaceChildren($('.page-head',mainEl));
- const P={brief,data,method:meth,experiment:exp,results:res},r=X.room;roomHost.hidden=false;document.body.classList.add('in-room');
+ const P={brief,data,method:meth,experiment:exp,results:res},r=X.room;roomHost.hidden=false;document.body.classList.add('in-room');roomHost.style.setProperty('--room-head',Math.ceil(mainEl.getBoundingClientRect().height)+2+'px');
  if(r&&r.track===k&&r.lang===S.lang&&r.team===S.team&&r.handle.status!=='disposed'){r.handle.setPanels(P);r.data=data;return}
  // Seen-progress: the team's data file counts as seen when the data station opens, as on the data page.
  const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,
@@ -2739,8 +2794,9 @@ function visRules(){const L=lab().vision;
   const rc={set:rv?'test':'val',n:set.length};Object.assign(out.dataset,{set:rv?'test':'val',f1:cur.f1,valF1:vm.f1,testVisible:rv,testViews:L.testViews});
   out.innerHTML=`<div class="grid2"><div><h4 style="margin:0 0 8px">${rv?T('Wynik na zbiorze testowym','Test-set result'):T('Wynik na zbiorze walidacyjnym','Validation-set result')}</h4>${kpis(cur,{recap:plainRecap('vision',cur,rc)})}<p class="hint mt">${T('Metoda odniesienia (kontrola wzrokowa) na walidacji: wykryte wady','Baseline (visual inspection) on validation: defects found')} ${pct(hv.r)}, ${T('fałszywe alarmy','false alarms')} ${Math.round(hv.fp)}.</p></div><div><h4 style="margin:0 0 8px">${T('Analiza błędów: ile wad każdego typu wykryto','Error analysis: defects found per type')}</h4><div class="tscroll"><table><thead><tr><th>${T('Typ wady','Defect type')}</th><th class="num">${T('Wykryto','Found')}</th></tr></thead><tbody>${types.map(t=>`<tr><td>${typeName(t[0])}</td><td class="num">${t[1]} / ${t[2]}</td></tr>`).join('')}</tbody></table></div></div></div>
   <h4 style="margin:18px 0 4px">${rv?T('Zdjęcia testowe','Test images'):T('Zdjęcia walidacyjne','Validation images')}</h4><div class="keyrow">${visKey()}<span>${T('Kliknijcie zdjęcie, aby zobaczyć cechy i regułę.','Click an image to see features and the rule.')}</span></div>
-  <div class="gal">${set.map((i,n)=>{const p=visPred(i.f,th),c=p&&i.bad?'tp':p?'fp':i.bad?'fn':'tn';return`<button type="button" class="thumb ${c}" data-cls="${c}" data-i="${n}" aria-label="${esc(i.id)}: ${c.toUpperCase()}"><img src="${i.url}" alt=""><span>${c.toUpperCase()}</span></button>`}).join('')}</div>`;
+${(()=>{const o={fn:0,fp:1,tp:2,tn:3},l=set.map((i,n)=>{const p=visPred(i.f,th),c=p&&i.bad?'tp':p?'fp':i.bad?'fn':'tn';return{i,n,c}}).sort((a,b)=>o[a.c]-o[b.c]),w=l.filter(x=>x.c==='fn'||x.c==='fp').length;return`<div class="gal-filter" role="group" aria-label="${T('Co pokazać','What to show')}"><button type="button" class="chip" data-gf="wrong" aria-pressed="false">${ic('triangle-alert')}${T(`Tylko pomyłki (${w})`,`Mistakes only (${w})`)}</button><button type="button" class="chip" data-gf="all" aria-pressed="true">${T(`Wszystkie (${l.length})`,`All (${l.length})`)}</button></div><div class="gal">${l.map(({i,n,c})=>`<button type="button" class="thumb ${c}" data-cls="${c}" data-i="${n}" aria-label="${esc(i.id)}: ${c.toUpperCase()}"><img src="${i.url}" alt=""><span>${c.toUpperCase()}</span></button>`).join('')}</div>`})()}`;
   $$('.thumb',out).forEach(b=>b.onclick=()=>openInspector(rv?'test':'val',+b.dataset.i,false));
+  bindGalFilter(out);
   announce(recapText('vision',cur,rc));renderChallenge('vision')};
  update();bindVisMethod();
  $('#vd').oninput=e=>{lab().vision.th={sens:+e.target.value,fk:VIS.featureSource};save();update()};
@@ -2820,8 +2876,8 @@ function visLLM(){const L=visEnsure();
    <div class="tscroll mt"><table><thead><tr><th>${T('Typ wady','Defect type')}</th><th class="num">${T('Wykryto jako wadę','Flagged as defect')}</th><th class="num">${T('Trafny typ','Right type')}</th></tr></thead><tbody>${r.types.map(t=>`<tr><td>${typeName(t[0])}</td><td class="num">${t[1]} / ${t[2]}</td><td class="num">${t[3]} / ${t[2]}</td></tr>`).join('')}</tbody></table></div></div></div>
    <p class="hint ai-cost mt">${esc(`${r.ver?`prompt ${r.ver} · `:''}${cnt(r.shots,'example')} · `+aiSumText(r.sum))}${bad?` · ${cnt(bad,'answer')} ${T('bez poprawnego JSON (liczone jako „OK”)','without valid JSON (counted as “OK”)')}`:''}${r.failed?` · ${T('nieudane wywołania (po ponowieniu, pominięte w wynikach)','failed calls (after a retry, left out of the results)')}: ${r.failed}`:''}</p><p class="hint">${T('Model nie zna progów ani cech pikseli: widzi obraz i opis. Porównajcie, które typy wad wykrywa lepiej niż reguły, a które gorzej, i ile kosztuje 1000 zdjęć na linii.','The model knows no thresholds or pixel features: it sees the image and a description. Compare which defect types it detects better or worse than the rules, and what 1000 line images cost.')}</p>`;
   const set=r.set==='test'?VIS.test:VIS.val;
-  $('#visGal').innerHTML=set.map((it,i)=>{const pd=r.preds[i],p=pd.d!=='ok',c=pd.err?'err':p&&it.bad?'tp':p?'fp':it.bad?'fn':'tn',lb=pd.err?T('BŁĄD WYWOŁANIA','CALL FAILED'):`${c.toUpperCase()} · ${typeName(pd.d)}`;return`<button type="button" class="thumb ${c==='err'?'':c}" data-cls="${c}" data-i="${i}" aria-label="${esc(it.id)}: ${lb}"><img src="${it.url}" alt=""><span>${lb}</span></button>`}).join('');
-  $$('#visGal .thumb').forEach(b=>b.onclick=()=>drawDetail(r,set,+b.dataset.i));$('#visDetail').innerHTML=card('scan-eye',T('Szczegóły zdjęcia','Image details'),`<p class="hint">${T('Kliknijcie zdjęcie, aby zobaczyć je w rozdzielczości wysyłanej do modelu, prawdziwy typ wady i uzasadnienie modelu.','Click an image to see it at the resolution sent to the model, the actual defect type and the model reason.')}</p>`,{tone:'grape'});icons($('#visDetail'));announce(recapText('vision',r.m,rc))};
+  $('#visGal').innerHTML=(()=>{const o={err:0,fn:1,fp:2,tp:3,tn:4},l=set.map((it,i)=>{const pd=r.preds[i],p=pd.d!=='ok',c=pd.err?'err':p&&it.bad?'tp':p?'fp':it.bad?'fn':'tn',lb=pd.err?T('BŁĄD WYWOŁANIA','CALL FAILED'):`${c.toUpperCase()} · ${typeName(pd.d)}`;return{it,i,c,lb}}).sort((a,b)=>o[a.c]-o[b.c]),w=l.filter(x=>['fn','fp','err'].includes(x.c)).length;return`<div class="gal-filter" role="group" aria-label="${T('Co pokazać','What to show')}"><button type="button" class="chip" data-gf="wrong" aria-pressed="false">${ic('triangle-alert')}${T(`Tylko pomyłki (${w})`,`Mistakes only (${w})`)}</button><button type="button" class="chip" data-gf="all" aria-pressed="true">${T(`Wszystkie (${l.length})`,`All (${l.length})`)}</button></div><div class="gal">${l.map(({it,i,c,lb})=>`<button type="button" class="thumb ${c==='err'?'':c}" data-cls="${c}" data-i="${i}" aria-label="${esc(it.id)}: ${lb}"><img src="${it.url}" alt=""><span>${lb}</span></button>`).join('')}</div>`})();
+  $$('#visGal .thumb').forEach(b=>b.onclick=()=>drawDetail(r,set,+b.dataset.i));bindGalFilter($('#visGal').parentElement);$('#visDetail').innerHTML=card('scan-eye',T('Szczegóły zdjęcia','Image details'),`<p class="hint">${T('Kliknijcie zdjęcie, aby zobaczyć je w rozdzielczości wysyłanej do modelu, prawdziwy typ wady i uzasadnienie modelu.','Click an image to see it at the resolution sent to the model, the actual defect type and the model reason.')}</p>`,{tone:'grape'});icons($('#visDetail'));announce(recapText('vision',r.m,rc))};
  const drawDetail=(r,set,i)=>{const it=set[i],pd=r.preds[i],ok=pd.d===it.type,el=$('#visDetail');
   el.innerHTML=card('scan-eye',`${it.id}`,`<img src="${visBig(it)}" alt="${esc(it.id)}" style="width:100%;max-width:320px;display:block;border-radius:var(--r-sm);border:1px solid var(--line-2)"><p class="mt"><b>${T('Fakt','Actual')}:</b> ${typeName(it.type)} · <b>Model:</b> ${typeName(pd.d)} <span class="edu-chip ${ok?'tone-green':'tone-red'}">${ok?T('zgodnie','match'):T('niezgodnie','mismatch')}</span></p><p><b>${T('Uzasadnienie modelu','Model reason')}:</b> ${pd.r?esc(pd.r):`<span class="hint">${pd.bad?T('(brak poprawnego JSON)','(no valid JSON)'):T('(uzasadnienia przechowujemy tylko dla ostatnich przebiegów)','(reasons are kept for the latest runs only)')}</span>`}</p>`,{tone:ok?'green':'red'});icons(el)};
  const drawHist=()=>{const L=lab().vision,el=$('#visHist'),runs=(Array.isArray(L.mruns)?L.mruns:[]).filter(r=>r&&r.datasetKey===VIS.datasetKey),cur=visSel(L);if(!runs.length){el.innerHTML=`<p class="hint">${T('Każdy przebieg modelu trafia tutaj.','Every model run lands here.')}</p>`;return}
@@ -3338,7 +3394,7 @@ function archSVG(){const t=team(),L=LANES(),act=archActive();if(!act.length)retu
 const infraName=k=>({local:T('lokalna','local'),cloud:T('chmurowa','cloud'),hybrid:T('hybrydowa','hybrid')}[k]||k);
 function vArch(){const L=LANES(),t=team();
  mainEl.innerHTML=pageHead(nm('arch'),T('Wybierzcie komponenty swojego rozwiązania, a schemat blokowy przepływu danych (źródło → przygotowanie → model → przechowywanie → interfejs → integracje) powstanie automatycznie. Każdy wybór musicie uzasadnić w dokumentacji.','Pick the components of your solution – the block diagram of data flow (source → preparation → model → storage → interface → integrations) builds itself. You must justify each choice in your documentation.'))
- +sectionBand('layout-template',T('Komponenty','Components'),card('copy',T('Szablon startowy','Starter template'),`<div class="row">${Object.keys(PRESET).map(k=>`<button type="button" class="btn-ghost btn-sm" data-p="${k}">${ic(trMeta()[k].ic)}${trMeta()[k].title}</button>`).join('')}<button type="button" class="btn-ghost btn-sm" id="clr">${ic('x')}${T('Wyczyść','Clear')}</button></div>`,{tone:'stone'})+`<div class="mt">${card('blocks',T('Wybór komponentów','Component selection'),L.map(l=>`<div class="lane"><b>${l[1]}</b><div>${l[2].map(o=>`<button type="button" class="chip" data-o="${o[0]}" aria-pressed="${!!t.arch.sel[o[0]]}">${o[1]}</button>`).join('')}</div></div>`).join('')+`<div class="lane"><b>${T('Infrastruktura','Infrastructure')}</b><div>${INFRA.map(k=>`<button type="button" class="chip" data-i="${k}" aria-pressed="${t.arch.infra===k}">${infraName(k).replace(/^./,c=>c.toUpperCase())}</button>`).join('')}</div></div>`)}</div>`)
+ +sectionBand('layout-template',T('Komponenty','Components'),card('copy',T('Szablon startowy','Starter template'),`<div class="row">${Object.keys(PRESET).map(k=>`<button type="button" class="btn-ghost btn-sm" data-p="${k}">${ic(trMeta()[k].ic)}${trMeta()[k].title}</button>`).join('')}<button type="button" class="btn-ghost btn-sm" id="clr">${ic('x')}${T('Wyczyść','Clear')}</button></div>`,{tone:'stone'})+`<div class="mt">${card('blocks',T('Wybór komponentów','Component selection'),L.map(l=>`<div class="lane"><b>${l[1]} <span class="lane-n" aria-hidden="true">${l[2].filter(o=>t.arch.sel[o[0]]).length}/${l[2].length}</span></b><div>${l[2].map(o=>`<button type="button" class="chip${(PRESET[t.track]||[]).includes(o[0])?' need':''}" data-o="${o[0]}" aria-pressed="${!!t.arch.sel[o[0]]}"${(PRESET[t.track]||[]).includes(o[0])?` title="${T('Wasze zadanie zwykle potrzebuje tego komponentu','Your task usually needs this component')}"`:''}>${o[1]}${(PRESET[t.track]||[]).includes(o[0])?`<span class="need-t">${T('wasze','yours')}</span>`:''}</button>`).join('')}</div></div>`).join('')+`<div class="lane"><b>${T('Infrastruktura','Infrastructure')} <span class="lane-n" aria-hidden="true">1/${INFRA.length}</span></b><div>${INFRA.map(k=>`<button type="button" class="chip" data-i="${k}" aria-pressed="${t.arch.infra===k}">${infraName(k).replace(/^./,c=>c.toUpperCase())}</button>`).join('')}</div></div>`)}</div>`)
  +sectionBand('network',T('Schemat blokowy','Block diagram'),card('network',T('Podgląd','Preview'),`<div id="archOut" class="diagram" aria-live="polite"></div>`,{tone:'ink',foot:`<div class="row"><button type="button" class="btn" id="dsv">${ic('download')}SVG</button><button type="button" class="btn-ghost" id="dpn">${ic('download')}PNG</button><span class="hint" id="archHint" style="margin:0"></span></div>`})+`<div class="mt">${trackQuote('arch')}</div>`)
  +sectionBand('rocket',GL_H(),goLiveHTML(),'red');
  const draw=()=>{const s=archSVG(),o=$('#archOut');o.style.setProperty('--dw',archWidth()+'px');o.dataset.selected=Object.values(team().arch.sel).filter(Boolean).length;o.innerHTML=s||`<p>${T('Wybierzcie komponenty powyżej.','Select components above.')}</p>`;$('#dsv').disabled=$('#dpn').disabled=!s;$('#archHint').textContent=s?'':T('Eksport będzie dostępny po wybraniu komponentów.','Export becomes available once components are selected.');paintGoLive();renderProg()};
