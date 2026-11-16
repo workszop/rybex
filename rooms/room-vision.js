@@ -46,10 +46,11 @@
       sky: new T.MeshBasicMaterial({ color: 0xffffff, map: skyTex() }),
     };
     function skyTex() {
-      return kit.canvasTexture(256, 128, (c, w, h) => {
-        const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#cfe3f1'); gr.addColorStop(0.7, '#eef4f7'); gr.addColorStop(1, '#dfe6e4');
-        c.fillStyle = gr; c.fillRect(0, 0, w, h);
-        c.fillStyle = 'rgba(120,130,135,.35)'; c.fillRect(0, h * 0.78, w, h * 0.22); // roofs across the yard
+      return kit.canvasTexture(512, 256, (c, w, h) => {
+        const r = kit.rng(5);
+        kit.paint.sky(c, w, h, r, { top: '#a9cce8', horizon: '#eef4f7', to: 0.9, clouds: 3 });
+        kit.paint.treeLine(c, w, h, h * 1.04, r, { rows: 2, size: 0.8 });   // treetops beyond the yard
+        c.fillStyle = 'rgba(120,130,135,.5)'; c.fillRect(0, h * 0.9, w, h * 0.1); // the yard roofs in front
       });
     }
 

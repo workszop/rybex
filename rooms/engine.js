@@ -549,6 +549,84 @@
   // Local placement helper for props: a point (lx, y, lz) in a frame at (x, z) turned rotY.
   const frameAt = (x, z, rotY) => { const c = Math.cos(rotY), s = Math.sin(rotY); return (lx, y, lz) => [x + lx * c + lz * s, y, z - lx * s + lz * c]; };
   Object.assign(kit, { frameAt });
+  // Painted pot and leaf materials for kit.prop.plant. Pot atlas: three styles stacked (cream with a coral wave and a blue
+  // zigzag, terracotta with a cream band, mustard with a dark band), each with dark soil in its top tenth. Leaf atlas
+  // columns: snake blade (banded dark green, pale midrib), broad leaf (veined, light tip), brown stem swatch.
+  kit.plantMaterials = () => {
+    const T = window.THREE;
+    const potTex = cachedTex('plant-pot', 512, 768, (c, w, h) => {
+      const cell = h / 3, sty = [['#f3ecdf', '#292824', '#d4765f', '#7d93ab'], ['#c5683f', '#7d3a21', '#f0dcc0', '#e9b48a'], ['#e8b923', '#3b3320', '#2b3a44', '#fff3c4']];
+      sty.forEach(([bg, ink, a1, a2], s) => {
+        const y0 = (2 - s) * cell;   // v = s/3 sits at the canvas bottom
+        c.fillStyle = bg; c.fillRect(0, y0, w, cell);
+        c.fillStyle = '#2d2219'; c.fillRect(0, y0, w, cell * 0.1);   // soil and rim (top tenth)
+        c.strokeStyle = ink; c.lineWidth = 2; for (const f of [0.3, 0.5, 0.82]) { c.beginPath(); c.moveTo(0, y0 + cell * f); c.lineTo(w, y0 + cell * f); c.stroke(); }
+        c.strokeStyle = a1; c.lineWidth = 5; c.beginPath(); for (let x = 0; x <= w; x += 4) c.lineTo(x, y0 + cell * 0.66 + Math.sin(x / 18) * 7); c.stroke();
+        c.strokeStyle = a2; c.lineWidth = 4; c.beginPath(); for (let x = 0; x <= w; x += 16) c.lineTo(x, y0 + cell * ((x / 16) % 2 ? 0.34 : 0.44)); c.stroke();
+      });
+    });
+    const leafTex = cachedTex('plant-leaf', 320, 320, (c, w, h) => {
+      c.fillStyle = '#4a3b2c'; c.fillRect(w * 0.8, 0, w * 0.2, h);   // stem swatch
+      // snake blade (u 0..0.4): dark base to a paler tip, cross bands, pale midrib, a yellow-green edge
+      let g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, '#244d2c'); g.addColorStop(0.6, '#3b7437'); g.addColorStop(1, '#6e9a4c');
+      c.fillStyle = g; c.fillRect(0, 0, w * 0.4, h);
+      c.strokeStyle = 'rgba(15,50,25,.35)'; c.lineWidth = 3;
+      for (let y = 6; y < h; y += 14) { c.beginPath(); for (let x = 0; x <= w * 0.4; x += 4) c.lineTo(x, y + Math.sin(x / 6 + y) * 4); c.stroke(); }
+      c.fillStyle = 'rgba(200,225,150,.55)'; c.fillRect(0, 0, 5, h); c.fillRect(w * 0.4 - 5, 0, 5, h); c.fillRect(w * 0.2 - 2, 0, 4, h);
+      // broad leaf (u 0.4..0.8): glossy green, midrib and herringbone veins, lighter tip
+      const x0 = w * 0.4, bw = w * 0.4;
+      g = c.createLinearGradient(0, h, 0, 0); g.addColorStop(0, '#1f5a2e'); g.addColorStop(1, '#4f8f45'); c.fillStyle = g; c.fillRect(x0, 0, bw, h);
+      c.strokeStyle = 'rgba(210,235,170,.75)'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0 + bw / 2, 0); c.lineTo(x0 + bw / 2, h); c.stroke();
+      c.lineWidth = 2; c.strokeStyle = 'rgba(190,225,150,.5)';
+      for (let y = 20; y < h; y += 22) for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(x0 + bw / 2, h - y); c.quadraticCurveTo(x0 + bw / 2 + sx * bw * 0.3, h - y - 8, x0 + bw / 2 + sx * bw * 0.48, h - y - 30); c.stroke(); }
+      c.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < 40; i++) c.fillRect(x0 + (i * 37 % bw), (i * 53) % h, 3, 3);
+    });
+    const leaf = kit.mat(0xffffff, { map: leafTex, rough: 0.5 }); leaf.side = T.DoubleSide;
+    return { pot: kit.mat(0xffffff, { map: potTex, rough: 0.45 }), leaf };
+  };
+
+  // Painted scenery for the view outside a window (drawn on a 2d canvas, deterministic from the seeded rng r).
+  // sky: a vertical gradient to a hazy horizon plus soft cumulus clouds (radial puffs). treeLine: rows of trees from
+  // the far haze (pale, bluish) to the near row (dark, highlighted on the sun side), each a trunk and a cluster of
+  // overlapping canopy discs, every few trees a conifer. Rows run far to near so nearer trees hide the farther ones;
+  // y0 is the ground line where the trunks stand.
+  const paint = {
+    sky(c, w, h, r, { top = '#8fbbe0', horizon = '#eef3f5', to = 0.6, clouds = 8 } = {}) {
+      const gr = c.createLinearGradient(0, 0, 0, h * to); gr.addColorStop(0, top); gr.addColorStop(1, horizon);
+      c.fillStyle = gr; c.fillRect(0, 0, w, h);
+      for (let i = 0; i < clouds; i++) {
+        const cx = r() * w, cy = h * to * (0.12 + r() * 0.55), cw = 70 + r() * 150 * (w / 1536 + 0.4);
+        for (let k = 0; k < 7; k++) {
+          const px = cx + (k - 3) * cw * 0.22 + (r() - 0.5) * 20, py = cy - Math.sin(k / 6 * Math.PI) * cw * 0.1, pr = cw * (0.16 + r() * 0.14);
+          const g2 = c.createRadialGradient(px, py - pr * 0.2, pr * 0.1, px, py, pr);
+          g2.addColorStop(0, 'rgba(255,255,255,.95)'); g2.addColorStop(0.7, 'rgba(255,255,255,.55)'); g2.addColorStop(1, 'rgba(255,255,255,0)');
+          c.fillStyle = g2; c.beginPath(); c.arc(px, py, pr, 0, Math.PI * 2); c.fill();
+        }
+      }
+    },
+    treeLine(c, w, h, y0, r, { rows = 3, size = 1, from = 0, to = w, step = 1 } = {}) {
+      const tones = [['#9db5a8', '#b6cbbd'], ['#5f8a63', '#7ea77c'], ['#3d6b45', '#5b8d58']];   // far .. near: [body, sunlit]
+      for (let row = 0; row < rows; row++) {
+        const k = rows === 1 ? 2 : Math.round(row / (rows - 1) * 2), [body, lit] = tones[k];
+        const sc = (0.55 + row * 0.3) * size * h * 0.11, gap = sc * (1.25 / step), base = y0 - (rows - 1 - row) * h * 0.006;
+        for (let x = from - r() * gap; x < to + gap; x += gap * (0.8 + r() * 0.5)) {
+          const th = sc * (0.9 + r() * 0.8);
+          if (r() < 0.22) {   // conifer: stacked triangles
+            c.fillStyle = body; for (let t = 0; t < 4; t++) { const ty = base - th * (0.25 + t * 0.24), tw = th * (0.5 - t * 0.1); c.beginPath(); c.moveTo(x - tw, ty); c.lineTo(x, ty - th * 0.34); c.lineTo(x + tw, ty); c.fill(); }
+            c.fillStyle = '#4a3b2c'; c.fillRect(x - 1.5, base - th * 0.28, 3, th * 0.28); continue;
+          }
+          c.fillStyle = '#4a3b2c'; c.fillRect(x - th * 0.04, base - th * 0.5, th * 0.08, th * 0.5);
+          const R = th * 0.36, cy = base - th * 0.68;
+          for (let n = 0; n < 6; n++) {   // overlapping discs make a lumpy crown
+            const a = r() * Math.PI * 2, d = r() * R * 0.55, px = x + Math.cos(a) * d, py = cy + Math.sin(a) * d * 0.7, pr = R * (0.5 + r() * 0.35);
+            c.fillStyle = body; c.beginPath(); c.arc(px, py, pr, 0, Math.PI * 2); c.fill();
+          }
+          c.fillStyle = lit; c.globalAlpha = 0.55; c.beginPath(); c.arc(x - R * 0.28, cy - R * 0.3, R * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+        }
+      }
+    },
+  };
+  Object.assign(kit, { paint });
   Object.assign(kit.prop, {
     // Office swivel chair into batches: b.dark (seat, back, arms) and b.metal (column, star base). Faces +z at rotY 0.
     chair(b, [x, z], rotY = 0) {
@@ -559,16 +637,125 @@
       b.metal.cyl(0.028, 0.028, 0.34, at(0, 0.28, 0)).cyl(0.04, 0.04, 0.08, at(0, 0.14, 0));
       for (let k = 0; k < 5; k++) { const a = rotY + k * Math.PI * 2 / 5, ex = Math.sin(a) * 0.28, ez = Math.cos(a) * 0.28; b.metal.rod([x, 0.09, z], [x + ex, 0.06, z + ez], 0.018, 6).cyl(0.025, 0.025, 0.03, [x + ex, 0.025, z + ez], [Math.PI / 2, a, 0], 8); }
     },
-    // Potted plant: b.pot and b.leaf batches. h = overall height.
+    // Potted plant: b.pot and b.leaf batches (materials from kit.plantMaterials()). h = overall height. The seed picks
+    // the kind (odd: snake plant, even: broadleaf fig) and the pot's painted style; every leaf is a curved, midrib-folded
+    // blade whose texture carries the veins and the light-to-dark tone, so no leaf is a flat green blob.
     plant(b, [x, z], h = 1.1, seed = 1) {
-      const r = rng(seed * 7919);
-      b.pot.cyl(0.2, 0.16, 0.36, [x, 0.18, z], [0, 0, 0], 16).cyl(0.205, 0.205, 0.03, [x, 0.36, z], [0, 0, 0], 16);
-      const T = window.THREE;
-      for (let k = 0; k < 9; k++) {
-        const a = k * 2.39 + r(), lean = 0.25 + r() * 0.5, len = (h - 0.35) * (0.55 + r() * 0.45);
-        const geo = new T.SphereGeometry(1, 8, 6); geo.scale(0.07, len / 2, 0.16);
-        b.leaf.add(geo, [x + Math.sin(a) * Math.sin(lean) * len * 0.5, 0.36 + Math.cos(lean) * len * 0.5, z + Math.cos(a) * Math.sin(lean) * len * 0.5], [Math.cos(a) * lean, 0, -Math.sin(a) * lean]);
+      const T = window.THREE, r = rng(seed * 7919), style = seed % 3, fig = seed % 2 === 0, S = 0.34;
+      // pot: lathe profile, then UVs rewritten by height into the painted atlas (style s owns the band v = s/3 .. (s+1)/3)
+      const prof = [[0.001, 0], [0.14, 0], [0.16, 0.04], [0.19, 0.30], [0.2, 0.34], [0.18, 0.335], [0.175, 0.30], [0.001, 0.30]];
+      const pot = new T.LatheGeometry(prof.map(([rr, yy]) => new T.Vector2(rr, yy)), 36), pp = pot.attributes.position, pu = pot.attributes.uv;
+      for (let k = 0; k < pp.count; k++) {
+        const yy = pp.getY(k), rr = Math.hypot(pp.getX(k), pp.getZ(k)), soil = yy >= 0.299 && rr < 0.178, rim = yy > 0.33;
+        pu.setY(k, (style + (soil ? 0.97 : rim ? 0.93 : Math.min(0.88, yy / S * 0.88))) / 3);
       }
+      b.pot.add(pot, [x, 0, z], [0, r() * 6, 0]);
+      // leaf geometry: a strip along an arc (bend = radians turned over its length), tapered by prof(t), folded along the
+      // midrib; u0..u1 select its column of the leaf atlas (snake blade, broad leaf)
+      const leaf = (len, wid, bend, prof, u0, u1, yaw, tilt, at) => {
+        const N = 9, pos = [], uv = [], idx = []; let y = 0, zf = 0;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N, phi = bend * t, hw = wid / 2 * prof(t), fold = hw * 0.22;
+          pos.push(-hw, y, zf, 0, y + fold * Math.sin(phi), zf - fold * Math.cos(phi), hw, y, zf);
+          uv.push(u0, t, (u0 + u1) / 2, t, u1, t);
+          if (k < N) { const a = k * 3; idx.push(a, a + 3, a + 1, a + 1, a + 3, a + 4, a + 1, a + 4, a + 2, a + 2, a + 4, a + 5); }
+          y += Math.cos(phi) * len / N; zf += Math.sin(phi) * len / N;
+        }
+        const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+        g.rotateX(-tilt); g.rotateY(yaw); g.computeVertexNormals(); g.translate(at[0], at[1], at[2]);
+        return g;
+      };
+      const stem = (a, c, rad) => {
+        const A = new T.Vector3(...a), B = new T.Vector3(...c), d = B.clone().sub(A), g = new T.CylinderGeometry(rad * 0.7, rad, d.length(), 6);
+        const u = g.attributes.uv; for (let k = 0; k < u.count; k++) u.setXY(k, 0.9, 0.5);
+        g.applyMatrix4(new T.Matrix4().compose(A.clone().add(B).multiplyScalar(0.5), new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()), new T.Vector3(1, 1, 1)));
+        return g;
+      };
+      const base = [x, 0.3, z];
+      if (!fig) {   // snake plant: a fan of upright blades, the tallest in the middle, tips leaning out
+        const n = 11;
+        for (let k = 0; k < n; k++) {
+          const yaw = k * 2.39 + r(), tall = 1 - k / n * 0.55, len = (h - 0.3) * (0.62 + r() * 0.38) * tall, lean = 0.06 + (k / n) * 0.32 + r() * 0.1;
+          b.leaf.add(leaf(len, 0.08 + r() * 0.025, 0.25 + r() * 0.5, t => Math.sqrt(Math.max(0, 1 - Math.pow(t, 2.6))) * (0.5 + 0.5 * Math.min(1, t * 7)), 0.02, 0.38, yaw, lean, [x + Math.sin(yaw) * 0.025 * (k % 4), 0.3, z + Math.cos(yaw) * 0.025 * (k % 4)]));
+        }
+      } else {   // broadleaf fig: two or three brown stems, big ovate leaves spiralling up them and drooping outwards
+        const stems = 2 + (seed % 2);
+        for (let k = 0; k < stems; k++) {
+          const a = k * 2.2 + r(), top = (h - 0.55) * (0.75 + r() * 0.25), lean = 0.04 + r() * 0.12;
+          const tip = [x + Math.sin(a) * lean * top, 0.3 + top, z + Math.cos(a) * lean * top];
+          b.leaf.add(stem([x, 0.3, z], tip, 0.014));
+          const nl = 6 + Math.round(top * 5);
+          for (let m = 0; m < nl; m++) {
+            const f = 0.28 + 0.72 * (m / (nl - 1)), yaw = a + m * 2.39 + r() * 0.5, size = 0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, 0.35 + f * 0.65)), len = (0.2 + r() * 0.1) * (h / 1.1) * size + 0.06;
+            const at = [x + (tip[0] - x) * f, 0.3 + top * f, z + (tip[2] - z) * f], out = 0.04;
+            b.leaf.add(stem(at, [at[0] + Math.sin(yaw) * out, at[1] + 0.02, at[2] + Math.cos(yaw) * out], 0.006));
+            b.leaf.add(leaf(len, len * 0.5, 0.8 + r() * 0.6, t => Math.pow(Math.sin(Math.PI * Math.pow(t, 0.72)), 0.8) * (t > 0.92 ? 0.8 : 1), 0.42, 0.78, yaw, 0.95 + r() * 0.5, [at[0] + Math.sin(yaw) * out, at[1] + 0.02, at[2] + Math.cos(yaw) * out]));
+          }
+        }
+      }
+    },
+    // Wall art for the offices: a framed picture on a wall. [x, y, z] is the wall point where its centre goes (y = height),
+    // rotY the wall's facing (0 faces +z, PI/2 faces +x, PI faces -z, -PI/2 faces -x). kind: 'popFish' (a Warhol-style
+    // 2 x 2 grid of the Rybex fish in four colour ways over halftone dots), 'popBurst' (a comic starburst with a speech
+    // bubble) or 'board' (a cork notice board with sticky notes and pinned sheets, texts in `lang`).
+    wallArt(parent, [x, y, z], rotY, kind, { w = 1.2, h = 1.2, seed = 1, lang = 'pl' } = {}) {
+      const T = window.THREE, at = frameAt(x, z, rotY), r = rng(seed * 4099), px = 700, W = Math.round(px * w), H = Math.round(px * h);
+      const fish = (c, cx, cy, s, body, fin, line) => {   // a fish facing right, outline first
+        c.lineWidth = s * 0.07; c.lineJoin = 'round'; c.strokeStyle = line;
+        c.fillStyle = fin; c.beginPath(); c.moveTo(cx - s * 0.42, cy); c.lineTo(cx - s * 0.78, cy - s * 0.3); c.lineTo(cx - s * 0.7, cy); c.lineTo(cx - s * 0.78, cy + s * 0.3); c.closePath(); c.fill(); c.stroke();
+        c.beginPath(); c.moveTo(cx - s * 0.1, cy - s * 0.3); c.lineTo(cx + s * 0.05, cy - s * 0.52); c.lineTo(cx + s * 0.2, cy - s * 0.28); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = body; c.beginPath(); c.ellipse(cx, cy, s * 0.5, s * 0.3, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = fin; c.beginPath(); c.ellipse(cx - s * 0.02, cy + s * 0.04, s * 0.2, s * 0.09, -0.3, 0, Math.PI * 2); c.fill(); c.lineWidth = s * 0.04; c.stroke();
+        c.fillStyle = '#fff'; c.lineWidth = s * 0.05; c.beginPath(); c.arc(cx + s * 0.28, cy - s * 0.07, s * 0.07, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.fillStyle = line; c.beginPath(); c.arc(cx + s * 0.3, cy - s * 0.07, s * 0.03, 0, Math.PI * 2); c.fill();
+        c.lineWidth = s * 0.04; c.beginPath(); c.arc(cx + s * 0.42, cy + s * 0.08, s * 0.05, 0.2, 2.6); c.stroke();
+      };
+      const dots = (c, x0, y0, ww, hh, step, col, rad) => { c.fillStyle = col; for (let j = 0, yy = y0; yy < y0 + hh; yy += step * 0.5, j++) for (let xx = x0 + (j % 2 ? step / 2 : 0); xx < x0 + ww; xx += step) { c.beginPath(); c.arc(xx, yy, rad, 0, Math.PI * 2); c.fill(); } };
+      const tex = kit.canvasTexture(W, H, (c, cw, ch) => {
+        if (kind === 'popFish') {
+          const ways = [['#ffd500', '#e5322d', '#1f5f9e', '#1c1917'], ['#1fa3c9', '#ffd500', '#e5322d', '#1c1917'], ['#e5322d', '#1f5f9e', '#ffd500', '#1c1917'], ['#2fb36b', '#ff7ab6', '#ffd500', '#1c1917']];
+          const cw2 = cw / 2, ch2 = ch / 2;
+          ways.forEach(([bg, body, fin, ink], i) => {
+            const x0 = (i % 2) * cw2, y0 = Math.floor(i / 2) * ch2;
+            c.save(); c.beginPath(); c.rect(x0, y0, cw2, ch2); c.clip();
+            c.fillStyle = bg; c.fillRect(x0, y0, cw2, ch2); dots(c, x0, y0, cw2, ch2, cw2 / 14, 'rgba(255,255,255,.35)', cw2 / 56);
+            fish(c, x0 + cw2 * 0.5, y0 + ch2 * 0.52, Math.min(cw2, ch2) * 0.78, body, fin, ink); c.restore();
+          });
+          c.strokeStyle = '#1c1917'; c.lineWidth = 6; c.beginPath(); c.moveTo(cw / 2, 0); c.lineTo(cw / 2, ch); c.moveTo(0, ch / 2); c.lineTo(cw, ch / 2); c.stroke();
+        } else if (kind === 'popBurst') {
+          c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, cw, ch);
+          c.fillStyle = '#ffd500'; for (let k = 0; k < 28; k += 2) { c.beginPath(); c.moveTo(cw / 2, ch / 2); c.arc(cw / 2, ch / 2, cw, k / 28 * Math.PI * 2, (k + 1) / 28 * Math.PI * 2); c.closePath(); c.fill(); }
+          dots(c, 0, 0, cw, ch, cw / 22, 'rgba(229,50,45,.55)', cw / 90);
+          c.lineJoin = 'round'; c.lineWidth = cw * 0.025; c.strokeStyle = '#1c1917'; c.fillStyle = '#e5322d'; c.beginPath();
+          for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, rr = Math.min(cw, ch) * (k % 2 ? 0.27 : 0.43); c.lineTo(cw / 2 + Math.cos(a) * rr * 1.1, ch / 2 + Math.sin(a) * rr); }
+          c.closePath(); c.fill(); c.stroke();
+          fish(c, cw / 2 + cw * 0.04, ch / 2 + ch * 0.04, Math.min(cw, ch) * 0.5, '#ffd500', '#1f5f9e', '#1c1917');
+          c.fillStyle = '#fff'; c.beginPath(); c.ellipse(cw * 0.74, ch * 0.2, cw * 0.19, ch * 0.1, 0, 0, Math.PI * 2); c.fill(); c.beginPath(); c.moveTo(cw * 0.66, ch * 0.27); c.lineTo(cw * 0.6, ch * 0.36); c.lineTo(cw * 0.72, ch * 0.29); c.fill();
+          c.lineWidth = cw * 0.012; c.beginPath(); c.ellipse(cw * 0.74, ch * 0.2, cw * 0.19, ch * 0.1, 0, 0, Math.PI * 2); c.stroke();
+          c.fillStyle = '#1c1917'; c.font = `800 ${Math.round(ch * 0.09)}px Raleway, system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('BLUB!', cw * 0.74, ch * 0.2);
+        } else {   // board
+          c.fillStyle = '#c99b63'; c.fillRect(0, 0, cw, ch);
+          for (let i = 0; i < 2600; i++) { c.fillStyle = r() < 0.5 ? 'rgba(90,55,25,.16)' : 'rgba(255,230,180,.16)'; c.fillRect(r() * cw, r() * ch, 2 + r() * 3, 2 + r() * 3); }
+          c.fillStyle = '#1f5f9e'; c.fillRect(cw * 0.04, ch * 0.05, cw * 0.46, ch * 0.13); c.fillStyle = '#fff'; c.font = `800 ${Math.round(ch * 0.075)}px Raleway, system-ui`; c.textAlign = 'left'; c.textBaseline = 'middle';
+          c.fillText(lang === 'en' ? 'NOTICES' : 'KOMUNIKATY', cw * 0.065, ch * 0.115);
+          const msgs = lang === 'en' ? ['Fresh coffee in the kitchen', 'Team meeting Friday, 9:00', 'Who took the stapler?', 'Well done, team!', 'Leave requests by the 15th', 'Quality is everyone\'s job'] : ['Świeża kawa w kuchni', 'Zebranie w piątek, 9:00', 'Kto zabrał zszywacz?', 'Dobra robota, zespół!', 'Urlopy do 15-go', 'Jakość to sprawa nas wszystkich'];
+          const cols = ['#ffe066', '#ff9ec7', '#8fd3f4', '#a6e3a1', '#ffe066', '#ffb870'], cells = [[0.04, 0.24], [0.36, 0.24], [0.68, 0.24], [0.04, 0.6], [0.36, 0.6], [0.68, 0.6]];
+          cells.forEach(([fx, fy], i) => {
+            c.save(); c.translate(cw * (fx + 0.13), ch * (fy + 0.15)); c.rotate((r() - 0.5) * 0.14);
+            c.shadowColor = 'rgba(0,0,0,.3)'; c.shadowBlur = 8; c.shadowOffsetY = 4;
+            if (i === 1 || i === 4) { c.fillStyle = '#fbfbf6'; c.fillRect(-cw * 0.14, -ch * 0.15, cw * 0.28, ch * 0.34); c.shadowColor = 'transparent'; c.fillStyle = '#c8ccd0'; for (let k = 0; k < 6; k++) c.fillRect(-cw * 0.11, -ch * 0.11 + k * ch * 0.04, cw * (0.22 - (k % 3) * 0.03), 4); c.fillStyle = '#e5322d'; c.fillRect(-cw * 0.11, -ch * 0.13, cw * 0.1, 6); }
+            else { c.fillStyle = cols[i]; c.fillRect(-cw * 0.13, -ch * 0.14, cw * 0.26, ch * 0.28); c.shadowColor = 'transparent'; c.fillStyle = '#2a2a2a'; c.font = `600 ${Math.round(ch * 0.038)}px Raleway, system-ui`; c.textAlign = 'center'; c.textBaseline = 'top';
+              msgs[i].split(' ').reduce((ls, wd) => { const l = ls[ls.length - 1]; if (l && (l + ' ' + wd).length <= 13) ls[ls.length - 1] = l + ' ' + wd; else ls.push(wd); return ls; }, []).forEach((ln, k) => c.fillText(ln, 0, -ch * 0.1 + k * ch * 0.05)); }
+            c.fillStyle = ['#e5322d', '#1f5f9e', '#1c1917'][i % 3]; c.beginPath(); c.arc(0, -ch * (i === 1 || i === 4 ? 0.14 : 0.125), 7, 0, Math.PI * 2); c.fill();
+            c.restore();
+          });
+        }
+      });
+      const frameMat = kit.mat(kind === 'board' ? 0xb7b9bb : 0x1c1917, { rough: kind === 'board' ? 0.35 : 0.5, metal: kind === 'board' ? 0.5 : 0 });
+      const fr = kit.box(parent, [w + 0.06, h + 0.06, 0.03], at(0, y, 0.015), frameMat); fr.rotation.y = rotY; fr.castShadow = false;
+      const pic = kit.plane(parent, [w, h], at(0, y, 0.0315), [0, rotY, 0], new T.MeshStandardMaterial({ map: tex, roughness: kind === 'board' ? 0.9 : 0.4 }));
+      pic.castShadow = false;
+      return pic;
     },
     // A desk monitor: bezel and stand into batch bDark, the screen as a self-lit plane (drawFn). Faces +z at rotY 0.
     // Returns the screen mesh. [x, y, z] is the desk-top point under the stand.

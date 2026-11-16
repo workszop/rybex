@@ -32,8 +32,7 @@
       dark: kit.mat(0x23262a, { rough: 0.36 }),                         // monitor plastic
       fabric: kit.mat(0x3c6f8f, { rough: 0.95 }),
       seat: kit.mat(0x2b2e33, { rough: 0.85 }),
-      pot: kit.mat(0xe7e3da, { rough: 0.7 }),
-      leaf: kit.mat(0x3f7a3a, { rough: 0.7 }),
+      ...kit.plantMaterials(),                                          // painted pots, veined leaves
       alu: kit.mat(0xc9ccce, { map: tex.brushedSteel(), rough: 0.38, metal: 0.75 }),
       glass: new T.MeshStandardMaterial({ color: 0xdfeaf0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.12, depthWrite: false }),
       lamp: new T.MeshBasicMaterial({ color: 0xfbfaf6, toneMapped: false }),
@@ -335,6 +334,10 @@
     kit.batch(g, kit.mat(0x2a3440, { rough: 0.9 })).cyl(0.14, 0.2, 0.75, [0.2, 1.3, 5.6]).done();
     // waste bins
     dark.cyl(0.13, 0.11, 0.32, [POD[0] - 1.35, 0.16, POD[1] + 0.55], [0, 0, 0], 14).cyl(0.13, 0.11, 0.32, [3.75, 0.16, -1.95], [0, 0, 0], 14);
+    // pop art and notice boards on the empty walls (front wall either side of the door, left wall by the back corner)
+    kit.prop.wallArt(g, [-3.0, 1.65, D / 2], Math.PI, 'popFish', { w: 1.2, h: 1.2, seed: 8 });
+    kit.prop.wallArt(g, [1.9, 1.6, D / 2], Math.PI, 'board', { w: 1.3, h: 0.95, seed: 9, lang });
+    kit.prop.wallArt(g, [-W / 2, 1.65, -3.9], Math.PI / 2, 'popBurst', { w: 1.1, h: 1.1, seed: 10 });
     // wall clock above the whiteboard and a Rybex poster on the left wall
     const clock = kit.screenPlane(g, [0.34, 0.34], [-0.6, 2.4, -D / 2 + 0.02], 0, (c, w, h) => {
       c.fillStyle = '#f7f7f4'; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 4, 0, Math.PI * 2); c.fill(); c.lineWidth = 10; c.strokeStyle = '#222'; c.stroke();
@@ -369,9 +372,9 @@
     function harbourTex() {
       return kit.canvasTexture(2048, 716, (c, w, h) => {
         const r = kit.rng(17);
-        const sky = c.createLinearGradient(0, 0, 0, h * 0.62); sky.addColorStop(0, '#9fc6e6'); sky.addColorStop(1, '#e9f1f4'); c.fillStyle = sky; c.fillRect(0, 0, w, h);
-        for (let i = 0; i < 9; i++) { const x = r() * w, y = 60 + r() * 160, rx = 80 + r() * 200; c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(x, y, rx, rx * 0.18, 0, 0, Math.PI * 2); c.fill(); }
+        kit.paint.sky(c, w, h, r, { top: '#97c0e4', horizon: '#e9f1f4', to: 0.62, clouds: 9 });
         c.fillStyle = '#9fb2bb'; c.beginPath(); c.moveTo(0, h * 0.58); for (let x = 0; x <= w; x += 64) c.lineTo(x, h * 0.58 - 10 - r() * 26); c.lineTo(w, h * 0.62); c.lineTo(0, h * 0.62); c.fill(); // far shore
+        kit.paint.treeLine(c, w, h, h * 0.625, r, { rows: 1, size: 0.5, step: 0.55 });   // trees along the far shore, hazy
         const sea = c.createLinearGradient(0, h * 0.6, 0, h); sea.addColorStop(0, '#6f97ad'); sea.addColorStop(1, '#3f6a80'); c.fillStyle = sea; c.fillRect(0, h * 0.6, w, h * 0.4);
         for (let i = 0; i < 160; i++) { c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(r() * w, h * 0.62 + r() * h * 0.38, 20 + r() * 50, 2); }
         // quay sheds and cranes

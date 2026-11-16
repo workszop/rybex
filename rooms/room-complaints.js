@@ -32,8 +32,7 @@
       shelf: kit.mat(0xb7bcc0, { rough: 0.4, metal: 0.6 }),
       cork: kit.mat(0xffffff, { map: tex.cork(), rough: 0.95 }),
       oak: kit.mat(0xffffff, { map: tex.wood('#b8875a'), rough: 0.6 }),
-      pot: kit.mat(0x3a3d40, { rough: 0.6 }),
-      leaf: kit.mat(0x3f7a3a, { rough: 0.7 }),
+      ...kit.plantMaterials(),                                          // painted pots, veined leaves
       paper: kit.mat(0xfafaf6, { rough: 0.8 }),
       kraft: kit.mat(0xd9c39a, { rough: 0.85 }),
       lamp: new T.MeshBasicMaterial({ color: 0xfffaf0, toneMapped: false }),
@@ -310,6 +309,11 @@
     kit.cyl(g, 0.15, 0.4, [5.15, 1.2, 2.3], new T.MeshStandardMaterial({ color: 0x9cc8e8, roughness: 0.1, transparent: true, opacity: 0.55 }));
     white.box([0.9, 0.75, 0.6], [-4.95, 0.375, 2.5]).box([0.6, 0.3, 0.5], [-4.95, 0.9, 2.5]);
     dark.box([0.45, 0.02, 0.32], [-4.95, 1.06, 2.5]);
+    // pop art and notice boards on the empty walls (right wall, and the front wall either side of the door)
+    kit.prop.wallArt(g, [W / 2, 1.65, -3.0], -Math.PI / 2, 'popFish', { w: 1.1, h: 1.1, seed: 2 });
+    kit.prop.wallArt(g, [W / 2, 1.6, -1.15], -Math.PI / 2, 'board', { w: 1.2, h: 0.9, seed: 3, lang });
+    kit.prop.wallArt(g, [-2.6, 1.65, D / 2], Math.PI, 'popBurst', { w: 1.5, h: 1.05, seed: 4 });
+    kit.prop.wallArt(g, [3.6, 1.6, D / 2], Math.PI, 'board', { w: 1.3, h: 0.95, seed: 5, lang });
     // wallboard on the left wall: shift, opening hours, no counts
     kit.rbox(g, [0.06, 0.66, 1.16], [-W / 2 + 0.03, 1.95, 0.0], M.dark, 0.012);
     kit.screenPlane(g, [1.1, 0.6], [-W / 2 + 0.065, 1.95, 0.0], Math.PI / 2, (c, w, h) => {
@@ -346,8 +350,10 @@
     function yardTex() {
       return kit.canvasTexture(1536, 512, (c, w, h) => {
         const r = kit.rng(29);
-        const sky = c.createLinearGradient(0, 0, 0, h * 0.55); sky.addColorStop(0, '#a9c9e2'); sky.addColorStop(1, '#eef3f5'); c.fillStyle = sky; c.fillRect(0, 0, w, h);
-        c.fillStyle = '#d4cfc5'; c.fillRect(0, h * 0.35, w, h * 0.3); c.fillStyle = 'rgba(0,0,0,.08)'; for (let x = 0; x < w; x += 48) c.fillRect(x, h * 0.35, 3, h * 0.3);   // the factory across the yard
+        kit.paint.sky(c, w, h, r, { top: '#a1c4e0', to: 0.55 });
+        kit.paint.treeLine(c, w, h, h * 0.66, r, { rows: 3, size: 1.1 });   // a tree line behind the yard, the factory stands in front of it
+        const fx = w * 0.26, fw = w * 0.42;
+        c.fillStyle = '#d4cfc5'; c.fillRect(fx, h * 0.35, fw, h * 0.31); c.fillStyle = 'rgba(0,0,0,.08)'; for (let x = fx; x < fx + fw; x += 48) c.fillRect(x, h * 0.35, 3, h * 0.31);   // the factory across the yard
         c.fillStyle = '#1f6fb2'; c.fillRect(w * 0.3, h * 0.38, 300, 46); c.fillStyle = '#fff'; c.font = '800 32px Raleway, system-ui'; c.fillText('RYBEX', w * 0.3 + 20, h * 0.38 + 34);
         c.fillStyle = '#7d8286'; c.fillRect(0, h * 0.65, w, h * 0.35);
         for (let i = 0; i < 7; i++) { const x = 80 + r() * (w - 200); c.fillStyle = ['#c0392b', '#e8e8e8', '#2b3a44', '#1f5f9e'][i % 4]; c.fillRect(x, h * 0.6, 110, 40); c.fillStyle = '#222'; c.fillRect(x + 12, h * 0.6 + 34, 20, 12); c.fillRect(x + 78, h * 0.6 + 34, 20, 12); }

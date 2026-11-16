@@ -39,7 +39,7 @@
       grate: kit.mat(0xffffff, { map: tex.grate(), rough: 0.35, metal: 0.7 }),
       glass: new T.MeshStandardMaterial({ color: 0xcfdde5, roughness: 0.05, transparent: true, opacity: 0.25, depthWrite: false }),
       lamp: new T.MeshBasicMaterial({ color: 0xfffaf0, toneMapped: false }),
-      sky: new T.MeshBasicMaterial({ map: kit.canvasTexture(256, 128, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#c9def0'); gr.addColorStop(1, '#eef3f5'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.fillStyle = 'rgba(110,120,125,.35)'; c.fillRect(0, h * 0.8, w, h * 0.2); }) }),
+      sky: new T.MeshBasicMaterial({ map: kit.canvasTexture(512, 256, (c, w, h) => { const r = kit.rng(7); kit.paint.sky(c, w, h, r, { top: '#b4d3ec', horizon: '#eef3f5', to: 0.9, clouds: 3 }); kit.paint.treeLine(c, w, h, h * 1.04, r, { rows: 2, size: 0.8 }); c.fillStyle = 'rgba(110,120,125,.45)'; c.fillRect(0, h * 0.92, w, h * 0.08); }) }),
     };
 
     // ---- shell ----

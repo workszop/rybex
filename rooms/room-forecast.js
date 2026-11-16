@@ -398,8 +398,8 @@
     function yardTex() {
       return kit.canvasTexture(1536, 614, (c, w, h) => {
         const r = kit.rng(31);
-        const sky = c.createLinearGradient(0, 0, 0, h * 0.7); sky.addColorStop(0, '#9ec4e3'); sky.addColorStop(1, '#eef3f5'); c.fillStyle = sky; c.fillRect(0, 0, w, h);
-        for (let i = 0; i < 8; i++) { const x = r() * w, y = 40 + r() * 150, rx = 70 + r() * 160; c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(x, y, rx, rx * 0.2, 0, 0, Math.PI * 2); c.fill(); }
+        kit.paint.sky(c, w, h, r, { top: '#96bfe0', to: 0.7, clouds: 8 });
+        kit.paint.treeLine(c, w, h, h * 0.55, r, { rows: 3, size: 1.2 });   // trees beyond the yard fence
         c.fillStyle = '#b8b3a8'; c.fillRect(0, h * 0.55, w, h * 0.2); c.fillStyle = '#7d8286'; c.fillRect(0, h * 0.75, w, h * 0.25);
         for (let x = 40; x < w; x += 70) { c.fillStyle = '#5b6066'; c.fillRect(x, h * 0.48, 4, h * 0.27); }
         c.fillStyle = '#e8e8e8'; c.fillRect(w * 0.55, h * 0.5, 380, 120); c.fillStyle = '#1f5f9e'; c.fillRect(w * 0.55, h * 0.5, 380, 26); c.fillStyle = '#222'; c.fillRect(w * 0.55 + 40, h * 0.5 + 110, 40, 22); c.fillRect(w * 0.55 + 300, h * 0.5 + 110, 40, 22);
