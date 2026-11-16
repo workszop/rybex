@@ -1900,7 +1900,7 @@ function expCount(k){return expOf(team(),k)}
 function noteSync(track){const i=$('#expNote');if(!i)return;const r=noteRequired(track);i.dataset.noteRequired=r;i.setAttribute('aria-required',r);const q=$('#expNoteReq');if(q)q.textContent=noteReqTxt(r)}
 function noteErr(on){const i=$('#expNote'),m=$('#expNoteMsg');if(!i)return;if(on)i.setAttribute('aria-invalid','true');else i.removeAttribute('aria-invalid');if(m)m.textContent=on?NOTE_MSG():''}
 document.addEventListener('input',e=>{if(e.target.id==='expNote'&&e.target.hasAttribute('aria-invalid'))noteErr(false)});
-function renderHeroProg(k){const el=$('#heroProg');if(!el)return;const n=expCount(k),m=MIN_EXPERIMENTS;el.innerHTML=`<span class="gh-num">${n>m?n:`${n}/${m}`}</span> <span class="edu-overline">${T('eksperymenty','experiments')}${n>m?` (min. ${m})`:''}</span><div class="gh-bar"><span style="width:${Math.min(100,n/m*100)}%"></span></div>`}
+function renderHeroProg(k){if(X.room)X.room.handle.refresh();const el=$('#heroProg');if(!el)return;const n=expCount(k),m=MIN_EXPERIMENTS;el.innerHTML=`<span class="gh-num">${n>m?n:`${n}/${m}`}</span> <span class="edu-overline">${T('eksperymenty','experiments')}${n>m?` (min. ${m})`:''}</span><div class="gh-bar"><span style="width:${Math.min(100,n/m*100)}%"></span></div>`}
 
 // ─── Team file ───
 function teamFileName(){return`rybex_team_${S.team}.json`}
@@ -2018,7 +2018,7 @@ const nextLabel=(n,st=pathState(team()))=>{const s=PATH_STEPS().find(x=>x.id===n
 const NEXT_WHERE=s=>({join:s.go[0]==='rybex'?T('strona firmy Rybex','the Rybex company site'):'',risk:s.go[0]==='arch'?T('decyzje wdrożeniowe','go-live decisions'):'',demos:T('następna demonstracja','the next demo')})[s.id]||s.label;
 // A redraw keeps keyboard focus on the bar's control it was on (a run can end while the participant sits on Next);
 // not while Next itself navigates (pathNav), where the target page decides focus.
-function renderPathBar(ps){if(S.example)return renderExampleBar();const el=$('#pathBar'),ae=document.activeElement,fid=ae&&ae!==el&&el.contains(ae)&&ae.id||'',t=team(),st=ps||pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id),ni=all.indexOf(nx)+1,cDone=!!st.steps.find(s=>s.id===st.cur)?.done,act=atTarget(c)&&!cDone?c:nx,here=!!act&&atTarget(act);
+function renderPathBar(ps){if(X.room)X.room.handle.refresh();if(S.example)return renderExampleBar();const el=$('#pathBar'),ae=document.activeElement,fid=ae&&ae!==el&&el.contains(ae)&&ae.id||'',t=team(),st=ps||pathState(t),all=PATH_STEPS(),c=all.find(s=>s.id===st.cur),ci=all.indexOf(c)+1,nx=st.next&&all.find(s=>s.id===st.next.id),ni=all.indexOf(nx)+1,cDone=!!st.steps.find(s=>s.id===st.cur)?.done,act=atTarget(c)&&!cDone?c:nx,here=!!act&&atTarget(act);
  Object.assign(el.dataset,{total:all.length,step:st.cur,done:st.doneCount,next:nx?nx.id:''});el.setAttribute('aria-label',T('Ścieżka warsztatów','Workshop path'));
  if(!setHTML(el,`<div class="pb-in"><ol class="pb-dots" aria-hidden="true">${st.steps.map(s=>`<li class="${s.done?'done':''} ${s.id===st.cur?'cur':''}"></li>`).join('')}</ol><p class="pb-txt"><span class="pb-here">${T('Jesteś tutaj','You are here')}: <b>${T(`krok ${ci} z ${all.length}`,`step ${ci} of ${all.length}`)}, ${c.label}</b> <span class="pb-min">· ${T('ok.','approx.')} ${c.min} min</span></span>${nx?`<span class="pb-hint"> ${ni<ci?T(`Najpierw wróćcie do kroku ${ni} z ${all.length}`,`First go back to step ${ni} of ${all.length}`):T('Następny krok','Next step')}: ${nx.hint}.</span>`:''}</p>${nx?`<button type="button" class="btn btn-sm" id="pathNext" data-go="${act.go.join('/')}" data-mode="${here?'here':'go'}"><span class="pb-lbl">${nextLabel(act,st)}</span>${ic(here?'arrow-down':'arrow-right')}</button>`:`<button type="button" class="btn-ghost btn-sm" id="pathNext" data-go="" data-mode="done">${ic('circle-check')}<span class="pb-lbl">${T('Ścieżka ukończona','Path complete')}</span></button>`}</div>`))return;
  $('#pathNext').onclick=()=>{const st=pathState(team()),c=PATH_STEPS().find(x=>x.id===st.cur),cDone=!!st.steps.find(s=>s.id===st.cur)?.done,s=atTarget(c)&&!cDone?c:st.next;if(!s)return;const p=PATH_STEPS().find(x=>x.id===s.id);if(atTarget(p)&&!AIS.run)pathFocus(p.id);else{if(p.id==='data'&&team().track&&!AIS.run)FSEL=TRACK_FILE[team().track];pathNav=true;try{go(...p.go)}finally{pathNav=false}
@@ -2578,6 +2578,17 @@ function roomData(k){const i=langIx();if(k==='vision'){visInit();return{vision:{
 function roomShow(el){const sl=el&&X.room&&el.closest&&el.closest('#roomHost .room-slot');if(sl)X.room.handle.open(sl.dataset.station);return el}
 function roomDispose(){if(X.room){X.room.handle.dispose();X.room=null}roomHost.replaceChildren();roomHost.hidden=true;delete roomHost.dataset.roomStatus;document.body.classList.remove('in-room')}
 // Old panels stay in #roomHost while vLab re-renders #main; $() finds the new nodes because #main precedes #roomHost; $$('input[name=meth]') also binds the old radios harmlessly until setPanels.
+// The room's guide once the team has reached the experiment station: what the lab still needs, in order - the baseline,
+// MIN_EXPERIMENTS experiments of their own (each one named: "Eksperyment 2 z 3"), then step 7's rest (final test or the
+// method choice) on the team's own task, and the results. Before that the stations lead in their own order.
+function roomGuide(k,seen){const t=team(),n=expOf(t,k),M=MIN_EXPERIMENTS,tags={experiment:`${Math.min(n,M)}/${M}`},at=(station,text)=>({station,text,tags});
+ if(!seen.includes('experiment'))return{tags};
+ if(!hasBaseline(t,k)&&!n)return at('experiment',T(`Najpierw metoda odniesienia: uruchomcie ją i zapiszcie wynik. Potem ${M} własne eksperymenty.`,`First the baseline: run it and save the result. Then ${M} experiments of your own.`));
+ if(n<M)return at('experiment',T(`Eksperyment ${n+1} z ${M}: zmieńcie jedno ustawienie, uruchomcie i zapiszcie wynik.`,`Experiment ${n+1} of ${M}: change one setting, run it and save the result.`));
+ if(t.track===k){const s7=step7(t);if(s7==='meth')return at('method',T('Eksperymenty gotowe. Wybierzcie metodę i uzasadnijcie wybór.','Experiments done. Choose the method and justify the choice.'));
+  if(s7!=='done'){const h=PATH_STEPS(t).find(s=>s.id==='iterate').hint;return at('experiment',T('Eksperymenty gotowe. Teraz test końcowy: ','Experiments done. Now the final test: ')+h+'.')}}
+ if(!seen.includes('results'))return at('results',T(`Macie ${n} eksperymenty. Porównajcie przebiegi.`,`You have ${n} experiments. Compare the runs.`));
+ return{done:true,tags,text:T('Laboratorium gotowe: eksperymenty zapisane i porównane. Kolejny krok pokazuje pasek u góry.','Lab done: experiments saved and compared. The bar at the top shows the next step.')}}
 function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
  const pane=(...n)=>{const d=document.createElement('div');d.className='room-pane';d.append(...n.filter(Boolean));return d};
  const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));
@@ -2586,7 +2597,7 @@ function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d
  const P={brief,data,method:meth,experiment:exp,results:res},r=X.room;roomHost.hidden=false;document.body.classList.add('in-room');roomHost.style.setProperty('--room-head',Math.ceil(mainEl.getBoundingClientRect().height)+2+'px');
  if(r&&r.track===k&&r.lang===S.lang&&r.team===S.team&&r.handle.status!=='disposed'){r.handle.setPanels(P);r.data=data;return}
  // Seen-progress: the team's data file counts as seen when the data station opens, as on the data page.
- const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,
+ const h=Rooms.mount({host:roomHost,track:k,lang:S.lang,data:roomData(k),titles:ROOM_TITLES(),panels:P,guide:seen=>roomGuide(k,seen),
   // A station opened with the room cut by the fold or by the sticky bars: scroll so the room's top sits just under them (the whole room and panel in view, the page heading fully above).
   onOpen:s=>{const t=team(),b=roomHost.getBoundingClientRect(),top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h'))||0;if(b.bottom>innerHeight+2||b.top<top-2)window.scrollBy(0,b.top-top);
    if(s==='data'&&!t.seen.data&&trackFileOk(t.track,TRACK_FILE[k])){t.seen.data=true;save();renderPathBar()}},

@@ -179,8 +179,8 @@
     kit.rbox(g, [0.36, 0.28, 0.06], [SX + 0.8, 1.72, BELT_Z + 0.6], M.darkPlastic, 0.012);
     kit.screenPlane(g, [0.31, 0.22], [SX + 0.8, 1.72, BELT_Z + 0.632], 0, (c, w, h) => {
       c.fillStyle = '#0f2233'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 54);
-      c.fillStyle = '#fff'; c.font = '700 34px system-ui'; c.fillText(tx('ZAMYKARKA L2', 'SEAMER L2'), 18, 38);
-      c.font = '600 30px system-ui'; c.fillStyle = '#cfe3f1';
+      c.fillStyle = '#fff'; c.font = '700 34px Raleway, system-ui'; c.fillText(tx('ZAMYKARKA L2', 'SEAMER L2'), 18, 38);
+      c.font = '600 30px Raleway, system-ui'; c.fillStyle = '#cfe3f1';
       [[tx('Wydajność', 'Rate'), '240/min'], [tx('Licznik', 'Count'), '41 862'], [tx('Stan', 'State'), 'RUN']].forEach(([k, v], i) => { c.fillText(k, 18, 110 + i * 56); c.fillText(v, w - 200, 110 + i * 56); });
     });
     // signal tower (green lit)
@@ -246,7 +246,7 @@
       c.fillStyle = '#1f6fb2'; c.fillRect(0, 22, w, 84); c.fillStyle = '#fff'; c.fillRect(0, 68, w, 4);
       for (let i = 0; i < 2; i++) {
         const x = 64 + i * 256; c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(x, 44, 44, 17, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#1c1917'; c.font = '800 20px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand.slice(0, 8), x, 45);
+        c.fillStyle = '#1c1917'; c.font = '800 20px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand.slice(0, 8), x, 45);
         c.fillStyle = '#dfe9f2'; c.beginPath(); c.ellipse(x + 120, 88, 46, 9, 0, 0, Math.PI * 2); c.fill();
       }
     });
@@ -362,9 +362,9 @@
       c.save(); c.translate(40, 40); c.rotate(-0.02);
       c.fillStyle = '#fff'; c.shadowColor = 'rgba(0,0,0,.25)'; c.shadowBlur = 8; c.fillRect(0, 0, 300, 420); c.shadowBlur = 0;
       c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, 300, 46); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(54, 23, 40, 15, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#1c1917'; c.font = '800 17px system-ui'; c.textAlign = 'center'; c.fillText(brand, 54, 29); c.textAlign = 'left';
-      c.fillStyle = '#fff'; c.font = '700 18px system-ui'; c.fillText(tx('NOTATKA', 'MEMO'), 110, 30);
-      c.fillStyle = '#1c1917'; c.font = '700 22px system-ui'; c.fillText(tx('Linia 2: kontrola', 'Line 2: inspection'), 18, 82); c.fillText(tx('wizyjna puszek', 'of the cans'), 18, 108);
+      c.fillStyle = '#1c1917'; c.font = '800 17px Raleway, system-ui'; c.textAlign = 'center'; c.fillText(brand, 54, 29); c.textAlign = 'left';
+      c.fillStyle = '#fff'; c.font = '700 18px Raleway, system-ui'; c.fillText(tx('NOTATKA', 'MEMO'), 110, 30);
+      c.fillStyle = '#1c1917'; c.font = '700 22px Raleway, system-ui'; c.fillText(tx('Linia 2: kontrola', 'Line 2: inspection'), 18, 82); c.fillText(tx('wizyjna puszek', 'of the cans'), 18, 108);
       c.fillStyle = '#6b6a66'; for (let i = 0; i < 11; i++) c.fillRect(18, 136 + i * 24, 230 + ((i * 37) % 50), 7);
       c.fillStyle = '#c0221c'; c.beginPath(); c.arc(150, 6, 9, 0, Math.PI * 2); c.fill();
       c.restore();
@@ -377,11 +377,11 @@
       c.fillStyle = '#2f8f47'; c.beginPath(); c.arc(95, 4, 8, 0, Math.PI * 2); c.fill();
       c.restore();
       c.fillStyle = '#ffe66b'; c.fillRect(390, 310, 150, 130); c.fillStyle = '#9fd7f0'; c.fillRect(600, 60, 130, 120);
-      c.fillStyle = '#3a3a3a'; c.font = '600 22px system-ui';
+      c.fillStyle = '#3a3a3a'; c.font = '600 22px Raleway, system-ui';
       c.fillText(tx('np. cel: 9 z 10', 'e.g. goal: 9 of 10'), 402, 352); c.fillText(tx('wadliwych', 'bad cans'), 402, 380); c.fillText(tx('odrzuconych', 'rejected'), 402, 408);
       c.fillText(tx('Zmiana B', 'Shift B'), 612, 100); c.fillText('06:00', 612, 130);
       c.strokeStyle = '#1f6fb2'; c.lineWidth = 4; c.beginPath(); c.moveTo(600, 300); c.bezierCurveTo(660, 250, 720, 360, 760, 290); c.stroke();
-      c.fillStyle = '#1f6fb2'; c.font = '600 28px system-ui'; c.fillText('L2 → QA', 600, 440);
+      c.fillStyle = '#1f6fb2'; c.font = '600 28px Raleway, system-ui'; c.fillText('L2 → QA', 600, 440);
     };
     const memoTex = tex.screen(drawMemo, { w: 800, h: 512 });
     const loadMemo = () => { memoImgs.forEach(im => { im.onload = null; }); memoImgs.length = 0; if (photos[0]) { const im = new Image(); im.onload = () => memoTex.redraw(); im.src = photos[0]; memoImgs.push(im); } };
@@ -398,8 +398,8 @@
     const drawMon = (c, w, h) => {
       c.fillStyle = '#0d1419'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#16232d'; c.fillRect(0, 0, w, 44);
-      c.fillStyle = '#e6eef3'; c.font = '700 24px system-ui'; c.fillText(tx('KAMERA 1 · INSPEKCJA PUSZEK', 'CAMERA 1 · CAN INSPECTION'), 16, 30);
-      c.fillStyle = '#2fd15a'; c.beginPath(); c.arc(w - 70, 22, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = '#9fb3c0'; c.font = '600 18px system-ui'; c.fillText('LIVE', w - 56, 28);
+      c.fillStyle = '#e6eef3'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('KAMERA 1 · INSPEKCJA PUSZEK', 'CAMERA 1 · CAN INSPECTION'), 16, 30);
+      c.fillStyle = '#2fd15a'; c.beginPath(); c.arc(w - 70, 22, 8, 0, Math.PI * 2); c.fill(); c.fillStyle = '#9fb3c0'; c.font = '600 18px Raleway, system-ui'; c.fillText('LIVE', w - 56, 28);
       const cols = 3, rows = 2, pad = 12, cw = (w - pad * (cols + 1)) / cols, ch = (h - 44 - 40 - pad * (rows + 1)) / rows;
       for (let i = 0; i < 6; i++) {
         const x = pad + (i % cols) * (cw + pad), y = 44 + pad + Math.floor(i / cols) * (ch + pad);
@@ -407,9 +407,9 @@
         const im = photoImgs[i];
         if (im && im.complete && im.naturalWidth) { const s = Math.min(cw / im.naturalWidth, ch / im.naturalHeight), iw = im.naturalWidth * s, ih = im.naturalHeight * s; c.drawImage(im, x + (cw - iw) / 2, y + (ch - ih) / 2, iw, ih); }
         else { c.strokeStyle = '#3c4f5c'; c.lineWidth = 3; c.strokeRect(x + cw / 2 - 30, y + 20, 60, ch - 40); }
-        c.fillStyle = 'rgba(13,20,25,.75)'; c.fillRect(x, y + ch - 24, cw, 24); c.fillStyle = '#c9d6de'; c.font = '600 16px system-ui'; c.fillText(`IMG ${String(i + 1).padStart(3, '0')}`, x + 8, y + ch - 7);
+        c.fillStyle = 'rgba(13,20,25,.75)'; c.fillRect(x, y + ch - 24, cw, 24); c.fillStyle = '#c9d6de'; c.font = '600 16px Raleway, system-ui'; c.fillText(`IMG ${String(i + 1).padStart(3, '0')}`, x + 8, y + ch - 7);
       }
-      c.fillStyle = '#9fb3c0'; c.font = '600 18px system-ui';
+      c.fillStyle = '#9fb3c0'; c.font = '600 18px Raleway, system-ui';
       c.fillText(photos.length ? tx(`${photos.length} zdjęć z linii`, `${photos.length} photos from the line`) : tx('Brak podglądu', 'No preview'), 16, h - 14);
     };
     const monTex = tex.screen(drawMon, { w: 640, h: 420 });
@@ -435,10 +435,10 @@
     conBody.rotation.x = -0.45;
     const drawHmi = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 48);
-      c.fillStyle = '#fff'; c.font = '700 26px system-ui'; c.fillText(tx('KAMERA 1 · USTAWIENIA', 'CAMERA 1 · SETTINGS'), 16, 33);
+      c.fillStyle = '#fff'; c.font = '700 26px Raleway, system-ui'; c.fillText(tx('KAMERA 1 · USTAWIENIA', 'CAMERA 1 · SETTINGS'), 16, 33);
       const rows = [[tx('Ekspozycja', 'Exposure'), 0.55], [tx('Oświetlenie', 'Lighting'), 0.7], [tx('Próg odrzutu', 'Reject threshold'), 0.4]];
-      rows.forEach(([k, val], i) => { const y = 92 + i * 62; c.fillStyle = '#1c1917'; c.font = '600 22px system-ui'; c.fillText(k, 16, y); c.fillStyle = '#c9d1d6'; c.fillRect(16, y + 14, w - 32, 10); c.fillStyle = '#1f6fb2'; c.fillRect(16, y + 14, (w - 32) * val, 10); c.beginPath(); c.arc(16 + (w - 32) * val, y + 19, 12, 0, Math.PI * 2); c.fill(); });
-      c.fillStyle = '#2f8f47'; c.fillRect(16, h - 62, 160, 46); c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText('START', 56, h - 32);
+      rows.forEach(([k, val], i) => { const y = 92 + i * 62; c.fillStyle = '#1c1917'; c.font = '600 22px Raleway, system-ui'; c.fillText(k, 16, y); c.fillStyle = '#c9d1d6'; c.fillRect(16, y + 14, w - 32, 10); c.fillStyle = '#1f6fb2'; c.fillRect(16, y + 14, (w - 32) * val, 10); c.beginPath(); c.arc(16 + (w - 32) * val, y + 19, 12, 0, Math.PI * 2); c.fill(); });
+      c.fillStyle = '#2f8f47'; c.fillRect(16, h - 62, 160, 46); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText('START', 56, h - 32);
       c.fillStyle = '#6b6a66'; c.fillRect(w - 176, h - 62, 160, 46); c.fillStyle = '#fff'; c.fillText(tx('TEST', 'TEST'), w - 126, h - 32);
     };
     const hmi = new T.Mesh(new T.PlaneGeometry(0.46, 0.3), new T.MeshBasicMaterial({ map: tex.screen(drawHmi, { w: 512, h: 334 }), toneMapped: false }));
@@ -461,8 +461,8 @@
     const qaMon = kit.rbox(qa, [0.58, 0.36, 0.04], [-0.35, 1.32, -0.2], M.darkPlastic, 0.01);
     const drawQa = (c, w, h) => {
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 44);
-      c.fillStyle = '#fff'; c.font = '700 24px system-ui'; c.fillText(tx('KONTROLA JAKOŚCI · L2', 'QUALITY CONTROL · L2'), 14, 30);
-      c.fillStyle = '#1c1917'; c.font = '600 20px system-ui';
+      c.fillStyle = '#fff'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('KONTROLA JAKOŚCI · L2', 'QUALITY CONTROL · L2'), 14, 30);
+      c.fillStyle = '#1c1917'; c.font = '600 20px Raleway, system-ui';
       [tx('Metoda kontroli', 'Inspection method'), tx('Cechy obrazu', 'Image features'), tx('Reguła decyzji', 'Decision rule')].forEach((t, i) => { c.fillStyle = '#dfe5e8'; c.fillRect(14, 64 + i * 70, w - 28, 56); c.fillStyle = '#1c1917'; c.fillText(t, 28, 98 + i * 70); });
     };
     const qaScreen = new T.Mesh(new T.PlaneGeometry(0.54, 0.32), new T.MeshBasicMaterial({ map: tex.screen(drawQa, { w: 540, h: 320 }), toneMapped: false }));
@@ -477,7 +477,7 @@
     stool.cyl(0.18, 0.18, 0.05, [-0.2, 0.65, 0.75]).cyl(0.025, 0.025, 0.6, [-0.2, 0.33, 0.75]).cyl(0.22, 0.22, 0.03, [-0.2, 0.03, 0.75]);
     stool.done();
     // hanging bay sign, so the QA bay reads from across the hall
-    const qaSign = kit.box(qa, [1.4, 0.36, 0.03], [0.3, 2.7, 0.5], kit.mat(0xffffff, { map: kit.canvasTexture(512, 132, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 54px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('KONTROLA JAKOŚCI', 'QUALITY CONTROL'), w / 2, h / 2 + 3); }), rough: 0.5 }));
+    const qaSign = kit.box(qa, [1.4, 0.36, 0.03], [0.3, 2.7, 0.5], kit.mat(0xffffff, { map: kit.canvasTexture(512, 132, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 54px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('KONTROLA JAKOŚCI', 'QUALITY CONTROL'), w / 2, h / 2 + 3); }), rough: 0.5 }));
     kit.batch(qa, M.galv, { shadow: false }).rod([-0.3, 2.88, 0.5], [-0.3, H, 0.5], 0.006, 4).rod([0.9, 2.88, 0.5], [0.9, H, 0.5], 0.006, 4).done();
     kit.plane(qa, [0.42, 0.56], [0.7, 1.75, -0.374], [0, 0, 0], kit.mat(0xffffff, { map: chartTex(), rough: 0.6 }));
 
@@ -487,17 +487,17 @@
     const drawRes = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 92); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(96, 46, 70, 30, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#1c1917'; c.font = '800 34px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand, 96, 48); c.textAlign = 'left';
-      c.fillStyle = '#fff'; c.font = '700 40px system-ui'; c.fillText(tx('Linia 2 · kontrola wizyjna', 'Line 2 · vision inspection'), 190, 48);
+      c.fillStyle = '#1c1917'; c.font = '800 34px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand, 96, 48); c.textAlign = 'left';
+      c.fillStyle = '#fff'; c.font = '700 40px Raleway, system-ui'; c.fillText(tx('Linia 2 · kontrola wizyjna', 'Line 2 · vision inspection'), 190, 48);
       c.textBaseline = 'alphabetic';
       // three empty KPI tiles and an empty comparison chart: filled by the experiments, never invented here
       const tiles = [tx('Odrzucone wadliwe', 'Bad cans rejected'), tx('Fałszywe odrzuty', 'False rejects'), tx('Eksperymenty', 'Experiments')];
-      tiles.forEach((t, i) => { const x = 30 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 120, 310, 130); c.fillStyle = '#6b6a66'; c.font = '600 24px system-ui'; c.fillText(t, x + 18, 160); c.fillStyle = '#c9d1d6'; c.font = '700 56px system-ui'; c.fillText('–', x + 18, 228); });
+      tiles.forEach((t, i) => { const x = 30 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 120, 310, 130); c.fillStyle = '#6b6a66'; c.font = '600 24px Raleway, system-ui'; c.fillText(t, x + 18, 160); c.fillStyle = '#c9d1d6'; c.font = '700 56px Raleway, system-ui'; c.fillText('–', x + 18, 228); });
       c.fillStyle = '#fff'; c.fillRect(30, 272, w - 60, h - 300);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(90, 300); c.lineTo(90, h - 60); c.lineTo(w - 60, h - 60); c.stroke();
       c.setLineDash([12, 10]); c.strokeStyle = '#2f8f47'; c.beginPath(); c.moveTo(90, 340); c.lineTo(w - 60, 340); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#2f8f47'; c.font = '600 24px system-ui'; c.fillText(tx('np. cel: 9 z 10 wadliwych', 'e.g. goal: 9 of 10 bad cans'), w - 330, 330);
-      c.fillStyle = '#6b6a66'; c.font = '500 26px system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 120, h - 120);
+      c.fillStyle = '#2f8f47'; c.font = '600 24px Raleway, system-ui'; c.fillText(tx('np. cel: 9 z 10 wadliwych', 'e.g. goal: 9 of 10 bad cans'), w - 330, 330);
+      c.fillStyle = '#6b6a66'; c.font = '500 26px Raleway, system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 120, h - 120);
     };
     const resScreen = new T.Mesh(new T.PlaneGeometry(2.32, 1.29), new T.MeshBasicMaterial({ map: tex.screen(drawRes, { w: 1024, h: 572 }), toneMapped: false }));
     resScreen.position.set(0, 0, 0.051); scrFrame.add(resScreen);
@@ -523,7 +523,7 @@
     }
     tanks.rod([2.6, 0.55 + 1.7 + 0.15, -4.7], [2.6, 4.35, -4.7], 0.03, 8);
     tanks.done();
-    kit.plane(g, [0.5, 0.18], [2.6, 1.5, -4.7 + 0.56], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 92, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#1c1917'; c.lineWidth = 5; c.strokeRect(3, 3, w - 6, h - 6); c.fillStyle = '#b3261e'; c.font = '800 30px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('SOS POMIDOROWY', 'TOMATO SAUCE'), w / 2, h / 2 + 2); }), rough: 0.6 }));
+    kit.plane(g, [0.5, 0.18], [2.6, 1.5, -4.7 + 0.56], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 92, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#1c1917'; c.lineWidth = 5; c.strokeRect(3, 3, w - 6, h - 6); c.fillStyle = '#b3261e'; c.font = '800 30px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('SOS POMIDOROWY', 'TOMATO SAUCE'), w / 2, h / 2 + 2); }), rough: 0.6 }));
     const otray = kit.batch(g, M.galv, { shadow: false });
     otray.box([0.3, 0.01, D / 2 + BELT_Z + 0.3], [GX, 4.0, (-D / 2 + BELT_Z) / 2 + 0.15]).box([0.01, 0.08, D / 2 + BELT_Z], [GX - 0.15, 4.04, (-D / 2 + BELT_Z) / 2]).box([0.01, 0.08, D / 2 + BELT_Z], [GX + 0.15, 4.04, (-D / 2 + BELT_Z) / 2]);
     for (let z = -5; z <= -1; z += 1.5) otray.rod([GX - 0.15, 4.0, z], [GX - 0.15, H, z], 0.008, 4).rod([GX + 0.15, 4.0, z], [GX + 0.15, H, z], 0.008, 4);
@@ -585,34 +585,34 @@
 
     // ---- small canvas textures used above ----
     function signTex(text, color) {
-      return kit.canvasTexture(256, 160, (c, w, h) => { c.fillStyle = color; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 50px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, h / 2 + 2); });
+      return kit.canvasTexture(256, 160, (c, w, h) => { c.fillStyle = color; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 50px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, h / 2 + 2); });
     }
     function cartonTex() {
       return kit.canvasTexture(256, 170, (c, w, h) => {
-        c.fillStyle = '#b48a58'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f4f86'; c.font = '800 46px system-ui'; c.textAlign = 'center'; c.fillText(brand, w / 2, 70);
-        c.font = '600 22px system-ui'; c.fillText(tx('PUSZKI 48 SZT.', 'CANS 48 PCS'), w / 2, 110); c.fillRect(30, 130, w - 60, 4); c.font = '600 18px system-ui'; c.fillText('↑ ↑   ' + tx('GÓRA', 'THIS SIDE UP'), w / 2, 160);
+        c.fillStyle = '#b48a58'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f4f86'; c.font = '800 46px Raleway, system-ui'; c.textAlign = 'center'; c.fillText(brand, w / 2, 70);
+        c.font = '600 22px Raleway, system-ui'; c.fillText(tx('PUSZKI 48 SZT.', 'CANS 48 PCS'), w / 2, 110); c.fillRect(30, 130, w - 60, 4); c.font = '600 18px Raleway, system-ui'; c.fillText('↑ ↑   ' + tx('GÓRA', 'THIS SIDE UP'), w / 2, 160);
       });
     }
     function bannerTex() {
       return kit.canvasTexture(1024, 200, (c, w, h) => {
         c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(150, h / 2, 120, 62, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#1c1917'; c.font = '800 64px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand, 150, h / 2 + 4);
-        c.fillStyle = '#fff'; c.textAlign = 'left'; c.font = '700 70px system-ui'; c.fillText(tx('LINIA 2 · KONSERWY', 'LINE 2 · CANNING'), 310, h / 2 + 4);
+        c.fillStyle = '#1c1917'; c.font = '800 64px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand, 150, h / 2 + 4);
+        c.fillStyle = '#fff'; c.textAlign = 'left'; c.font = '700 70px Raleway, system-ui'; c.fillText(tx('LINIA 2 · KONSERWY', 'LINE 2 · CANNING'), 310, h / 2 + 4);
       });
     }
     function lineBoardTex() {
       return kit.canvasTexture(400, 300, (c, w, h) => {
         c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 50);
-        c.fillStyle = '#fff'; c.font = '700 26px system-ui'; c.fillText(tx('TABLICA ZMIANY · L2', 'SHIFT BOARD · L2'), 14, 34);
-        c.fillStyle = '#1c1917'; c.font = '600 20px system-ui';
+        c.fillStyle = '#fff'; c.font = '700 26px Raleway, system-ui'; c.fillText(tx('TABLICA ZMIANY · L2', 'SHIFT BOARD · L2'), 14, 34);
+        c.fillStyle = '#1c1917'; c.font = '600 20px Raleway, system-ui';
         [tx('Bezpieczeństwo', 'Safety'), tx('Jakość', 'Quality'), tx('Wydajność', 'Output'), tx('Ludzie', 'People')].forEach((t, i) => { c.fillText(t, 14, 90 + i * 52); c.fillStyle = i === 1 ? '#f0b400' : '#2f8f47'; c.beginPath(); c.arc(w - 40, 84 + i * 52, 14, 0, Math.PI * 2); c.fill(); c.fillStyle = '#1c1917'; });
       });
     }
     function chartTex() {
       return kit.canvasTexture(240, 320, (c, w, h) => {
-        c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.font = '700 18px system-ui'; c.fillText(tx('Wady zamknięcia', 'Seam defects'), 12, 28);
+        c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.font = '700 18px Raleway, system-ui'; c.fillText(tx('Wady zamknięcia', 'Seam defects'), 12, 28);
         const names = tx(['wgniecenie', 'nieczytelny kod', 'zła etykieta', 'rdza'], ['dent', 'unreadable code', 'wrong label', 'rust']);
-        names.forEach((t, i) => { c.fillStyle = '#d9dcde'; c.fillRect(12, 50 + i * 66, w - 24, 56); c.fillStyle = '#1c1917'; c.font = '600 15px system-ui'; c.fillText(t, 22, 84 + i * 66); });
+        names.forEach((t, i) => { c.fillStyle = '#d9dcde'; c.fillRect(12, 50 + i * 66, w - 24, 56); c.fillStyle = '#1c1917'; c.font = '600 15px Raleway, system-ui'; c.fillText(t, 22, 84 + i * 66); });
       });
     }
 

@@ -4,7 +4,8 @@
 //
 //   Rooms.define('vision', ctx => ({ scene, bounds, colliders, spawn, stations, ... }));
 //   const room = Rooms.mount({ host, track: 'vision', lang: 'pl', data, titles, panels, onOpen, onClose, onExit2d });
-//   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.dispose();
+//   room.open('data'); room.setPanels({ data: el }); room.setData(data); room.refresh(); room.dispose();
+// refresh() asks opts.guide again (the app calls it when the task's state changed).
 // setData passes new data to the room's own setData(data) (if it has one), e.g. photos that arrived after the mount.
 //
 // Look: the engine grounds and lights every room the same way. Contact shadows are traced from whatever stands
@@ -25,8 +26,24 @@
   const EYE = 1.65, RADIUS = 0.3, SPEED = 3.2, PITCH_MAX = Math.PI / 3, LOOK_RATE = 0.005, PR_MAX = 1.5;
   const LABEL_PX = 34, LABEL_PX_FAR = 28; // station label height on screen (CSS px), near and far
   const TXT = {
-    pl: { hint: 'Kliknijcie świecące stanowisko albo chodźcie: WASD / strzałki, przeciągnijcie, żeby się rozejrzeć.', bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
-    en: { hint: 'Click a glowing station, or walk with WASD / arrows and drag to look around.', bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
+    pl: { bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
+    en: { bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
+  };
+  // The walk through a room: five stations in a fixed order. The guide at the bottom names the next one, the panel
+  // says what to do at this one (opts.steps overrides the lines per station: { brief: 'text' | { pl, en }, ... }).
+  const GUIDE = {
+    pl: {
+      step: (n, t) => `Krok ${n} z ${t}`, start: 'Przejdźcie pięć stanowisk po kolei. Zacznijcie od pierwszego.', next: 'Dalej:', go: 'Otwórzcie', finish: 'Zamknijcie',
+      done: 'Wszystkie stanowiska odwiedzone. Wrócicie do każdego z paska u góry.', seen: 'odwiedzone', nextMark: 'następne',
+      tip: 'Możecie też chodzić: WASD / strzałki, przeciągnijcie, żeby się rozejrzeć.',
+      steps: { brief: 'Przeczytajcie zadanie: co system ma robić i na jakich danych.', data: 'Obejrzyjcie dane, na których pracuje system.', method: 'Wybierzcie metodę i sprawdźcie, jak działa.', experiment: 'Uruchomcie metodę odniesienia, potem własne eksperymenty.', results: 'Porównajcie przebiegi i zobaczcie, który wypadł najlepiej.' },
+    },
+    en: {
+      step: (n, t) => `Step ${n} of ${t}`, start: 'Go through the five stations in order. Start with the first one.', next: 'Next:', go: 'Open', finish: 'Close',
+      done: 'All stations visited. You can return to any of them from the bar at the top.', seen: 'visited', nextMark: 'next',
+      tip: 'You can also walk: WASD / arrows, drag to look around.',
+      steps: { brief: 'Read the brief: what the system should do and on what data.', data: 'Look at the data the system works on.', method: 'Choose a method and see how it works.', experiment: 'Run the baseline, then your own experiments.', results: 'Compare the runs and see which one did best.' },
+    },
   };
   const builders = {};
   const live = new WeakMap(); // host -> handle, so a second mount into the same host disposes the first
@@ -44,13 +61,34 @@
     return supportedCache;
   }
 
+  // ---- room typeface ----
+  // All text in the rooms is Raleway, from the page's font stylesheet. A canvas draws with whatever is loaded at
+  // that moment, so the download starts here, and anything that drew text before the font arrived is drawn again
+  // once it is in (whenFont). Without the font (offline, file:// without network) the text stays in system-ui.
+  const FONT_SAMPLE = 'Aąćęłńóśźż0', fontWaiters = new Set();
+  let fontPending = false;
+  const whenFont = fn => { if (fontPending) fontWaiters.add(fn); };
+  if (document.fonts && document.fonts.load) {
+    fontPending = true;
+    Promise.all([500, 600, 700, 800].map(w => document.fonts.load(`${w} 16px Raleway`, FONT_SAMPLE)))
+      .then(r => r.some(faces => faces.length), () => false)
+      .then(loaded => {
+        fontPending = false; const run = [...fontWaiters]; fontWaiters.clear();
+        if (loaded) run.forEach(fn => { try { fn(); } catch (e) { console.warn('Rooms: text redraw failed', e); } });
+      });
+  }
+
   // ---- kit: shared building helpers (rooms extend it) ----
   const kit = {
-    canvasTexture(w, h, draw, { repeat } = {}) {
+    // refont: false = the caller redraws for the late font itself.
+    canvasTexture(w, h, draw, { repeat, refont = true } = {}) {
       const T = window.THREE, c = document.createElement('canvas'); c.width = w; c.height = h;
-      draw(c.getContext('2d'), w, h);
+      const g = c.getContext('2d'); let text = false;
+      if (fontPending && refont) for (const k of ['fillText', 'strokeText']) g[k] = function (...a) { text = true; return CanvasRenderingContext2D.prototype[k].apply(this, a); };
+      g.save(); draw(g, w, h); g.restore();
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
       if (repeat) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+      if (text) whenFont(() => { g.clearRect(0, 0, w, h); g.save(); draw(g, w, h); g.restore(); t.needsUpdate = true; });
       return t;
     },
     // roughMap: [rx, ry] lays the shared smudge texture over the surface (rough is then the roughest value, the
@@ -72,17 +110,35 @@
     },
     // Text on a canvas sprite (a dark pill). Starts 0.32 m tall; the engine rescales station labels every frame so
     // they keep a small, steady size on screen. userData.aspect = width / height.
-    label(text) {
-      const T = window.THREE, fs = 44, pad = 22, font = `600 ${fs}px "IBM Plex Sans", system-ui, sans-serif`;
-      const probe = document.createElement('canvas').getContext('2d'); probe.font = font;
-      const w = Math.ceil(probe.measureText(text).width) + pad * 2, h = fs + 20;
-      const tex = kit.canvasTexture(w, h, g => {
-        g.fillStyle = 'rgba(28,25,23,.86)'; const r = h / 2;
-        g.beginPath(); g.moveTo(r, 0); g.arcTo(w, 0, w, h, r); g.arcTo(w, h, 0, h, r); g.arcTo(0, h, 0, 0, r); g.arcTo(0, 0, w, 0, r); g.fill();
-        g.font = font; g.fillStyle = '#FFD500'; g.textBaseline = 'middle'; g.fillText(text, pad, h / 2 + 2);
-      });
-      const s = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-      s.scale.set(0.32 * w / h, 0.32, 1); s.renderOrder = 10; s.userData.aspect = w / h; return s;
+    // n: a number badge in front (the station's place in the walk). userData.setState('next' | 'done' | ''):
+    // next = the pill turns yellow, done = a tick instead of the number.
+    label(text, n) {
+      const T = window.THREE, fs = 44, pad = 22, h = fs + 20, R = 23, font = `600 ${fs}px Raleway, system-ui, sans-serif`;
+      const probe = document.createElement('canvas').getContext('2d');
+      let state = '';
+      const make = () => { // the pill is as wide as its text, so a late font means a new canvas, not a redraw
+        probe.font = font; const x0 = n ? pad - 8 + R * 2 + 12 : pad, w = Math.ceil(probe.measureText(text).width) + x0 + pad;
+        const dark = 'rgba(28,25,23,.86)', ink = '#1c1917', yel = '#FFD500', next = state === 'next';
+        const tex = kit.canvasTexture(w, h, g => {
+          g.fillStyle = next ? yel : dark; const r = h / 2;
+          g.beginPath(); g.moveTo(r, 0); g.arcTo(w, 0, w, h, r); g.arcTo(w, h, 0, h, r); g.arcTo(0, h, 0, 0, r); g.arcTo(0, 0, w, 0, r); g.fill();
+          if (n) {
+            const cx = pad - 8 + R, cy = h / 2;
+            g.fillStyle = next ? ink : yel; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+            if (state === 'done') { g.strokeStyle = ink; g.lineWidth = 6; g.lineCap = g.lineJoin = 'round'; g.beginPath(); g.moveTo(cx - 11, cy + 1); g.lineTo(cx - 3, cy + 9); g.lineTo(cx + 12, cy - 8); g.stroke(); }
+            else { g.fillStyle = next ? yel : ink; g.font = `800 32px Raleway, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), cx, cy + 2); g.textAlign = 'left'; }
+          }
+          g.font = font; g.fillStyle = next ? ink : yel; g.textBaseline = 'middle'; g.fillText(text, x0, h / 2 + 2);
+        }, { refont: false });
+        return { tex, aspect: w / h };
+      };
+      const first = make();
+      const s = new T.Sprite(new T.SpriteMaterial({ map: first.tex, depthTest: false, transparent: true }));
+      s.scale.set(0.32 * first.aspect, 0.32, 1); s.renderOrder = 10; s.userData.aspect = first.aspect;
+      const remake = () => { const old = s.material.map, m = make(); s.material.map = m.tex; old.dispose(); s.scale.x = s.scale.y * m.aspect; s.userData.aspect = m.aspect; };
+      s.userData.setState = st => { if (st !== state) { state = st; remake(); } };
+      whenFont(remake);
+      return s;
     },
   };
 
@@ -227,7 +283,7 @@
       const T = window.THREE, c = document.createElement('canvas'); c.width = w; c.height = h;
       t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
       t.redraw = () => { const g = c.getContext('2d'); g.clearRect(0, 0, w, h); drawFn(g, w, h, t); t.needsUpdate = true; };
-      t.redraw(); screenCache.set(drawFn, t);
+      t.redraw(); screenCache.set(drawFn, t); whenFont(t.redraw);
       return t;
     },
     // A generic hall for reflections: bright ceiling strips, walls with a light band, darker floor (cube texture).
@@ -252,23 +308,23 @@
       if (kind === 'warning') {
         g.fillStyle = '#1c1917'; g.beginPath(); g.moveTo(cx, 18); g.lineTo(cx + 112, 214); g.lineTo(cx - 112, 214); g.closePath(); g.fill();
         g.fillStyle = '#f7c600'; g.beginPath(); g.moveTo(cx, 42); g.lineTo(cx + 92, 202); g.lineTo(cx - 92, 202); g.closePath(); g.fill();
-        g.fillStyle = '#1c1917'; g.font = '800 110px system-ui, sans-serif'; g.fillText(glyph || '!', cx, 146);
+        g.fillStyle = '#1c1917'; g.font = '800 110px Raleway, system-ui, sans-serif'; g.fillText(glyph || '!', cx, 146);
       } else if (kind === 'mandatory') {
         g.fillStyle = '#1764ad'; g.beginPath(); g.arc(cx, cy, 100, 0, Math.PI * 2); g.fill();
-        g.fillStyle = '#fff'; g.font = '700 96px system-ui, sans-serif'; g.fillText(glyph || 'i', cx, cy + 4);
+        g.fillStyle = '#fff'; g.font = '700 96px Raleway, system-ui, sans-serif'; g.fillText(glyph || 'i', cx, cy + 4);
       } else if (kind === 'fire') {
         g.fillStyle = '#c8102e'; g.fillRect(28, 20, w - 56, 200);
         g.fillStyle = '#fff'; g.beginPath(); g.ellipse(cx, 138, 30, 62, 0, 0, Math.PI * 2); g.fill(); g.fillRect(cx - 12, 52, 24, 26); g.fillRect(cx - 12, 58, 64, 10);
       } else if (kind === 'exit') {
-        g.fillStyle = '#fff'; g.font = '800 120px system-ui, sans-serif'; g.fillText(glyph || '→', cx + 50, cy);
+        g.fillStyle = '#fff'; g.font = '800 120px Raleway, system-ui, sans-serif'; g.fillText(glyph || '→', cx + 50, cy);
         g.beginPath(); g.arc(cx - 60, 60, 18, 0, Math.PI * 2); g.fill(); g.lineWidth = 18; g.strokeStyle = '#fff'; g.lineCap = 'round';
         g.beginPath(); g.moveTo(cx - 66, 90); g.lineTo(cx - 80, 150); g.lineTo(cx - 40, 200); g.moveTo(cx - 80, 150); g.lineTo(cx - 110, 200); g.moveTo(cx - 100, 110); g.lineTo(cx - 40, 125); g.stroke();
       } else {
-        g.fillStyle = '#1c1917'; g.font = '800 120px system-ui, sans-serif'; g.fillText(glyph || '', cx, cy);
+        g.fillStyle = '#1c1917'; g.font = '800 120px Raleway, system-ui, sans-serif'; g.fillText(glyph || '', cx, cy);
       }
       if (text) {
-        g.fillStyle = kind === 'exit' ? '#fff' : '#1c1917'; let fs = 40; g.font = `700 ${fs}px system-ui, sans-serif`;
-        while (g.measureText(text).width > w - 24 && fs > 18) { fs -= 2; g.font = `700 ${fs}px system-ui, sans-serif`; }
+        g.fillStyle = kind === 'exit' ? '#fff' : '#1c1917'; let fs = 40; g.font = `700 ${fs}px Raleway, system-ui, sans-serif`;
+        while (g.measureText(text).width > w - 24 && fs > 18) { fs -= 2; g.font = `700 ${fs}px Raleway, system-ui, sans-serif`; }
         g.fillText(text, cx, h - 50);
       }
     }),
@@ -398,8 +454,8 @@
           g.fillStyle = '#0b8a3e'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineWidth = 16;
           g.beginPath(); g.arc(70, 46, 15, 0, Math.PI * 2); g.fill();
           g.beginPath(); g.moveTo(64, 72); g.lineTo(52, 122); g.lineTo(84, 166); g.moveTo(52, 122); g.lineTo(26, 166); g.moveTo(34, 88); g.lineTo(92, 100); g.stroke();
-          g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '800 78px system-ui, sans-serif'; g.fillText(word, 128, h / 2 + 4);
-          g.font = '800 90px system-ui, sans-serif'; g.textAlign = 'right'; g.fillText('\u2192', w - 18, h / 2);
+          g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '800 78px Raleway, system-ui, sans-serif'; g.fillText(word, 128, h / 2 + 4);
+          g.font = '800 90px Raleway, system-ui, sans-serif'; g.textAlign = 'right'; g.fillText('\u2192', w - 18, h / 2);
         });
         const face = new T.MeshBasicMaterial({ map: t, toneMapped: false }), body = kit.mat(0xe8e8e8, { rough: 0.5 });
         const m = new T.Mesh(new T.BoxGeometry(0.5, 0.2, 0.05), [body, body, body, body, face, body]);
@@ -646,11 +702,21 @@
 
     // ---- DOM ----
     const rootEl = el('div', { class: 'room-root', 'data-room-track': track, 'data-room-status': 'loading', 'data-room-station': 'none' });
-    const hint = el('p', { class: 'room-hint' }, L.hint);
+    const G = GUIDE[lang], N = STATIONS.length, numOf = s => STATIONS.indexOf(s) + 1;
+    const doOf = s => tr((opts.steps || {})[s]) || G.steps[s];
+    // The guide: what to open next, with a button that goes there. Shown while no station is open.
+    const guideText = el('p', { class: 'room-guide-text' }), guideBtn = el('button', { type: 'button', class: 'room-guide-btn' }), guideTip = el('p', { class: 'room-guide-tip' }, G.tip);
+    const hint = el('div', { class: 'room-hint room-guide' }, [el('div', { class: 'room-guide-row' }, [guideText, guideBtn]), guideTip]);
+    const seen = new Set();
     const liveEl = el('div', { class: 'room-live', 'aria-live': 'polite', role: 'status' });
     const btns = {};
     const bar = el('div', { class: 'room-toolbar', role: 'toolbar', 'aria-label': L.bar });
-    for (const s of STATIONS) { btns[s] = el('button', { type: 'button', class: 'room-btn', 'data-station': s }, tr(titles[s]) || s); bar.append(btns[s]); }
+    const btnText = {};
+    for (const s of STATIONS) {
+      btnText[s] = el('span', { class: 'room-btn-t' }, tr(titles[s]) || s);
+      btns[s] = el('button', { type: 'button', class: 'room-btn', 'data-station': s }, [el('span', { class: 'room-n' }, String(numOf(s))), btnText[s], el('span', { class: 'room-tag', hidden: true }), el('span', { class: 'room-sr room-btn-state' })]);
+      bar.append(btns[s]);
+    }
     const exitBtn = el('button', { type: 'button', class: 'room-btn room-2d', 'data-room-2d': true, title: L.exitTitle }, L.exit);
     bar.append(exitBtn);
     const titleEl = el('h2', { class: 'room-panel-title', id: id + '-title', tabindex: '-1' });
@@ -660,22 +726,55 @@
     const slots = {};
     const body = el('div', { class: 'room-panel-body' });
     for (const s of STATIONS) { slots[s] = el('div', { class: 'room-slot', 'data-station': s, hidden: true }); body.append(slots[s]); }
-    const head = el('header', { class: 'room-panel-head' }, [titleEl, el('div', { class: 'room-panel-nav' }, [prevBtn, nextBtn, closeBtn])]);
-    const panel = el('section', { class: 'room-panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': titleEl.id, hidden: true }, [head, body]);
+    const stepEl = el('span', { class: 'room-step' }), doEl = el('p', { class: 'room-panel-do' });
+    const head = el('header', { class: 'room-panel-head' }, [el('div', { class: 'room-panel-heading' }, [stepEl, titleEl]), el('div', { class: 'room-panel-nav' }, [prevBtn, nextBtn, closeBtn])]);
+    const onwardBtn = el('button', { type: 'button', class: 'room-onward', 'data-room-onward': true });
+    const foot = el('footer', { class: 'room-panel-foot' }, onwardBtn);
+    const panel = el('section', { class: 'room-panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': titleEl.id, hidden: true }, [head, doEl, body, foot]);
     rootEl.append(hint, bar, panel, liveEl);
     host.append(rootEl);
     setPanels(opts.panels || {});
 
     let station = 'none', disposed = false, pendingOpen = 0;
-    const handle = { open, close, setPanels, setData, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null } };
+    const handle = { open, close, setPanels, setData, refresh: () => { if (!disposed) progress(); }, status: 'loading', dispose, _debug: { cameraPos: () => null, project: () => null, info: () => null, labels: () => null, room: () => null } };
     live.set(host, handle);
     const setStatus = s => { handle.status = s; rootEl.dataset.roomStatus = s; };
     const titleOf = s => tr(titles[s]) || (g3 && g3.byKey[s] && g3.byKey[s].label) || s;
 
+    // Where the walk stands: the first station not opened yet is "next" (toolbar, 3D label and the guide say so).
+    // opts.guide(seenStations) lets the app steer the walk by what the task still needs (say, three experiments, not
+    // one visit): { station, text } = go there and do that, { done: true, text } = nothing left, { tags: { experiment:
+    // '1/3' } } = a count shown on a toolbar button. Without a station (or without opts.guide) the visit order leads.
+    const nextOf = () => STATIONS.find(s => !seen.has(s)) || null;
+    let onwardTo = null;
+    function progress() {
+      let ov = null;
+      if (opts.guide) { try { ov = opts.guide([...seen]) || null; } catch (e) { console.warn('Rooms: guide failed', e); } }
+      const led = !!ov && (ov.done || STATIONS.includes(ov.station)), nx = led ? (ov.done ? null : ov.station) : nextOf();
+      for (const s of STATIONS) {
+        const st = s === nx ? 'next' : seen.has(s) ? 'done' : '';
+        btns[s].classList.toggle('is-done', st === 'done'); btns[s].classList.toggle('is-next', st === 'next');
+        btns[s].querySelector('.room-btn-state').textContent = st === 'done' ? ` (${G.seen})` : st === 'next' ? ` (${G.nextMark})` : '';
+        const tag = ov && ov.tags && ov.tags[s], tagEl = btns[s].querySelector('.room-tag'); tagEl.textContent = tag || ''; tagEl.hidden = !tag;
+        const lab = g3 && g3.byKey[s] && g3.byKey[s].lab; if (lab && lab.userData.setState) lab.userData.setState(st);
+      }
+      rootEl.dataset.roomNext = nx || 'none';
+      guideText.textContent = led ? ov.text : !nx ? G.done : seen.size ? `${G.step(numOf(nx), N)}. ${doOf(nx)}` : G.start;
+      guideBtn.hidden = !nx; if (nx) guideBtn.textContent = `${G.go}: ${numOf(nx)}. ${titleOf(nx)} \u2192`;
+      guideTip.hidden = seen.size > 0;
+      if (station !== 'none') {
+        const i = STATIONS.indexOf(station), here = led && nx === station;
+        // Onward: to the station the app asks for; none while the work is at this station; else the next in order.
+        onwardTo = led ? (here ? null : nx) : STATIONS[i + 1] || null;
+        stepEl.textContent = G.step(i + 1, N); doEl.textContent = here ? ov.text : doOf(station);
+        foot.hidden = here;
+        onwardBtn.textContent = onwardTo ? `${G.next} ${numOf(onwardTo)}. ${titleOf(onwardTo)} \u2192` : G.finish;
+      }
+    }
     function show(s) {
       clearTimeout(pendingOpen);
       if (!STATIONS.includes(s)) return;
-      station = s; rootEl.dataset.roomStation = s;
+      station = s; rootEl.dataset.roomStation = s; seen.add(s); progress(); body.scrollTop = 0;
       for (const k of STATIONS) { slots[k].hidden = k !== s; btns[k].setAttribute('aria-pressed', String(k === s)); }
       titleEl.textContent = titleOf(s);
       panel.hidden = false; hint.classList.add('is-gone');
@@ -698,7 +797,7 @@
       if (station === 'none') return;
       const was = station, focusBack = panel.contains(document.activeElement) || document.activeElement === document.body;
       station = 'none'; rootEl.dataset.roomStation = 'none';
-      panel.hidden = true;
+      panel.hidden = true; hint.classList.remove('is-gone');
       for (const k of STATIONS) { slots[k].hidden = true; btns[k].setAttribute('aria-pressed', 'false'); }
       if (focusBack) btns[was].focus({ preventScroll: true });
       if (onClose) onClose();
@@ -718,6 +817,8 @@
     on(prevBtn, 'click', () => step(-1));
     on(nextBtn, 'click', () => step(1));
     on(closeBtn, 'click', close);
+    on(onwardBtn, 'click', () => { if (onwardTo) open(onwardTo); else close(); });
+    on(guideBtn, 'click', () => { const nx = nextOf(); if (nx) visit(nx); });
     on(window, 'keydown', e => {
       if (e.key !== 'Escape' || station === 'none' || e.defaultPrevented) return;
       const a = document.activeElement;
@@ -739,7 +840,8 @@
       setStatus('fallback');
     }
     if (g3) setStatus('ready');
-    if (g3) for (const s of STATIONS) if (!tr(titles[s]) && g3.byKey[s]) btns[s].textContent = g3.byKey[s].label;
+    if (g3) for (const s of STATIONS) if (!tr(titles[s]) && g3.byKey[s]) btnText[s].textContent = g3.byKey[s].label;
+    progress();
 
     // A throw half-way (shader compile, bad spec) must not leave a WebGL context, listeners or a frame loop behind.
     function create3d(T, spec) {
@@ -803,7 +905,7 @@
           }
         });
         const text = tr(st.label) || st.key;
-        const lab = kit.label(text);
+        const lab = kit.label(text, STATIONS.indexOf(st.key) + 1);
         lab.position.set(st.anchor[0], st.anchor[1] + 0.55, st.anchor[2]);
         spec.scene.add(lab); hitKey.set(lab, st.key);
         api.byKey[st.key] = { ...st, label: text, mats, lab };
@@ -850,7 +952,7 @@
       lon(window, 'keydown', e => {
         const k = MOVE[e.key.toLowerCase()];
         if (!k || e.ctrlKey || e.metaKey || e.altKey || editable(e.target) || panel.contains(e.target) || (e.target !== document.body && !rootEl.contains(e.target) && e.target !== document.documentElement)) return;
-        e.preventDefault(); keys.add(k); glide = null; clearTimeout(pendingOpen); hint.classList.add('is-gone');
+        e.preventDefault(); keys.add(k); glide = null; clearTimeout(pendingOpen); rootEl.classList.add('room-walked');
       });
       lon(window, 'keyup', e => { const k = MOVE[e.key.toLowerCase()]; if (k) keys.delete(k); });
       lon(window, 'blur', () => keys.clear());
@@ -886,7 +988,7 @@
       lon(canvas, 'pointermove', e => {
         if (drag && e.pointerId === drag.id) {
           if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 5) drag.moved = true;
-          if (drag.moved) { yaw -= (e.clientX - drag.x) * LOOK_RATE; pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, pitch - (e.clientY - drag.y) * LOOK_RATE)); if (glide && glide.type === 'view') glide = null; clearTimeout(pendingOpen); hint.classList.add('is-gone'); }
+          if (drag.moved) { yaw -= (e.clientX - drag.x) * LOOK_RATE; pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, pitch - (e.clientY - drag.y) * LOOK_RATE)); if (glide && glide.type === 'view') glide = null; clearTimeout(pendingOpen); rootEl.classList.add('room-walked'); }
           drag.x = e.clientX; drag.y = e.clientY; return;
         }
         if (e.pointerType === 'mouse') { const h = cast(e.clientX, e.clientY).key || null; if (h !== hover) { hover = h; canvas.style.cursor = h ? 'pointer' : ''; } }
@@ -899,7 +1001,7 @@
         if (hit.key) { visit(hit.key); return; }
         if (ray.ray.intersectPlane(floor, hitP) && ray.ray.origin.distanceTo(hitP) <= hit.dist + 0.05) {
           const tx = Math.max(b.x0 + RADIUS, Math.min(b.x1 - RADIUS, hitP.x)), tz = Math.max(b.z0 + RADIUS, Math.min(b.z1 - RADIUS, hitP.z));
-          glide = { type: 'walk', tx, tz }; clearTimeout(pendingOpen); hint.classList.add('is-gone');
+          glide = { type: 'walk', tx, tz }; clearTimeout(pendingOpen); rootEl.classList.add('room-walked');
         }
       };
       lon(canvas, 'pointerup', endDrag); lon(canvas, 'pointercancel', endDrag);

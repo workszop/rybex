@@ -66,6 +66,28 @@ try {
     ok('engine.mount WebGL actually drew something', m.calls > 0, String(m.calls));
     await p.screenshot({ path: path.join(SHOTS, 'fixture.png') });
 
+    // engine.guide: the walk order (numbers in the toolbar, the guide's next step, the panel's onward button).
+    {
+      const g = await fresh();
+      const gs = () => g.evaluate(() => { const r = document.querySelector('.room-root'), q = s => r.querySelector(s), b = s => q(`.room-toolbar [data-station=${s}]`); return { next: r.dataset.roomNext, nums: [...r.querySelectorAll('.room-toolbar .room-n')].map(e => e.textContent).join(''), btn: q('.room-guide-btn').textContent, btnHidden: q('.room-guide-btn').hidden, guideShown: getComputedStyle(q('.room-guide')).visibility === 'visible', text: q('.room-guide-text').textContent, step: q('.room-step').textContent, todo: q('.room-panel-do').textContent, onward: q('.room-onward').textContent, briefDone: b('brief').classList.contains('is-done'), briefNext: b('brief').classList.contains('is-next'), dataNext: b('data').classList.contains('is-next') }; });
+      const g0 = await gs();
+      ok('engine.guide stations numbered 1-5, the first one is next and the guide points to it', g0.nums === '12345' && g0.next === 'brief' && g0.briefNext && g0.guideShown && /1\./.test(g0.btn) && g0.text.length > 10, JSON.stringify(g0));
+      await g.click('.room-guide-btn');
+      const g1o = await waitStation(g, 'brief'), g1 = await gs();
+      ok('engine.guide the guide button opens the next station; the panel names the step and what to do', g1o && !g1.guideShown && /1/.test(g1.step) && /5/.test(g1.step) && g1.todo.length > 10 && /2\./.test(g1.onward) && g1.briefDone && g1.dataNext && g1.next === 'data', JSON.stringify(g1));
+      await g.click('.room-onward');
+      const g2o = await waitStation(g, 'data');
+      await g.click('.room-panel [data-room-close]'); await waitStation(g, 'none');
+      const g2 = await gs();
+      ok('engine.guide onward opens the following station; after closing the guide names step 3', g2o && g2.guideShown && g2.next === 'method' && /3/.test(g2.text) && /3\./.test(g2.btn), JSON.stringify(g2));
+      await g.evaluate(() => { for (const s of ['method', 'experiment', 'results']) window.__room.open(s); });
+      const g3 = await gs();
+      ok('engine.guide last station: onward closes, nothing is next', g3.next === 'none' && !/\d\./.test(g3.onward), JSON.stringify(g3));
+      await g.click('.room-onward'); const g4o = await waitStation(g, 'none'), g4 = await gs();
+      ok('engine.guide all visited: the guide says so and offers no button', g4o && g4.guideShown && g4.btnHidden && g4.text.length > 10, JSON.stringify(g4));
+      await g.close();
+    }
+
     // engine.open
     await p.click('.room-toolbar [data-station=method]');
     const opened = await waitStation(p, 'method');
@@ -132,7 +154,7 @@ try {
     for (const lang of ['pl', 'en']) {
       p = await fresh(`&i18n=1&lang=${lang}`);
       const want = lang === 'pl' ? { brief: 'Zadanie', data: 'Monitor z danymi' } : { brief: 'Brief', data: 'Data monitor' };
-      const bar = await p.evaluate(() => ({ brief: document.querySelector('.room-toolbar [data-station=brief]').textContent, data: document.querySelector('.room-toolbar [data-station=data]').textContent, labels: window.__fxLabels }));
+      const bar = await p.evaluate(() => ({ brief: document.querySelector('.room-toolbar [data-station=brief] .room-btn-t').textContent, data: document.querySelector('.room-toolbar [data-station=data] .room-btn-t').textContent, labels: window.__fxLabels }));
       await p.click('.room-toolbar [data-station=brief]'); await waitStation(p, 'brief');
       const t1 = await p.evaluate(() => ({ title: document.querySelector('.room-panel-title').textContent, live: document.querySelector('.room-live').textContent }));
       await p.click('.room-panel [data-room-next]'); await waitStation(p, 'data');
@@ -413,7 +435,8 @@ try {
       for (const l of ['en', 'pl']) { await p.click(`#langSeg button[data-l="${l}"]`); await roomReady(p, 'vision'); }
       const lc = await one();
       ok('integration.switch language twice: one room', lc.host === 1 && lc.all === 1 && await p.evaluate(() => document.querySelector('#roomHost .room-btn[data-station="brief"]').textContent.length > 0), JSON.stringify(lc));
-      for (const t of ['2', '1']) { await p.selectOption('#teamSel', t); await roomReady(p, 'vision'); }
+      // The team bar is hidden while the room is shown, so the switch is made on the select itself.
+      for (const t of ['2', '1']) { await p.evaluate(t => { const s = document.querySelector('#teamSel'); s.value = t; s.dispatchEvent(new Event('change', { bubbles: true })); }, t); await roomReady(p, 'vision'); }
       const tc = await one();
       ok('integration.switch team twice: one room', tc.host === 1 && tc.all === 1, JSON.stringify(tc));
       await p.evaluate(() => { location.hash = '#/home'; }); await p.waitForFunction(() => S.view === 'home');
@@ -444,6 +467,43 @@ try {
       const gp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, inMeth: !!a && !!a.closest('#roomHost .room-slot[data-station="method"]'), id: a && (a.id || a.name) }; });
       ok('integration.jump reveal gate opens the method station', !!rv && gp.inMeth && gp.st === 'method', JSON.stringify(gp));
       await p.close();
+
+      // integration.chrome: in the room the team bar, the page title and the footer are out of the way; the page view has them back.
+      {
+        const c = await app('#/lab/vision'); await roomReady(c, 'vision');
+        const vis = () => c.evaluate(() => { const shown = s => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().height > 2; }; const h = document.querySelector('#roomHost').getBoundingClientRect(); return { team: shown('#teamBar'), title: shown('#main .app-title'), foot: document.querySelector('#foot').textContent.trim(), footShown: shown('#foot'), tabs: shown('#trackTabs'), path: shown('#pathBar'), nav: shown('#nav'), fits: h.bottom <= innerHeight + 1 && document.documentElement.scrollHeight <= innerHeight + 1 }; });
+        const c1 = await vis();
+        ok('integration.chrome room: no team bar, title or footer; menu, path bar and task tabs stay; the room fits the window', !c1.team && !c1.title && !c1.footShown && c1.foot === '' && c1.tabs && c1.path && c1.nav && c1.fits, JSON.stringify(c1));
+        await c.click('#roomHost [data-room-2d]'); await c.waitForSelector('#roomOn');
+        const c2 = await vis();
+        ok('integration.chrome page view: team bar and title are back', c2.team && c2.title && c2.foot === '', JSON.stringify(c2));
+        await c.close();
+      }
+
+      // integration.guide: past the first walk the guide follows the lab's own progress: the baseline, then every
+      // experiment up to the minimum, each one named.
+      {
+        const c = await app('#/lab/forecast'); await roomReady(c, 'forecast');
+        const gs = () => c.evaluate(() => { const r = document.querySelector('#roomHost .room-root'), q = s => r.querySelector(s); return { next: r.dataset.roomNext, guide: q('.room-guide-text').textContent, todo: q('.room-panel-do').textContent, foot: !q('.room-panel-foot').hidden, onward: q('.room-onward').textContent, tag: q('[data-station=experiment] .room-tag').textContent }; });
+        const g0 = await gs();
+        ok('integration.guide start: the first station is next, the experiment button counts 0/3', g0.next === 'brief' && g0.tag === '0/3', JSON.stringify(g0));
+        for (const s of ['brief', 'data', 'method', 'experiment']) await openSt(c, s);
+        const g1 = await gs();
+        ok('integration.guide experiment station: baseline first, no onward button while work is left here', g1.next === 'experiment' && /odniesienia/.test(g1.todo) && !g1.foot, JSON.stringify(g1));
+        await c.click('#runBase'); await c.click('#saveBase');
+        const g2 = await gs();
+        ok('integration.guide baseline saved: experiment 1 of 3', g2.next === 'experiment' && /Eksperyment 1 z 3/.test(g2.todo) && g2.todo === g2.guide, JSON.stringify(g2));
+        await c.evaluate(() => { const t = team(), e = t.log[0]; t.log.push({ ...e, id: 'gx1', base: undefined, cfg: { p: 0, h: 6, w: 3 } }); save(); renderPathBar(); });
+        const g3 = await gs();
+        ok('integration.guide one experiment saved: experiment 2 of 3, count 1/3', /Eksperyment 2 z 3/.test(g3.todo) && g3.tag === '1/3', JSON.stringify(g3));
+        await openSt(c, 'results');
+        const g4 = await gs();
+        ok('integration.guide results station early: onward leads back to the experiments', g4.next === 'experiment' && g4.foot && /4\./.test(g4.onward), JSON.stringify(g4));
+        await c.evaluate(() => { const t = team(), e = t.log[1]; t.log.push({ ...e, id: 'gx2', cfg: { p: 0, h: 6, w: 4 } }, { ...e, id: 'gx3', cfg: { p: 0, h: 6, w: 5 } }); save(); renderPathBar(); });
+        const g5 = await gs();
+        ok('integration.guide three experiments saved and compared: nothing is next, the guide says the lab is done', g5.next === 'none' && g5.tag === '3/3' && g5.guide.length > 10, JSON.stringify(g5));
+        await c.close();
+      }
 
       // integration.2d: the toolbar 2D button, kept over a reload, and back to the room.
       p = await app('#/lab/vision');

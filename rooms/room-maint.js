@@ -203,7 +203,7 @@
     green.done(); blue.done();
     kit.inst(g, FL, M.steel, flanges);
     // pipe markers with flow arrows
-    const marker = (text, color) => kit.canvasTexture(256, 64, (c, w, h) => { c.fillStyle = color; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 34px system-ui'; c.textBaseline = 'middle'; c.fillText(text + '  →', 14, h / 2 + 2); });
+    const marker = (text, color) => kit.canvasTexture(256, 64, (c, w, h) => { c.fillStyle = color; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 34px Raleway, system-ui'; c.textBaseline = 'middle'; c.fillText(text + '  →', 14, h / 2 + 2); });
     kit.plane(g, [0.6, 0.15], [-1.5, HY, HZ + 0.14], [0, 0, 0], kit.mat(0xffffff, { map: marker(tx('PARA', 'STEAM'), '#b3261e'), rough: 0.5 }));
     kit.plane(g, [0.5, 0.12], [1.0, 3.2, -4.79], [0, 0, 0], kit.mat(0xffffff, { map: marker(tx('WODA', 'WATER'), '#3f7f4c'), rough: 0.5 }));
     kit.plane(g, [0.5, 0.12], [3.0, 2.95, -4.81], [0, 0, 0], kit.mat(0xffffff, { map: marker(tx('POWIETRZE', 'AIR'), '#2c6cb0'), rough: 0.5 }));
@@ -221,8 +221,8 @@
     recv.done();
     dialFaces.push({ p: [1.6, 1.5, 4.4 - 0.43], r: [0, Math.PI, 0], s: 0.07 });
     kit.plane(g, [0.7, 0.9], [-0.2, 1.55, D / 2 - 0.01], [0, Math.PI, 0], kit.mat(0xffffff, { map: kit.canvasTexture(280, 360, (c, w, h) => {
-      c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 54); c.fillStyle = '#fff'; c.font = '800 26px system-ui'; c.fillText(tx('INSTRUKCJA BHP', 'SAFETY RULES'), 14, 36);
-      c.fillStyle = '#1c1917'; c.font = '600 17px system-ui'; tx(['1. Ochronniki słuchu', '2. Blokada LOTO przed', '   otwarciem retorty', '3. Gorące rury: rękawice', '4. Wpis do dziennika'], ['1. Ear protection', '2. LOTO before opening', '   a retort', '3. Hot pipes: gloves', '4. Write it in the log']).forEach((t, i) => c.fillText(t, 14, 92 + i * 30));
+      c.fillStyle = '#fbfbf8'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 54); c.fillStyle = '#fff'; c.font = '800 26px Raleway, system-ui'; c.fillText(tx('INSTRUKCJA BHP', 'SAFETY RULES'), 14, 36);
+      c.fillStyle = '#1c1917'; c.font = '600 17px Raleway, system-ui'; tx(['1. Ochronniki słuchu', '2. Blokada LOTO przed', '   otwarciem retorty', '3. Gorące rury: rękawice', '4. Wpis do dziennika'], ['1. Ear protection', '2. LOTO before opening', '   a retort', '3. Hot pipes: gloves', '4. Write it in the log']).forEach((t, i) => c.fillText(t, 14, 92 + i * 30));
     }), rough: 0.7 }));
     kit.rbox(g, [0.9, 0.7, 0.6], [2.6, 0.35, 4.5], kit.mat(0x2e8b57, { rough: 0.4 }), 0.025);
     const tray = kit.batch(g, M.galv, { shadow: false });
@@ -249,7 +249,7 @@
     kit.prop.sign(g, [0.42, 0.52], [-6.98, 1.6, -0.2], Math.PI / 2, tex.sign('warning', tx('Chemikalia', 'Chemicals')));
     kit.box(g, [0.36, 0.3, 0.12], [-2.6, 1.6, D / 2 - 0.07], kit.mat(0x1f8a4c, { rough: 0.5 }));
     kit.prop.sign(g, [0.2, 0.2], [-2.6, 1.6, D / 2 - 0.135], Math.PI, tex.sign('info', '', '+'));
-    const rsign = (t, x, z) => kit.prop.sign(g, [0.6, 0.18], [x, 2.4, z], 0, kit.canvasTexture(320, 96, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#1c1917'; c.lineWidth = 6; c.strokeRect(3, 3, w - 6, h - 6); c.fillStyle = '#1c1917'; c.font = '800 44px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, w / 2, h / 2 + 2); }));
+    const rsign = (t, x, z) => kit.prop.sign(g, [0.6, 0.18], [x, 2.4, z], 0, kit.canvasTexture(320, 96, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.strokeStyle = '#1c1917'; c.lineWidth = 6; c.strokeRect(3, 3, w - 6, h - 6); c.fillStyle = '#1c1917'; c.font = '800 44px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, w / 2, h / 2 + 2); }));
     rsign('RETORTA 1', -3.9, -4.98); rsign('KOCIOŁ K-1', 4.8, -4.98);
 
     // gauge and chart faces (one batch per texture)
@@ -258,7 +258,7 @@
       for (let i = 0; i <= 10; i++) { const a = Math.PI * 0.75 + i * Math.PI * 0.15; c.beginPath(); c.moveTo(64 + Math.cos(a) * 52, 64 + Math.sin(a) * 52); c.lineTo(64 + Math.cos(a) * 42, 64 + Math.sin(a) * 42); c.stroke(); }
       c.strokeStyle = '#c0221c'; c.lineWidth = 6; c.beginPath(); c.arc(64, 64, 52, Math.PI * 0.05, Math.PI * 0.25); c.stroke();
       c.strokeStyle = '#111'; c.lineWidth = 4; c.beginPath(); c.moveTo(64, 64); c.lineTo(64 + Math.cos(-0.4) * 46, 64 + Math.sin(-0.4) * 46); c.stroke();
-      c.fillStyle = '#111'; c.font = '700 14px system-ui'; c.textAlign = 'center'; c.fillText('bar', 64, 98);
+      c.fillStyle = '#111'; c.font = '700 14px Raleway, system-ui'; c.textAlign = 'center'; c.fillText('bar', 64, 98);
     });
     const chartFace = kit.canvasTexture(256, 256, (c, w, h) => {
       c.fillStyle = '#fbf7f0'; c.beginPath(); c.arc(128, 128, 126, 0, Math.PI * 2); c.fill(); c.strokeStyle = 'rgba(200,60,60,.35)'; c.lineWidth = 1;
@@ -285,7 +285,7 @@
         for (let y = 70; y < h - 20; y += 26) c.fillRect(x0 + 8, y, w / 2 - 36, 1.5);
         c.fillStyle = '#d23a3a'; c.fillRect(x0 + 52, 20, 1.5, h - 40);
       }
-      c.fillStyle = '#1c1917'; c.font = '700 22px system-ui'; c.fillText(tx('DZIENNIK ZMIANY', 'SHIFT LOG'), 28, 48); c.fillText(tx('Retorty · kocioł', 'Retorts · boiler'), w / 2 + 16, 48);
+      c.fillStyle = '#1c1917'; c.font = '700 22px Raleway, system-ui'; c.fillText(tx('DZIENNIK ZMIANY', 'SHIFT LOG'), 28, 48); c.fillText(tx('Retorty · kocioł', 'Retorts · boiler'), w / 2 + 16, 48);
       c.font = 'italic 500 18px Georgia, serif'; c.fillStyle = '#23407a';
       const lines = tx(['06:00 przejęcie zmiany', '06:40 R2 załadunek kosza', '07:15 kocioł 9,8 bar OK', '08:05 R1 drgania wyższe?', '08:30 zgłoszono do UR'], ['06:00 shift handover', '06:40 R2 basket loaded', '07:15 boiler 9.8 bar OK', '08:05 R1 vibration up?', '08:30 reported to maint.']);
       lines.forEach((t, i) => c.fillText(t, i < 3 ? 76 : w / 2 + 64, 92 + (i < 3 ? i : i - 3) * 52));
@@ -327,7 +327,7 @@
     const cabScreen = new T.Mesh(new T.PlaneGeometry(0.34, 0.22), new T.MeshBasicMaterial({ map: tex.screen(drawCab, { w: 340, h: 220 }), toneMapped: false }));
     cabScreen.position.set(0.3, 1.82, 0.256); cab.add(cabScreen);
     kit.prop.sign(cab, [0.2, 0.2], [-0.35, 1.9, 0.257], 0, tex.sign('warning', '', '⚡'));
-    kit.plane(cab, [0.5, 0.1], [-0.25, 2.03, 0.257], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 52, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.font = '700 26px system-ui'; c.textBaseline = 'middle'; c.fillText(tx('SZAFA CZUJNIKÓW S-2', 'SENSOR CABINET S-2'), 8, h / 2); }), rough: 0.6 }));
+    kit.plane(cab, [0.5, 0.1], [-0.25, 2.03, 0.257], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 52, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.font = '700 26px Raleway, system-ui'; c.textBaseline = 'middle'; c.fillText(tx('SZAFA CZUJNIKÓW S-2', 'SENSOR CABINET S-2'), 8, h / 2); }), rough: 0.6 }));
     // sensor cables from the cabinet to the retorts and the boiler, along the tray
     blacks.rod([6.62, 4.3, -1.2], [6.62, 4.3, -4.0], 0.015, 6).rod([6.62, 4.3, -4.0], [-5.6, 4.3, -4.0], 0.015, 6);
 
@@ -342,8 +342,8 @@
     const deskMon = kit.rbox(desk, [0.6, 0.38, 0.04], [-0.25, 1.1, -0.2], M.dark, 0.01);
     const drawEng = (c, w, h) => {
       c.fillStyle = '#f2f5f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 42);
-      c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText(tx('UTRZYMANIE RUCHU · PLAN', 'MAINTENANCE · PLAN'), 12, 28);
-      c.fillStyle = '#1c1917'; c.font = '600 19px system-ui';
+      c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText(tx('UTRZYMANIE RUCHU · PLAN', 'MAINTENANCE · PLAN'), 12, 28);
+      c.fillStyle = '#1c1917'; c.font = '600 19px Raleway, system-ui';
       [tx('Które czujniki?', 'Which sensors?'), tx('Jaki próg alarmu?', 'Which alarm threshold?'), tx('Ile minut wcześniej?', 'How many minutes ahead?')].forEach((t, i) => { c.fillStyle = '#dfe6ec'; c.fillRect(12, 58 + i * 64, w - 24, 52); c.fillStyle = '#1c1917'; c.fillText(t, 24, 90 + i * 64); });
     };
     const engScreen = new T.Mesh(new T.PlaneGeometry(0.56, 0.34), new T.MeshBasicMaterial({ map: tex.screen(drawEng, { w: 560, h: 340 }), toneMapped: false }));
@@ -370,7 +370,7 @@
 
     // lockout-tagout board and a wall clock on the right wall
     kit.plane(g, [0.8, 0.6], [W / 2 - 0.01, 1.5, 0.0], [0, -Math.PI / 2, 0], kit.mat(0xffffff, { map: kit.canvasTexture(320, 240, (c, w, h) => {
-      c.fillStyle = '#c0221c'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 30px system-ui'; c.textAlign = 'center'; c.fillText(tx('BLOKADA LOTO', 'LOCKOUT LOTO'), w / 2, 40);
+      c.fillStyle = '#c0221c'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 30px Raleway, system-ui'; c.textAlign = 'center'; c.fillText(tx('BLOKADA LOTO', 'LOCKOUT LOTO'), w / 2, 40);
       for (let i = 0; i < 6; i++) { const x = 40 + i * 48; c.fillStyle = '#f0bf00'; c.fillRect(x - 14, 90, 28, 34); c.strokeStyle = '#ddd'; c.lineWidth = 6; c.beginPath(); c.arc(x, 90, 10, Math.PI, 0); c.stroke(); c.fillStyle = '#fff'; c.fillRect(x - 16, 150, 32, 60); }
     }), rough: 0.6 }));
     const clockFace = kit.screenPlane(g, [0.36, 0.36], [W / 2 - 0.02, 2.6, 3.0], -Math.PI / 2, (c, w, h) => {
@@ -389,10 +389,10 @@
     conTop.rotation.x = -0.5;
     const drawCon = (c, w, h) => {
       c.fillStyle = '#e9eef1'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 46);
-      c.fillStyle = '#fff'; c.font = '700 24px system-ui'; c.fillText(tx('KONSOLA UR · MODEL AWARII', 'MAINTENANCE · FAILURE MODEL'), 14, 31);
+      c.fillStyle = '#fff'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('KONSOLA UR · MODEL AWARII', 'MAINTENANCE · FAILURE MODEL'), 14, 31);
       const sens = [tx('temperatura', 'temperature'), tx('ciśnienie', 'pressure'), tx('drgania', 'vibration')];
-      sens.forEach((t, i) => { const y = 84 + i * 50; c.fillStyle = '#c9d2d8'; c.fillRect(16, y - 20, 34, 30); c.fillStyle = '#1c1917'; c.font = '600 22px system-ui'; c.fillText(t, 62, y + 2); });
-      c.fillStyle = '#2f8f47'; c.fillRect(16, h - 60, 170, 44); c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText(tx('URUCHOM', 'RUN'), 50, h - 31);
+      sens.forEach((t, i) => { const y = 84 + i * 50; c.fillStyle = '#c9d2d8'; c.fillRect(16, y - 20, 34, 30); c.fillStyle = '#1c1917'; c.font = '600 22px Raleway, system-ui'; c.fillText(t, 62, y + 2); });
+      c.fillStyle = '#2f8f47'; c.fillRect(16, h - 60, 170, 44); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText(tx('URUCHOM', 'RUN'), 50, h - 31);
     };
     const conScreen = new T.Mesh(new T.PlaneGeometry(0.5, 0.27), new T.MeshBasicMaterial({ map: tex.screen(drawCon, { w: 512, h: 276 }), toneMapped: false }));
     conScreen.position.set(-0.08, 0, 0.251); conTop.add(conScreen);
@@ -408,14 +408,14 @@
     const trendFrame = kit.rbox(g, [1.9, 1.15, 0.08], [TX, TY, -D / 2 + 0.05], M.steel, 0.02);
     const drawTrend = (c, w, h) => {
       c.fillStyle = '#0d151b'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#e6eef3'; c.font = '700 34px system-ui'; c.fillText(tx('Drgania · retorta', 'Vibration · retort'), 30, 52);
-      c.fillStyle = '#9fb3c0'; c.font = '500 22px system-ui'; c.fillText('mm/s', 30, 86);
+      c.fillStyle = '#e6eef3'; c.font = '700 34px Raleway, system-ui'; c.fillText(tx('Drgania · retorta', 'Vibration · retort'), 30, 52);
+      c.fillStyle = '#9fb3c0'; c.font = '500 22px Raleway, system-ui'; c.fillText('mm/s', 30, 86);
       const x0 = 70, x1 = w - 30, y0 = h - 50, y1 = 110;
       const hi = Math.max(ALARM * 1.4, ...series), lo = 0, sy = v => y0 - (v - lo) / (hi - lo) * (y0 - y1);
       c.strokeStyle = '#2b3b46'; c.lineWidth = 1;
-      for (let v = 0; v <= hi; v += 1) { c.beginPath(); c.moveTo(x0, sy(v)); c.lineTo(x1, sy(v)); c.stroke(); c.fillStyle = '#6f8593'; c.font = '500 18px system-ui'; c.fillText(String(v), 36, sy(v) + 6); }
+      for (let v = 0; v <= hi; v += 1) { c.beginPath(); c.moveTo(x0, sy(v)); c.lineTo(x1, sy(v)); c.stroke(); c.fillStyle = '#6f8593'; c.font = '500 18px Raleway, system-ui'; c.fillText(String(v), 36, sy(v) + 6); }
       c.setLineDash([14, 10]); c.strokeStyle = '#ff5a4f'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, sy(ALARM)); c.lineTo(x1, sy(ALARM)); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#ff8a80'; c.font = '600 20px system-ui'; c.fillText(tx(`PROCES-05: alarm > ${ALARM} mm/s`, `PROCES-05: alarm > ${ALARM} mm/s`), x0 + 12, sy(ALARM) - 10); // left end: the series is low there, its end is at the right
+      c.fillStyle = '#ff8a80'; c.font = '600 20px Raleway, system-ui'; c.fillText(tx(`PROCES-05: alarm > ${ALARM} mm/s`, `PROCES-05: alarm > ${ALARM} mm/s`), x0 + 12, sy(ALARM) - 10); // left end: the series is low there, its end is at the right
       if (series.length > 1) {
         c.strokeStyle = '#4fc3f7'; c.lineWidth = 3; c.beginPath();
         series.forEach((v, i) => { const x = x0 + i / (series.length - 1) * (x1 - x0); i ? c.lineTo(x, sy(v)) : c.moveTo(x, sy(v)); });
@@ -423,7 +423,7 @@
         const last = series[series.length - 1]; c.fillStyle = last > ALARM ? '#ff5a4f' : '#4fc3f7';
         c.beginPath(); c.arc(x1, sy(last), 7, 0, Math.PI * 2); c.fill();
       } else {
-        c.fillStyle = '#6f8593'; c.font = '500 26px system-ui'; c.fillText(tx('Brak odczytów', 'No readings yet'), x0 + 30, (y0 + y1) / 2);
+        c.fillStyle = '#6f8593'; c.font = '500 26px Raleway, system-ui'; c.fillText(tx('Brak odczytów', 'No readings yet'), x0 + 30, (y0 + y1) / 2);
       }
     };
     const trendScreen = new T.Mesh(new T.PlaneGeometry(1.8, 1.05), new T.MeshBasicMaterial({ map: tex.screen(drawTrend, { w: 900, h: 525 }), toneMapped: false }));
@@ -450,7 +450,7 @@
         c.lineWidth = 2; c.strokeStyle = '#1c1917';
         c.strokeRect(30, 90, 90, 60); c.strokeRect(w - 130, 90, 90, 60); c.beginPath(); c.moveTo(120, 120); c.lineTo(w - 130, 120); c.moveTo(75, 90); c.lineTo(75, 40); c.lineTo(w - 85, 40); c.lineTo(w - 85, 90); c.stroke();
         c.beginPath(); c.arc(w / 2, 120, 14, 0, Math.PI * 2); c.stroke();
-        c.fillStyle = '#1c1917'; c.font = '600 16px system-ui'; c.fillText(tx('R-1', 'R-1'), 60, 125); c.fillText('K-1', w - 100, 125); c.fillText('P&ID', 20, h - 20);
+        c.fillStyle = '#1c1917'; c.font = '600 16px Raleway, system-ui'; c.fillText(tx('R-1', 'R-1'), 60, 125); c.fillText('K-1', w - 100, 125); c.fillText('P&ID', 20, h - 20);
         c.fillStyle = '#6b6a66'; for (let i = 0; i < 4; i++) c.fillRect(30, 190 + i * 18, w - 60 - i * 30, 5);
       });
     }

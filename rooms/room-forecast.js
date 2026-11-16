@@ -100,7 +100,7 @@
     const blueL = kit.batch(g, kit.mat(0x1f5f9e, { rough: 0.6 }), { shadow: false });
     line(blueL, 0.6, -2.0, 5.0, -2.0); line(blueL, 0.6, 3.6, 5.0, 3.6); line(blueL, 0.6, -2.0, 0.6, 3.6); line(blueL, 5.0, -2.0, 5.0, 3.6);
     blueL.done();
-    DOORS.forEach((xc, i) => kit.plane(g, [0.9, 0.9], [xc, 0.004, -4.3], [-Math.PI / 2, 0, 0], new T.MeshStandardMaterial({ map: kit.canvasTexture(128, 128, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = '#f0bf00'; c.font = '800 96px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(i + 1), w / 2, h / 2 + 6); }), transparent: true, roughness: 0.6 })).castShadow = false);
+    DOORS.forEach((xc, i) => kit.plane(g, [0.9, 0.9], [xc, 0.004, -4.3], [-Math.PI / 2, 0, 0], new T.MeshStandardMaterial({ map: kit.canvasTexture(128, 128, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = '#f0bf00'; c.font = '800 96px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(i + 1), w / 2, h / 2 + 6); }), transparent: true, roughness: 0.6 })).castShadow = false);
     // floor wear (tyre marks of pallet trucks toward the dock), one transparent overlay
     const wear = kit.canvasTexture(1024, 717, (c, w, h) => {
       const r = kit.rng(9), X = x => (x + W / 2) * w / W, Z = z => (z + D / 2) * h / D;
@@ -120,17 +120,17 @@
           const x = cx * w / 2, y = cy * h / 4;
           c.fillStyle = 'rgba(70,45,20,.35)'; c.fillRect(x, y, w / 2, 3); c.fillRect(x, y, 3, h / 4);
           c.fillStyle = col; c.fillRect(x + 14, y + 16, w / 2 - 28, 30);
-          c.fillStyle = '#fff'; c.font = '800 20px system-ui'; c.fillText('RYBEX', x + 22, y + 39);
-          c.fillStyle = '#3a2a16'; c.font = '600 15px system-ui'; let t = name; while (c.measureText(t).width > w / 2 - 30 && t.length > 4) t = t.slice(0, -1); c.fillText(t, x + 16, y + 68);
-          c.font = '600 13px system-ui'; c.fillText(tx('24 × 170 g', '24 × 170 g'), x + 16, y + 88);
+          c.fillStyle = '#fff'; c.font = '800 20px Raleway, system-ui'; c.fillText('RYBEX', x + 22, y + 39);
+          c.fillStyle = '#3a2a16'; c.font = '600 15px Raleway, system-ui'; let t = name; while (c.measureText(t).width > w / 2 - 30 && t.length > 4) t = t.slice(0, -1); c.fillText(t, x + 16, y + 68);
+          c.font = '600 13px Raleway, system-ui'; c.fillText(tx('24 × 170 g', '24 × 170 g'), x + 16, y + 88);
         }
         // pallet label (A5) with product, barcode and the packshot when loaded
         c.fillStyle = '#fff'; c.fillRect(w * 0.27, h * 0.36, w * 0.46, h * 0.3); c.strokeStyle = '#1c1917'; c.lineWidth = 2; c.strokeRect(w * 0.27, h * 0.36, w * 0.46, h * 0.3);
         const im = shotImgs[i];
         if (im && im.complete && im.naturalWidth) { const s = Math.min((w * 0.16) / im.naturalWidth, (h * 0.26) / im.naturalHeight); c.drawImage(im, w * 0.285, h * 0.375, im.naturalWidth * s, im.naturalHeight * s); }
         else { c.fillStyle = col; c.fillRect(w * 0.29, h * 0.39, w * 0.12, h * 0.2); }
-        c.fillStyle = '#1c1917'; c.font = '800 19px system-ui'; let t = name; while (c.measureText(t).width > w * 0.27 && t.length > 4) t = t.slice(0, -1);
-        c.fillText(t.split(' ').slice(0, 2).join(' '), w * 0.46, h * 0.43); c.font = '600 16px system-ui'; c.fillText(t.split(' ').slice(2).join(' '), w * 0.46, h * 0.475);
+        c.fillStyle = '#1c1917'; c.font = '800 19px Raleway, system-ui'; let t = name; while (c.measureText(t).width > w * 0.27 && t.length > 4) t = t.slice(0, -1);
+        c.fillText(t.split(' ').slice(0, 2).join(' '), w * 0.46, h * 0.43); c.font = '600 16px Raleway, system-ui'; c.fillText(t.split(' ').slice(2).join(' '), w * 0.46, h * 0.475);
         for (let k = 0; k < 34; k++) { c.fillStyle = k % 3 ? '#1c1917' : '#fff'; c.fillRect(w * 0.46 + k * 3.4, h * 0.52, (k % 4) + 1, h * 0.09); }
       };
       return tex.screen(draw, { w: 512, h: 640 });
@@ -178,7 +178,7 @@
     kit.inst(g, palletGeo, M.wood, pallets, { shadow: true });
     loads.forEach((list, k) => { if (list.length) kit.inst(g, loadGeo, loadMats[k], list, { shadow: true }); });
     // rack end signs (aisle letters)
-    [['A', -W / 2 + 0.6, RZ + 3.9], ['B', -6.3, RZ + 3.9]].forEach(([t, x, z]) => kit.plane(g, [0.5, 0.5], [x, 6.4, z + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(128, 128, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 90px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, w / 2, h / 2 + 6); }), rough: 0.5 })));
+    [['A', -W / 2 + 0.6, RZ + 3.9], ['B', -6.3, RZ + 3.9]].forEach(([t, x, z]) => kit.plane(g, [0.5, 0.5], [x, 6.4, z + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(128, 128, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 90px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, w / 2, h / 2 + 6); }), rough: 0.5 })));
     // column guards at the rack ends (hazard)
     const guard = kit.batch(g, M.hazard, { uv: 2.5 });
     for (const x of [-5.25, -7.35, -W / 2 + RACK_D - 0.03]) guard.box([0.18, 0.4, 0.18], [x + (x < -8 ? 0 : 0), 0.2, RZ + 3 * BAY / 2 + 0.12]);
@@ -199,7 +199,7 @@
       dock.box([0.16, 0.36, 0.1], [xc + DOOR_W / 2 + 0.45, 2.0, -D / 2 + 0.05]);
       const lit = new T.Mesh(new T.CircleGeometry(0.05, 16), new T.MeshBasicMaterial({ color: i === 0 ? 0x2fd15a : 0xd02a20, toneMapped: false }));
       lit.position.set(xc + DOOR_W / 2 + 0.45, i === 0 ? 1.91 : 2.09, -D / 2 + 0.105); g.add(lit);
-      kit.plane(g, [0.9, 0.4], [xc, DOOR_H + 0.6, -D / 2 + 0.31], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 112, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#f0bf00'; c.font = '800 60px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('DOK ', 'DOCK ') + (i + 1), w / 2, h / 2 + 4); }), rough: 0.5 }));
+      kit.plane(g, [0.9, 0.4], [xc, DOOR_H + 0.6, -D / 2 + 0.31], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 112, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#f0bf00'; c.font = '800 60px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('DOK ', 'DOCK ') + (i + 1), w / 2, h / 2 + 4); }), rough: 0.5 }));
     });
     dock.done(); dSteel.done();
     // trailer docked at door A: interior (dark, seen from inside) with two pallets loaded
@@ -243,14 +243,14 @@
     const drawClip = (c, w, h) => {
       c.fillStyle = '#8a5a2b'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.fillRect(16, 40, w - 32, h - 56);
       c.fillStyle = '#9aa0a5'; c.fillRect(w / 2 - 60, 8, 120, 46);
-      c.fillStyle = '#1c1917'; c.font = '800 24px system-ui'; c.fillText(tx('PLAN WYSYŁEK', 'DISPATCH PLAN'), 32, 90);
-      c.font = '600 15px system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Dok 1 · zmiana A', 'Dock 1 · shift A'), 32, 116);
-      names.slice(0, 5).forEach((n, i) => { const y = 150 + i * 46; c.fillStyle = PROD_COL[i % PROD_COL.length]; c.fillRect(32, y - 16, 10, 22); c.fillStyle = '#1c1917'; c.font = '600 17px system-ui'; let t = n; while (c.measureText(t).width > w - 150 && t.length > 4) t = t.slice(0, -1); c.fillText(t, 50, y); c.strokeStyle = '#c4c8cc'; c.lineWidth = 2; c.strokeRect(w - 80, y - 18, 40, 24); });
-      c.fillStyle = '#c0392b'; c.font = '700 17px system-ui'; c.fillText(tx('Grudzień: czy wystarczy?', 'December: enough stock?'), 32, h - 40);
+      c.fillStyle = '#1c1917'; c.font = '800 24px Raleway, system-ui'; c.fillText(tx('PLAN WYSYŁEK', 'DISPATCH PLAN'), 32, 90);
+      c.font = '600 15px Raleway, system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Dok 1 · zmiana A', 'Dock 1 · shift A'), 32, 116);
+      names.slice(0, 5).forEach((n, i) => { const y = 150 + i * 46; c.fillStyle = PROD_COL[i % PROD_COL.length]; c.fillRect(32, y - 16, 10, 22); c.fillStyle = '#1c1917'; c.font = '600 17px Raleway, system-ui'; let t = n; while (c.measureText(t).width > w - 150 && t.length > 4) t = t.slice(0, -1); c.fillText(t, 50, y); c.strokeStyle = '#c4c8cc'; c.lineWidth = 2; c.strokeRect(w - 80, y - 18, 40, 24); });
+      c.fillStyle = '#c0392b'; c.font = '700 17px Raleway, system-ui'; c.fillText(tx('Grudzień: czy wystarczy?', 'December: enough stock?'), 32, h - 40);
     };
     const clip = kit.plane(disp, [0.33, 0.46], [0, 1.1 + 0.825 * 0.022, 0.565 * 0.022], [-Math.PI / 2 + 0.6, 0, 0], kit.mat(0xffffff, { map: tex.screen(drawClip, { w: 360, h: 504 }), rough: 0.6 }));
     clip.castShadow = false;
-    kit.box(disp, [1.1, 0.26, 0.02], [0, 2.35, 0.05], kit.mat(0xffffff, { map: kit.canvasTexture(440, 104, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 46px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('WYSYŁKA', 'DISPATCH'), w / 2, h / 2 + 3); }), rough: 0.5 }));
+    kit.box(disp, [1.1, 0.26, 0.02], [0, 2.35, 0.05], kit.mat(0xffffff, { map: kit.canvasTexture(440, 104, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 46px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('WYSYŁKA', 'DISPATCH'), w / 2, h / 2 + 3); }), rough: 0.5 }));
     kit.batch(disp, M.galv, { shadow: false }).rod([-0.45, 2.48, 0.05], [-0.45, H, 0.05], 0.006, 4).rod([0.45, 2.48, 0.05], [0.45, H, 0.05], 0.006, 4).done();
 
     // ---- STATION data: sales history on a screen trolley, the sales binder on its shelf ----
@@ -263,21 +263,21 @@
     sG.done(); sD.done();
     const drawSales = (c, w, h) => {
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 54);
-      c.fillStyle = '#fff'; c.font = '700 28px system-ui'; c.fillText(tx('Historia sprzedaży · miesiące', 'Sales history · months'), 18, 37);
+      c.fillStyle = '#fff'; c.font = '700 28px Raleway, system-ui'; c.fillText(tx('Historia sprzedaży · miesiące', 'Sales history · months'), 18, 37);
       const x0 = 70, y0 = h - 70, x1 = w - 24, y1 = 84;
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0, y1); c.lineTo(x0, y0); c.lineTo(x1, y0); c.stroke();
       if (monthly.length) {
         const mx = Math.max(...monthly) * 1.1, bw = (x1 - x0) / monthly.length;
         monthly.forEach((v, i) => { const bh = (y0 - y1) * v / mx; c.fillStyle = i % 12 === 11 ? '#1f8a4c' : '#7fbf95'; c.fillRect(x0 + i * bw + 2, y0 - bh, bw - 4, bh); });
-        c.fillStyle = '#5b5a56'; c.font = '600 16px system-ui'; c.fillText(tx(`${monthly.length} mies.`, `${monthly.length} months`), x1 - 90, y0 + 26);
-      } else { c.fillStyle = '#8a8d90'; c.font = '600 22px system-ui'; c.fillText(tx('Brak danych', 'No data'), x0 + 30, (y0 + y1) / 2); }
-      c.fillStyle = '#5b5a56'; c.font = '600 16px system-ui'; names.slice(0, 4).forEach((n, i) => { c.fillStyle = PROD_COL[i % PROD_COL.length]; c.fillRect(x0 + 10 + i * 200, h - 34, 12, 12); c.fillStyle = '#3a3a3a'; let t = n; while (c.measureText(t).width > 175 && t.length > 4) t = t.slice(0, -1); c.fillText(t, x0 + 28 + i * 200, h - 23); });
+        c.fillStyle = '#5b5a56'; c.font = '600 16px Raleway, system-ui'; c.fillText(tx(`${monthly.length} mies.`, `${monthly.length} months`), x1 - 90, y0 + 26);
+      } else { c.fillStyle = '#8a8d90'; c.font = '600 22px Raleway, system-ui'; c.fillText(tx('Brak danych', 'No data'), x0 + 30, (y0 + y1) / 2); }
+      c.fillStyle = '#5b5a56'; c.font = '600 16px Raleway, system-ui'; names.slice(0, 4).forEach((n, i) => { c.fillStyle = PROD_COL[i % PROD_COL.length]; c.fillRect(x0 + 10 + i * 200, h - 34, 12, 12); c.fillStyle = '#3a3a3a'; let t = n; while (c.measureText(t).width > 175 && t.length > 4) t = t.slice(0, -1); c.fillText(t, x0 + 28 + i * 200, h - 23); });
     };
     const salesScreen = new T.Mesh(new T.PlaneGeometry(1.24, 0.72), new T.MeshBasicMaterial({ map: tex.screen(drawSales, { w: 1024, h: 594 }), toneMapped: false }));
     salesScreen.position.set(0, 1.72, -0.028); sales.add(salesScreen);
     // binders on the shelf
     [[0x2f8f47, -0.25], [0x2f8f47, -0.17], [0x5b6770, -0.09]].forEach(([col, x]) => kit.box(sales, [0.07, 0.31, 0.27], [x, 1.02, 0.02], kit.mat(col, { rough: 0.55 })));
-    kit.plane(sales, [0.07, 0.3], [-0.25, 1.02, 0.156], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(64, 280, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.fillRect(8, 16, w - 16, 170); c.save(); c.translate(w / 2, 100); c.rotate(-Math.PI / 2); c.fillStyle = '#1c1917'; c.font = '800 22px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('SPRZEDAŻ', 'SALES'), 0, 0); c.restore(); }), rough: 0.5 })).castShadow = false;
+    kit.plane(sales, [0.07, 0.3], [-0.25, 1.02, 0.156], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(64, 280, (c, w, h) => { c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.fillRect(8, 16, w - 16, 170); c.save(); c.translate(w / 2, 100); c.rotate(-Math.PI / 2); c.fillStyle = '#1c1917'; c.font = '800 22px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('SPRZEDAŻ', 'SALES'), 0, 0); c.restore(); }), rough: 0.5 })).castShadow = false;
 
     // ---- STATION method: the planner's mobile whiteboard ----
     const WX = 3.5, WZ = -0.9;
@@ -313,13 +313,13 @@
     pGrey.box([0.42, 0.6, 0.55], [0.5, 0.3, 0.0]);
     const drawPlan = (c, w, h) => {
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 44);
-      c.fillStyle = '#fff'; c.font = '700 23px system-ui'; c.fillText(tx('Planowanie popytu', 'Demand planning'), 14, 30);
-      c.fillStyle = '#1c1917'; c.font = '600 18px system-ui'; c.fillText(tx('Produkt', 'Product'), 14, 78);
+      c.fillStyle = '#fff'; c.font = '700 23px Raleway, system-ui'; c.fillText(tx('Planowanie popytu', 'Demand planning'), 14, 30);
+      c.fillStyle = '#1c1917'; c.font = '600 18px Raleway, system-ui'; c.fillText(tx('Produkt', 'Product'), 14, 78);
       c.fillStyle = '#fff'; c.strokeStyle = '#9aa5ad'; c.fillRect(14, 88, w - 28, 36); c.strokeRect(14, 88, w - 28, 36);
-      c.fillStyle = '#3a3a3a'; c.font = '600 17px system-ui'; let t = names[0]; while (c.measureText(t).width > w - 70 && t.length > 4) t = t.slice(0, -1); c.fillText(t + '  ▾', 24, 112);
-      c.fillStyle = '#1c1917'; c.font = '600 18px system-ui'; c.fillText(tx('Horyzont: 6 mies.', 'Horizon: 6 months'), 14, 158);
+      c.fillStyle = '#3a3a3a'; c.font = '600 17px Raleway, system-ui'; let t = names[0]; while (c.measureText(t).width > w - 70 && t.length > 4) t = t.slice(0, -1); c.fillText(t + '  ▾', 24, 112);
+      c.fillStyle = '#1c1917'; c.font = '600 18px Raleway, system-ui'; c.fillText(tx('Horyzont: 6 mies.', 'Horizon: 6 months'), 14, 158);
       c.fillStyle = '#c9d1d6'; c.fillRect(14, 172, w - 28, 8); c.fillStyle = '#2f8f47'; c.fillRect(14, 172, (w - 28) * 0.5, 8);
-      c.fillStyle = '#2f8f47'; c.fillRect(14, h - 58, 170, 42); c.fillStyle = '#fff'; c.font = '700 19px system-ui'; c.fillText(tx('PROGNOZUJ', 'FORECAST'), 40, h - 30);
+      c.fillStyle = '#2f8f47'; c.fillRect(14, h - 58, 170, 42); c.fillStyle = '#fff'; c.font = '700 19px Raleway, system-ui'; c.fillText(tx('PROGNOZUJ', 'FORECAST'), 40, h - 30);
     };
     const drawPlan2 = (c, w, h) => {
       c.fillStyle = '#1e2226'; c.fillRect(0, 0, w, h); c.fillStyle = '#7fbf95'; c.font = '700 20px ui-monospace, monospace'; c.fillText(tx('sprzedaz_historia.csv', 'sales_history.csv'), 14, 30);
@@ -343,24 +343,24 @@
     const chartBody = kit.rbox(chart, [CW + 0.16, CH + 0.16, 0.1], [0, 0, 0], M.dark, 0.02);
     const drawChart = (c, w, h) => {
       c.fillStyle = '#f3f6f4'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 74); c.fillStyle = '#fff'; c.font = '800 40px system-ui'; c.fillText(tx('PROGNOZA POPYTU · WYNIKI', 'DEMAND FORECAST · RESULTS'), 28, 50);
+      c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 74); c.fillStyle = '#fff'; c.font = '800 40px Raleway, system-ui'; c.fillText(tx('PROGNOZA POPYTU · WYNIKI', 'DEMAND FORECAST · RESULTS'), 28, 50);
       // empty KPI tiles: filled by the experiments, never invented here
-      [tx('Błąd prognozy (MAPE)', 'Forecast error (MAPE)'), tx('Metoda odniesienia', 'Baseline'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = w - 3 * 290 - 10 + i * 290; c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(x, 10, 270, 54); c.fillStyle = '#d9efe0'; c.font = '600 17px system-ui'; c.fillText(t, x + 12, 31); c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText('–', x + 12, 57); });
+      [tx('Błąd prognozy (MAPE)', 'Forecast error (MAPE)'), tx('Metoda odniesienia', 'Baseline'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = w - 3 * 290 - 10 + i * 290; c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(x, 10, 270, 54); c.fillStyle = '#d9efe0'; c.font = '600 17px Raleway, system-ui'; c.fillText(t, x + 12, 31); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText('–', x + 12, 57); });
       const x0 = 90, x1 = w - 40, y0 = h - 60, y1 = 110, months = Math.max(monthly.length, 12), total = months + 6, sx = (x1 - x0) / (total - 1);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, y1); c.lineTo(x0, y0); c.lineTo(x1, y0); c.stroke();
       // the forecast window: 6 empty months
       const fx = x0 + (months - 0.5) * sx;
       c.fillStyle = 'rgba(47,143,71,.08)'; c.fillRect(fx, y1, x1 - fx, y0 - y1);
       c.setLineDash([10, 8]); c.strokeStyle = '#2f8f47'; c.beginPath(); c.moveTo(fx, y1); c.lineTo(fx, y0); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#2f8f47'; c.font = '700 24px system-ui'; c.fillText(tx('prognoza: 6 mies.', 'forecast: 6 months'), fx + 16, y1 + 34);
-      c.font = '800 64px system-ui'; c.fillText('?', fx + (x1 - fx) / 2 - 16, (y0 + y1) / 2 + 24);
+      c.fillStyle = '#2f8f47'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('prognoza: 6 mies.', 'forecast: 6 months'), fx + 16, y1 + 34);
+      c.font = '800 64px Raleway, system-ui'; c.fillText('?', fx + (x1 - fx) / 2 - 16, (y0 + y1) / 2 + 24);
       if (monthly.length) {
         const mn = Math.min(...monthly) * 0.85, mx = Math.max(...monthly) * 1.08, Y = v => y0 - (y0 - y1) * (v - mn) / (mx - mn);
         c.strokeStyle = '#1c1917'; c.lineWidth = 4; c.beginPath(); monthly.forEach((v, i) => i ? c.lineTo(x0 + i * sx, Y(v)) : c.moveTo(x0, Y(v))); c.stroke();
         c.fillStyle = '#1c1917'; monthly.forEach((v, i) => { c.beginPath(); c.arc(x0 + i * sx, Y(v), 5, 0, Math.PI * 2); c.fill(); });
-        c.fillStyle = '#5b5a56'; c.font = '600 20px system-ui'; c.fillText(tx('sprzedaż (historia)', 'sales (history)'), x0 + 12, y1 + 30);
-      } else { c.fillStyle = '#8a8d90'; c.font = '600 26px system-ui'; c.fillText(tx('Brak historii sprzedaży', 'No sales history'), x0 + 30, (y0 + y1) / 2); }
-      c.fillStyle = '#6b6a66'; c.font = '600 18px system-ui'; for (let i = 0; i < total; i += 3) c.fillText(String(i + 1), x0 + i * sx - 6, y0 + 28);
+        c.fillStyle = '#5b5a56'; c.font = '600 20px Raleway, system-ui'; c.fillText(tx('sprzedaż (historia)', 'sales (history)'), x0 + 12, y1 + 30);
+      } else { c.fillStyle = '#8a8d90'; c.font = '600 26px Raleway, system-ui'; c.fillText(tx('Brak historii sprzedaży', 'No sales history'), x0 + 30, (y0 + y1) / 2); }
+      c.fillStyle = '#6b6a66'; c.font = '600 18px Raleway, system-ui'; for (let i = 0; i < total; i += 3) c.fillText(String(i + 1), x0 + i * sx - 6, y0 + 28);
     };
     const chartScreen = new T.Mesh(new T.PlaneGeometry(CW, CH), new T.MeshBasicMaterial({ map: tex.screen(drawChart, { w: 1550, h: 500 }), toneMapped: false }));
     chartScreen.position.set(0, 0, 0.051); chartBody.add(chartScreen);
@@ -374,7 +374,7 @@
     kit.prop.exitSign(g, [-4.5, 2.45, D / 2 - 0.03], Math.PI, lang);
     kit.prop.sign(g, [0.5, 0.62], [0.9, 2.4, -D / 2 + 0.01], 0, tex.sign('warning', tx('Wózki paletowe', 'Pallet trucks')));
     kit.prop.sign(g, [0.5, 0.62], [9.0, 2.4, -D / 2 + 0.01], 0, tex.sign('mandatory', tx('Kamizelka', 'Hi-vis vest'), '▲'));
-    kit.plane(g, [5.0, 1.0], [-5.5, 6.9, -D / 2 + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(1024, 205, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(150, h / 2, 120, 62, 0, 0, Math.PI * 2); c.fill(); c.fillStyle = '#1c1917'; c.font = '800 62px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', 150, h / 2 + 4); c.fillStyle = '#fff'; c.textAlign = 'left'; c.font = '700 64px system-ui'; c.fillText(tx('MAGAZYN WYROBÓW', 'FINISHED GOODS'), 300, h / 2 + 4); }), rough: 0.6 }));
+    kit.plane(g, [5.0, 1.0], [-5.5, 6.9, -D / 2 + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(1024, 205, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(150, h / 2, 120, 62, 0, 0, Math.PI * 2); c.fill(); c.fillStyle = '#1c1917'; c.font = '800 62px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', 150, h / 2 + 4); c.fillStyle = '#fff'; c.textAlign = 'left'; c.font = '700 64px Raleway, system-ui'; c.fillText(tx('MAGAZYN WYROBÓW', 'FINISHED GOODS'), 300, h / 2 + 4); }), rough: 0.6 }));
 
     desk.done(); grey.done(); dark.done(); seat.done(); white.done(); wood.done();
 

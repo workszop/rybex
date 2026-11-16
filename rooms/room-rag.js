@@ -117,7 +117,7 @@
     const POD = [0.0, -1.0];
     const drawWork = (title, rows) => (c, w, h) => {
       c.fillStyle = '#f3f5f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 40);
-      c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText(title, 14, 28);
+      c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText(title, 14, 28);
       for (let i = 0; i < rows; i++) { c.fillStyle = i % 2 ? '#e4e8eb' : '#fff'; c.fillRect(14, 56 + i * 34, w - 28, 28); c.fillStyle = '#9aa5ad'; c.fillRect(24, 66 + i * 34, 120 + ((i * 53) % 140), 8); }
     };
     const podScreens = [drawWork(tx('Poczta', 'Mail'), 7), drawWork(tx('Kalendarz', 'Calendar'), 6), drawWork(tx('Raport partii', 'Batch report'), 7), drawWork(tx('Procedury', 'Procedures'), 6)];
@@ -180,7 +180,7 @@
           c.fillStyle = '#1b1d20'; c.beginPath(); c.arc(x0 + bw / 2, h * 0.8, bw * 0.2, 0, Math.PI * 2); c.fill(); // finger hole
           c.save(); c.translate(x0 + bw / 2, h * 0.07 + h * 0.275); c.rotate(-Math.PI / 2);
           c.textAlign = 'center'; c.textBaseline = 'middle';
-          if (it.code) { let fs = Math.round(bw * 0.5); c.font = `800 ${fs}px system-ui`; while (c.measureText(it.code).width > h * 0.52 && fs > 8) { fs--; c.font = `800 ${fs}px system-ui`; } c.fillStyle = '#16181b'; c.fillText(it.code, 0, 1); }
+          if (it.code) { let fs = Math.round(bw * 0.5); c.font = `800 ${fs}px Raleway, system-ui`; while (c.measureText(it.code).width > h * 0.52 && fs > 8) { fs--; c.font = `800 ${fs}px Raleway, system-ui`; } c.fillStyle = '#16181b'; c.fillText(it.code, 0, 1); }
           else { c.fillStyle = '#b9bcbf'; c.fillRect(-h * 0.18, -bw * 0.08, h * 0.36, bw * 0.12); }
           c.restore();
         });
@@ -193,10 +193,10 @@
     for (let i = 0; i < 4; i++) arch.box([0.17, 0.32, 0.36], [0.14 + i * 0.18, SH_Y[0] + 0.0125 + 0.16, 0]);
     for (let i = 0; i < 4; i++) arch.box([0.17, 0.32, 0.36], [0.14 + i * 0.18, SH_Y[1] + 0.0125 + 0.16, 0]);
     arch.done();
-    const archLab = kit.canvasTexture(512, 64, (c, w, h) => { c.fillStyle = 'rgba(0,0,0,0)'; c.clearRect(0, 0, w, h); for (let i = 0; i < 5; i++) { const x = i * 102 + 8; c.fillStyle = '#fbfbf6'; c.fillRect(x, 8, 86, 48); c.fillStyle = '#1c1917'; c.font = '700 15px system-ui'; c.fillText(tx('ARCHIWUM', 'ARCHIVE'), x + 6, 28); c.fillStyle = '#8a8d90'; c.fillRect(x + 6, 38, 60, 6); } });
+    const archLab = kit.canvasTexture(512, 64, (c, w, h) => { c.fillStyle = 'rgba(0,0,0,0)'; c.clearRect(0, 0, w, h); for (let i = 0; i < 5; i++) { const x = i * 102 + 8; c.fillStyle = '#fbfbf6'; c.fillRect(x, 8, 86, 48); c.fillStyle = '#1c1917'; c.font = '700 15px Raleway, system-ui'; c.fillText(tx('ARCHIWUM', 'ARCHIVE'), x + 6, 28); c.fillStyle = '#8a8d90'; c.fillRect(x + 6, 38, 60, 6); } });
     kit.plane(cab, [0.9, 0.11], [-CW / 2 + 0.48, SH_Y[0] + 0.25, 0.181], [0, 0, 0], new T.MeshStandardMaterial({ map: archLab, transparent: true, roughness: 0.6 })).castShadow = false;
     // header plaque on the top
-    kit.plane(cab, [1.5, 0.22], [0, CH + 0.16, 0.0], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(768, 112, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 54px system-ui'; c.textBaseline = 'middle'; c.fillText(tx('PROCEDURY', 'PROCEDURES'), 28, h / 2 + 3); c.font = '600 30px system-ui'; c.fillStyle = '#cfe0f0'; c.textAlign = 'right'; c.fillText(tx('wydania aktualne', 'current issues'), w - 24, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
+    kit.plane(cab, [1.5, 0.22], [0, CH + 0.16, 0.0], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(768, 112, (c, w, h) => { c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 54px Raleway, system-ui'; c.textBaseline = 'middle'; c.fillText(tx('PROCEDURY', 'PROCEDURES'), 28, h / 2 + 3); c.font = '600 30px Raleway, system-ui'; c.fillStyle = '#cfe0f0'; c.textAlign = 'right'; c.fillText(tx('wydania aktualne', 'current issues'), w - 24, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
     kit.batch(cab, M.lam, { shadow: false }).box([1.52, 0.24, 0.02], [0, CH + 0.16, -0.012]).box([0.03, 0.06, 0.03], [-0.6, CH + 0.03, -0.012]).box([0.03, 0.06, 0.03], [0.6, CH + 0.03, -0.012]).done();
 
     // ---- STATION brief: the manager's desk by the windows, a memo standing in a holder ----
@@ -217,19 +217,19 @@
     const drawMemo = (c, w, h) => {
       c.fillStyle = '#fff'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 64); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(64, 32, 48, 20, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#1c1917'; c.font = '800 21px system-ui'; c.textAlign = 'center'; c.fillText('RYBEX', 64, 39); c.textAlign = 'left';
-      c.fillStyle = '#fff'; c.font = '700 24px system-ui'; c.fillText(tx('NOTATKA', 'MEMO'), 132, 41);
-      c.fillStyle = '#1c1917'; c.font = '700 26px system-ui'; c.fillText(tx('Pytania o procedury', 'Questions about'), 24, 112); c.fillText(tx('na zmianie', 'the procedures'), 24, 144);
-      c.font = '600 18px system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Od: kierownik jakości', 'From: quality manager'), 24, 182);
+      c.fillStyle = '#1c1917'; c.font = '800 21px Raleway, system-ui'; c.textAlign = 'center'; c.fillText('RYBEX', 64, 39); c.textAlign = 'left';
+      c.fillStyle = '#fff'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('NOTATKA', 'MEMO'), 132, 41);
+      c.fillStyle = '#1c1917'; c.font = '700 26px Raleway, system-ui'; c.fillText(tx('Pytania o procedury', 'Questions about'), 24, 112); c.fillText(tx('na zmianie', 'the procedures'), 24, 144);
+      c.font = '600 18px Raleway, system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Od: kierownik jakości', 'From: quality manager'), 24, 182);
       c.fillStyle = '#8b8a86'; for (let i = 0; i < 9; i++) c.fillRect(24, 214 + i * 26, 250 + ((i * 41) % 70), 8);
-      c.fillStyle = '#c0221c'; c.font = '700 20px system-ui'; c.fillText(tx('PROCES-01 … 06', 'PROCES-01 … 06'), 24, h - 40);
+      c.fillStyle = '#c0221c'; c.font = '700 20px Raleway, system-ui'; c.fillText(tx('PROCES-01 … 06', 'PROCES-01 … 06'), 24, h - 40);
     };
     const memo = kit.plane(mgr, [0.25, 0.34], [-0.35, 0.92, 0.33], [-0.32, -0.35, 0], kit.mat(0xffffff, { map: tex.screen(drawMemo, { w: 360, h: 490 }), rough: 0.6 }));
     memo.castShadow = false;
     kit.box(mgr, [0.27, 0.36, 0.006], [-0.35, 0.92, 0.326], new T.MeshStandardMaterial({ color: 0xe8f0f4, roughness: 0.05, transparent: true, opacity: 0.25 })).rotation.set(-0.32, -0.35, 0);
     mDark.box([0.26, 0.012, 0.08], [-0.33, 0.76, 0.38], [0, -0.35, 0]);
     // nameplate and a stack of folders
-    kit.plane(mgr, [0.22, 0.06], [0.25, 0.79, 0.43], [-0.6, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 70, (c, w, h) => { c.fillStyle = '#26292d'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f2ee'; c.font = '700 22px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('Kierownik jakości', 'Quality manager'), w / 2, h / 2 + 2); }), rough: 0.4 }));
+    kit.plane(mgr, [0.22, 0.06], [0.25, 0.79, 0.43], [-0.6, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 70, (c, w, h) => { c.fillStyle = '#26292d'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f2ee'; c.font = '700 22px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('Kierownik jakości', 'Quality manager'), w / 2, h / 2 + 2); }), rough: 0.4 }));
     for (let i = 0; i < 4; i++) kit.box(mgr, [0.24, 0.02, 0.32], [0.45, 0.77 + i * 0.022, 0.12], kit.mat([0x1f5f9e, 0xe0a800, 0x2f8f47, 0xc0392b][i], { rough: 0.6 })).rotation.y = (i - 1.5) * 0.06;
     mOak.done(); mGrey.done(); mDark.done(); mLam.done();
     // credenza and a plant behind the manager, by the window
@@ -284,14 +284,14 @@
     const drawRes = (c, w, h) => {
       c.fillStyle = '#eef2f5'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 74); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(70, 37, 52, 22, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#1c1917'; c.font = '800 24px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', 70, 39); c.textAlign = 'left';
-      c.fillStyle = '#fff'; c.font = '700 32px system-ui'; c.fillText(tx('Asystent procedur · wyniki', 'Procedures assistant · results'), 140, 39);
+      c.fillStyle = '#1c1917'; c.font = '800 24px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', 70, 39); c.textAlign = 'left';
+      c.fillStyle = '#fff'; c.font = '700 32px Raleway, system-ui'; c.fillText(tx('Asystent procedur · wyniki', 'Procedures assistant · results'), 140, 39);
       c.textBaseline = 'alphabetic';
       // empty KPI tiles and empty axes: filled by the experiments, never invented here
-      [tx('Poprawne odpowiedzi', 'Correct answers'), tx('Ze źródłem PROCES', 'With a PROCES source'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = 24 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 96, 310, 118); c.fillStyle = '#6b6a66'; c.font = '600 22px system-ui'; c.fillText(t, x + 16, 132); c.fillStyle = '#c9d1d6'; c.font = '700 50px system-ui'; c.fillText('–', x + 16, 194); });
+      [tx('Poprawne odpowiedzi', 'Correct answers'), tx('Ze źródłem PROCES', 'With a PROCES source'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = 24 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 96, 310, 118); c.fillStyle = '#6b6a66'; c.font = '600 22px Raleway, system-ui'; c.fillText(t, x + 16, 132); c.fillStyle = '#c9d1d6'; c.font = '700 50px Raleway, system-ui'; c.fillText('–', x + 16, 194); });
       c.fillStyle = '#fff'; c.fillRect(24, 232, w - 48, h - 256);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(80, 254); c.lineTo(80, h - 60); c.lineTo(w - 50, h - 60); c.stroke();
-      c.fillStyle = '#6b6a66'; c.font = '500 24px system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 110, h - 110);
+      c.fillStyle = '#6b6a66'; c.font = '500 24px Raleway, system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 110, h - 110);
     };
     const tvScreen = new T.Mesh(new T.PlaneGeometry(1.42, 0.8), new T.MeshBasicMaterial({ map: tex.screen(drawRes, { w: 1024, h: 576 }), toneMapped: false }));
     tvScreen.position.set(0, 0, 0.026); tvBody.add(tvScreen);
@@ -306,19 +306,19 @@
     kB.done(); kD.done();
     const drawKiosk = (c, w, h) => {
       c.fillStyle = '#f5f7f9'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 64); c.fillStyle = '#fff'; c.font = '700 28px system-ui'; c.fillText(tx('Baza wiedzy · procedury', 'Knowledge base · procedures'), 20, 42);
+      c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 64); c.fillStyle = '#fff'; c.font = '700 28px Raleway, system-ui'; c.fillText(tx('Baza wiedzy · procedury', 'Knowledge base · procedures'), 20, 42);
       c.fillStyle = '#fff'; c.strokeStyle = '#1f5f9e'; c.lineWidth = 3; c.fillRect(20, 90, w - 40, 60); c.strokeRect(20, 90, w - 40, 60);
-      c.fillStyle = '#8a949b'; c.font = '500 24px system-ui'; c.fillText(tx('Zadajcie pytanie o procedury…', 'Ask a question about the procedures…'), 36, 128);
-      c.fillStyle = '#1f5f9e'; c.fillRect(w - 110, 98, 82, 44); c.fillStyle = '#fff'; c.font = '700 20px system-ui'; c.fillText(tx('Szukaj', 'Search'), w - 98, 127);
-      c.fillStyle = '#5b5a56'; c.font = '600 20px system-ui'; c.fillText(tx('Źródła w bazie', 'Sources in the base'), 20, 196);
+      c.fillStyle = '#8a949b'; c.font = '500 24px Raleway, system-ui'; c.fillText(tx('Zadajcie pytanie o procedury…', 'Ask a question about the procedures…'), 36, 128);
+      c.fillStyle = '#1f5f9e'; c.fillRect(w - 110, 98, 82, 44); c.fillStyle = '#fff'; c.font = '700 20px Raleway, system-ui'; c.fillText(tx('Szukaj', 'Search'), w - 98, 127);
+      c.fillStyle = '#5b5a56'; c.font = '600 20px Raleway, system-ui'; c.fillText(tx('Źródła w bazie', 'Sources in the base'), 20, 196);
       const list = docs.length ? docs : ['PROCES'];
-      list.forEach((code, i) => { const x = 20 + (i % 3) * 150, y = 214 + Math.floor(i / 3) * 52; c.fillStyle = '#e1eaf2'; c.fillRect(x, y, 138, 40); c.fillStyle = '#1f3f6f'; c.font = '700 19px system-ui'; c.fillText(code, x + 12, y + 27); });
+      list.forEach((code, i) => { const x = 20 + (i % 3) * 150, y = 214 + Math.floor(i / 3) * 52; c.fillStyle = '#e1eaf2'; c.fillRect(x, y, 138, 40); c.fillStyle = '#1f3f6f'; c.font = '700 19px Raleway, system-ui'; c.fillText(code, x + 12, y + 27); });
     };
     const kMon = kit.rbox(kiosk, [0.74, 0.48, 0.04], [0, 1.42, -0.04], M.dark, 0.012);
     kMon.rotation.x = -0.28;
     const kScreen = new T.Mesh(new T.PlaneGeometry(0.7, 0.44), new T.MeshBasicMaterial({ map: tex.screen(drawKiosk, { w: 640, h: 402 }), toneMapped: false }));
     kScreen.position.set(0, 0, 0.021); kMon.add(kScreen);
-    kit.plane(kiosk, [0.28, 0.5], [0, 0.55, 0.071], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(128, 228, (c, w, h) => { c.fillStyle = '#f4f4f1'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 50); c.fillStyle = '#fff'; c.font = '800 30px system-ui'; c.textAlign = 'center'; c.fillText('?', w / 2, 36); c.fillStyle = '#1f5f9e'; c.font = '700 17px system-ui'; c.fillText(tx('TERMINAL', 'KNOWLEDGE'), w / 2, 100); c.fillText(tx('WIEDZY', 'TERMINAL'), w / 2, 124); }), rough: 0.5 })).castShadow = false;
+    kit.plane(kiosk, [0.28, 0.5], [0, 0.55, 0.071], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(128, 228, (c, w, h) => { c.fillStyle = '#f4f4f1'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, 50); c.fillStyle = '#fff'; c.font = '800 30px Raleway, system-ui'; c.textAlign = 'center'; c.fillText('?', w / 2, 36); c.fillStyle = '#1f5f9e'; c.font = '700 17px Raleway, system-ui'; c.fillText(tx('TERMINAL', 'KNOWLEDGE'), w / 2, 100); c.fillText(tx('WIEDZY', 'TERMINAL'), w / 2, 124); }), rough: 0.5 })).castShadow = false;
 
     // ---- more office: plants, water cooler, printer, coat stand, clock, poster, bin ----
     kit.prop.plant(greenB, [-4.0, -5.5], 1.25, 1);
@@ -376,7 +376,7 @@
         for (let i = 0; i < 160; i++) { c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(r() * w, h * 0.62 + r() * h * 0.38, 20 + r() * 50, 2); }
         // quay sheds and cranes
         for (const [x, bw, bh, col] of [[160, 360, 120, '#c9c3b8'], [600, 260, 90, '#a9b4ba'], [1300, 420, 130, '#d5d0c6'], [1780, 220, 100, '#b5b0a6']]) { c.fillStyle = col; c.fillRect(x, h * 0.62 - bh, bw, bh); c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(x, h * 0.62 - bh, bw, 10); }
-        c.fillStyle = '#1f5f9e'; c.fillRect(1330, h * 0.62 - 104, 160, 30); c.fillStyle = '#fff'; c.font = '800 22px system-ui'; c.fillText('RYBEX', 1370, h * 0.62 - 82);
+        c.fillStyle = '#1f5f9e'; c.fillRect(1330, h * 0.62 - 104, 160, 30); c.fillStyle = '#fff'; c.font = '800 22px Raleway, system-ui'; c.fillText('RYBEX', 1370, h * 0.62 - 82);
         c.strokeStyle = '#c0392b'; c.lineWidth = 9;
         for (const x of [980, 1150]) { c.beginPath(); c.moveTo(x, h * 0.62); c.lineTo(x, h * 0.62 - 260); c.lineTo(x - 180, h * 0.62 - 230); c.moveTo(x, h * 0.62 - 240); c.lineTo(x + 60, h * 0.62 - 220); c.stroke(); }
         c.fillStyle = '#2b3a44'; c.fillRect(820, h * 0.66, 260, 34); c.fillStyle = '#e0e4e6'; c.fillRect(900, h * 0.66 - 26, 90, 26);  // a boat
@@ -386,11 +386,11 @@
       return kit.canvasTexture(420, 600, (c, w, h) => {
         c.fillStyle = '#1f5f9e'; c.fillRect(0, 0, w, h);
         c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(w / 2, 150, 150, 66, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#1c1917'; c.font = '800 66px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', w / 2, 154);
-        c.fillStyle = '#fff'; c.font = '700 34px system-ui'; c.fillText(tx('Mirszyce', 'Mirszyce'), w / 2, 270);
+        c.fillStyle = '#1c1917'; c.font = '800 66px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('RYBEX', w / 2, 154);
+        c.fillStyle = '#fff'; c.font = '700 34px Raleway, system-ui'; c.fillText(tx('Mirszyce', 'Mirszyce'), w / 2, 270);
         c.strokeStyle = '#cfe0f0'; c.lineWidth = 6; c.beginPath(); c.moveTo(80, 420); c.quadraticCurveTo(210, 340, 330, 420); c.quadraticCurveTo(210, 500, 80, 420); c.stroke();
         c.beginPath(); c.moveTo(330, 420); c.lineTo(372, 386); c.lineTo(372, 454); c.closePath(); c.stroke();
-        c.fillStyle = '#cfe0f0'; c.font = '600 26px system-ui'; c.fillText(tx('jakość z każdej puszki', 'quality in every can'), w / 2, 550);
+        c.fillStyle = '#cfe0f0'; c.font = '600 26px Raleway, system-ui'; c.fillText(tx('jakość z każdej puszki', 'quality in every can'), w / 2, 550);
       });
     }
 

@@ -106,7 +106,7 @@
     };
     const screenOf = (title, rows, col = '#b8860b') => (c, w, h) => {
       c.fillStyle = '#f5f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = col; c.fillRect(0, 0, w, 40);
-      c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.fillText(title, 14, 28);
+      c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText(title, 14, 28);
       for (let i = 0; i < rows; i++) { c.fillStyle = i % 2 ? '#eceef0' : '#fff'; c.fillRect(14, 54 + i * 32, w - 28, 26); c.fillStyle = '#9aa5ad'; c.fillRect(24, 63 + i * 32, 90 + ((i * 61) % 160), 8); c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(w - 80, 60 + i * 32, 46, 14); }
     };
 
@@ -135,13 +135,13 @@
     for (const sx of [-0.68, 0.68]) cGrey.box([0.05, 0.72, 0.65], [sx, 0.36, 0]);
     const drawCls = (c, w, h) => {
       c.fillStyle = '#f6f6f3'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, 46);
-      c.fillStyle = '#ffd500'; c.font = '700 24px system-ui'; c.fillText(tx('Klasyfikator zgłoszeń', 'Complaint classifier'), 14, 31);
+      c.fillStyle = '#ffd500'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('Klasyfikator zgłoszeń', 'Complaint classifier'), 14, 31);
       c.fillStyle = '#fff'; c.fillRect(14, 60, w - 28, 120); c.strokeStyle = '#cfd4d8'; c.strokeRect(14, 60, w - 28, 120);
       c.fillStyle = '#8a949b'; for (let i = 0; i < 4; i++) c.fillRect(26, 78 + i * 24, w - 90 - ((i * 47) % 120), 8);
-      c.fillStyle = '#5b5a56'; c.font = '600 18px system-ui'; c.fillText(tx('Kategoria:', 'Category:'), 14, 210);
+      c.fillStyle = '#5b5a56'; c.font = '600 18px Raleway, system-ui'; c.fillText(tx('Kategoria:', 'Category:'), 14, 210);
       const list = cats.length ? cats : [tx('kategoria', 'category')];
       let x = 14, y = 226;
-      list.forEach((t, i) => { c.font = '600 16px system-ui'; const tw = c.measureText(t).width + 22; if (x + tw > w - 10) { x = 14; y += 40; } c.fillStyle = '#fff'; c.strokeStyle = CAT_COL[i % CAT_COL.length]; c.lineWidth = 3; c.fillRect(x, y, tw, 30); c.strokeRect(x, y, tw, 30); c.fillStyle = '#1c1917'; c.fillText(t, x + 11, y + 21); x += tw + 8; });
+      list.forEach((t, i) => { c.font = '600 16px Raleway, system-ui'; const tw = c.measureText(t).width + 22; if (x + tw > w - 10) { x = 14; y += 40; } c.fillStyle = '#fff'; c.strokeStyle = CAT_COL[i % CAT_COL.length]; c.lineWidth = 3; c.fillRect(x, y, tw, 30); c.strokeRect(x, y, tw, 30); c.fillStyle = '#1c1917'; c.fillText(t, x + 11, y + 21); x += tw + 8; });
     };
     const drawRules = (c, w, h) => {
       c.fillStyle = '#1e2226'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '700 22px ui-monospace, monospace'; c.fillText(tx('reguły.txt', 'rules.txt'), 14, 30);
@@ -156,7 +156,7 @@
     cDesk.done(); cDark.done(); cGrey.done();
     const hb = kit.batch(cls, M.dark); { const band = new T.TorusGeometry(0.085, 0.008, 6, 16, Math.PI); band.rotateX(-Math.PI / 2 + 0.25); hb.add(band, [0.55, 0.765, 0.1]).cyl(0.035, 0.035, 0.02, [0.465, 0.765, 0.1]).cyl(0.035, 0.035, 0.02, [0.635, 0.765, 0.1]); } hb.done();
     // a hanging sign over the test station
-    kit.box(cls, [0.72, 0.19, 0.02], [0, 2.2, -0.25], kit.mat(0xffffff, { map: kit.canvasTexture(384, 102, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 34px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('STANOWISKO TESTOWE', 'TEST STATION'), w / 2, h / 2 + 2); }), rough: 0.5 }));
+    kit.box(cls, [0.72, 0.19, 0.02], [0, 2.2, -0.25], kit.mat(0xffffff, { map: kit.canvasTexture(384, 102, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 34px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('STANOWISKO TESTOWE', 'TEST STATION'), w / 2, h / 2 + 2); }), rough: 0.5 }));
     kit.batch(cls, M.grey, { shadow: false }).rod([-0.3, 2.29, -0.25], [-0.3, H, -0.25], 0.004, 4).rod([0.3, 2.29, -0.25], [0.3, H, -0.25], 0.004, 4).done();
     { const cs = { dark: kit.batch(cls, M.seat), metal: kit.batch(cls, M.grey) }; kit.prop.chair(cs, [0.55, 0.72], Math.PI - 0.5); cs.dark.done(); cs.metal.done(); }
 
@@ -177,7 +177,7 @@
     }
     tray.done();
     // tray labels
-    const trayLab = kit.canvasTexture(512, 64, (c, w, h) => { c.fillStyle = '#fff'; const labs = [tx('NOWE', 'NEW'), tx('W TOKU', 'IN PROGRESS')]; labs.forEach((t, i) => { c.fillStyle = '#fff'; c.fillRect(i * 256 + 40, 10, 176, 44); c.fillStyle = '#1c1917'; c.font = '700 24px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, i * 256 + 128, 33); }); });
+    const trayLab = kit.canvasTexture(512, 64, (c, w, h) => { c.fillStyle = '#fff'; const labs = [tx('NOWE', 'NEW'), tx('W TOKU', 'IN PROGRESS')]; labs.forEach((t, i) => { c.fillStyle = '#fff'; c.fillRect(i * 256 + 40, 10, 176, 44); c.fillStyle = '#1c1917'; c.font = '700 24px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, i * 256 + 128, 33); }); });
     kit.plane(inbox, [0.82, 0.05], [-0.15, 0.885, 0.2], [0, 0, 0], new T.MeshBasicMaterial({ map: trayLab, transparent: true })).castShadow = false;
     // pigeonhole rack on the wall above: 4 x 3 cells with envelopes
     const PH = [1.42, 0.74], cellW = PH[0] / 4, cellH = PH[1] / 3, PY = 1.32;
@@ -191,31 +191,31 @@
       for (let k = 0; k < n; k++) ((i + j + k) % 3 ? iP : iK).box([cellW - 0.06, 0.11, 0.004], [-PH[0] / 2 + (i + 0.5) * cellW, PY + j * cellH + 0.065, -0.17 + k * 0.03], [-0.15 - k * 0.06, 0, 0]);
     }
     iW.done(); iG.done(); iP.done(); iK.done();
-    kit.plane(inbox, [1.4, 0.2], [0, PY + PH[1] + 0.16, -0.2], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(700, 100, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 46px system-ui'; c.textBaseline = 'middle'; c.fillText(tx('SKRZYNKA REKLAMACJI', 'COMPLAINTS INBOX'), 24, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
+    kit.plane(inbox, [1.4, 0.2], [0, PY + PH[1] + 0.16, -0.2], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(700, 100, (c, w, h) => { c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 46px Raleway, system-ui'; c.textBaseline = 'middle'; c.fillText(tx('SKRZYNKA REKLAMACJI', 'COMPLAINTS INBOX'), 24, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
     // pigeonhole name tags
-    kit.plane(inbox, [PH[0], 0.035], [0, PY + 0.012, 0.096], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(1024, 26, (c, w, h) => { c.fillStyle = '#f1efe8'; c.fillRect(0, 0, w, h); c.font = '700 17px system-ui'; c.textBaseline = 'middle'; c.textAlign = 'center'; const labs = cats.length ? cats : ['', '', '', '']; for (let i = 0; i < 4; i++) { c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(i * 256 + 8, 5, 10, 16); c.fillStyle = '#1c1917'; let t = labs[i] || ''; while (t && c.measureText(t).width > 220) t = t.slice(0, -1); c.fillText(t, i * 256 + 136, 14); } }), rough: 0.6 })).castShadow = false;
+    kit.plane(inbox, [PH[0], 0.035], [0, PY + 0.012, 0.096], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(1024, 26, (c, w, h) => { c.fillStyle = '#f1efe8'; c.fillRect(0, 0, w, h); c.font = '700 17px Raleway, system-ui'; c.textBaseline = 'middle'; c.textAlign = 'center'; const labs = cats.length ? cats : ['', '', '', '']; for (let i = 0; i < 4; i++) { c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(i * 256 + 8, 5, 10, 16); c.fillStyle = '#1c1917'; let t = labs[i] || ''; while (t && c.measureText(t).width > 220) t = t.slice(0, -1); c.fillText(t, i * 256 + 136, 14); } }), rough: 0.6 })).castShadow = false;
 
     // ---- STATION results: the case board, one column per category ----
     const BX = -1.0, BW = 3.1, BH = 1.3, BY = 1.45;
     const board = new T.Group(); board.position.set(BX, 0, -D / 2 + 0.03); g.add(board);
     const drawCases = (c, w, h) => {
       c.fillStyle = '#fbfcfc'; c.fillRect(0, 0, w, h);
-      c.fillStyle = '#1c1917'; c.font = '800 34px system-ui'; c.fillText(tx('TABLICA SPRAW · KATEGORIE', 'CASE BOARD · CATEGORIES'), 24, 48);
+      c.fillStyle = '#1c1917'; c.font = '800 34px Raleway, system-ui'; c.fillText(tx('TABLICA SPRAW · KATEGORIE', 'CASE BOARD · CATEGORIES'), 24, 48);
       // results corner: empty tiles, filled by the experiments, never invented here
       const tiles = [tx('Trafność kategorii', 'Category accuracy'), tx('Bezpieczeństwo żywności', 'Food safety caught')];
-      tiles.forEach((t, i) => { const x = w - 520 + i * 256; c.fillStyle = '#eef1f3'; c.fillRect(x, 14, 240, 70); c.fillStyle = '#6b6a66'; c.font = '600 17px system-ui'; c.fillText(t, x + 12, 38); c.fillStyle = '#b9c2c8'; c.font = '700 28px system-ui'; c.fillText('–', x + 12, 72); });
+      tiles.forEach((t, i) => { const x = w - 520 + i * 256; c.fillStyle = '#eef1f3'; c.fillRect(x, 14, 240, 70); c.fillStyle = '#6b6a66'; c.font = '600 17px Raleway, system-ui'; c.fillText(t, x + 12, 38); c.fillStyle = '#b9c2c8'; c.font = '700 28px Raleway, system-ui'; c.fillText('–', x + 12, 72); });
       const list = cats.length ? cats : [tx('Kategoria', 'Category')];
       const n = list.length, x0 = 24, cw = (w - 48) / n, top = 104;
       list.forEach((t, i) => {
         const x = x0 + i * cw;
         c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(x + 4, top, cw - 8, 50);
-        c.fillStyle = '#fff'; let fs = 22; c.font = `700 ${fs}px system-ui`; while (c.measureText(t).width > cw - 24 && fs > 12) { fs--; c.font = `700 ${fs}px system-ui`; } c.fillText(t, x + 14, top + 33);
+        c.fillStyle = '#fff'; let fs = 22; c.font = `700 ${fs}px Raleway, system-ui`; while (c.measureText(t).width > cw - 24 && fs > 12) { fs--; c.font = `700 ${fs}px Raleway, system-ui`; } c.fillText(t, x + 14, top + 33);
         c.strokeStyle = '#d3d8dc'; c.lineWidth = 2; c.beginPath(); c.moveTo(x + cw, top); c.lineTo(x + cw, h - 20); c.stroke();
         c.setLineDash([8, 6]); c.strokeStyle = '#c4cacf';
         for (let k = 0; k < 3; k++) c.strokeRect(x + 14, top + 70 + k * 92, cw - 28, 76);
         c.setLineDash([]);
       });
-      c.fillStyle = '#8a8d90'; c.font = '500 20px system-ui'; c.fillText(tx('Zgłoszenia trafią tu po klasyfikacji.', 'Complaints land here once classified.'), 24, h - 24);
+      c.fillStyle = '#8a8d90'; c.font = '500 20px Raleway, system-ui'; c.fillText(tx('Zgłoszenia trafią tu po klasyfikacji.', 'Complaints land here once classified.'), 24, h - 24);
     };
     const bFrame = kit.batch(board, M.grey, { shadow: false });
     bFrame.box([BW + 0.04, 0.03, 0.03], [0, BY + BH / 2 + 0.015, 0.015]).box([BW + 0.04, 0.03, 0.03], [0, BY - BH / 2 - 0.015, 0.015]).box([0.03, BH + 0.06, 0.03], [-BW / 2 - 0.015, BY, 0.015]).box([0.03, BH + 0.06, 0.03], [BW / 2 + 0.015, BY, 0.015]).box([1.0, 0.025, 0.07], [0.6, BY - BH / 2 - 0.04, 0.04]);
@@ -233,16 +233,16 @@
       const note = (x, y, ww, hh, rot, fill, draw) => { c.save(); c.translate(x, y); c.rotate(rot); c.shadowColor = 'rgba(0,0,0,.3)'; c.shadowBlur = 6; c.shadowOffsetY = 2; c.fillStyle = fill; c.fillRect(0, 0, ww, hh); c.shadowColor = 'transparent'; draw(ww, hh); c.restore(); };
       const pinAt = (x, y, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.arc(x - 2, y - 2, 2.5, 0, Math.PI * 2); c.fill(); };
       note(30, 26, 250, 330, -0.03, '#fff', (ww) => {
-        c.fillStyle = '#e6b422'; c.fillRect(0, 0, ww, 44); c.fillStyle = '#1c1917'; c.font = '800 18px system-ui'; c.fillText('RYBEX · ' + tx('NOTATKA', 'MEMO'), 12, 29);
-        c.font = '700 18px system-ui'; c.fillText(tx('Reklamacje:', 'Complaints:'), 12, 78); c.fillText(tx('sortowanie zgłoszeń', 'sorting the reports'), 12, 101);
-        c.font = '600 14px system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Od: obsługa klienta', 'From: customer service'), 12, 128);
+        c.fillStyle = '#e6b422'; c.fillRect(0, 0, ww, 44); c.fillStyle = '#1c1917'; c.font = '800 18px Raleway, system-ui'; c.fillText('RYBEX · ' + tx('NOTATKA', 'MEMO'), 12, 29);
+        c.font = '700 18px Raleway, system-ui'; c.fillText(tx('Reklamacje:', 'Complaints:'), 12, 78); c.fillText(tx('sortowanie zgłoszeń', 'sorting the reports'), 12, 101);
+        c.font = '600 14px Raleway, system-ui'; c.fillStyle = '#5b5a56'; c.fillText(tx('Od: obsługa klienta', 'From: customer service'), 12, 128);
         c.fillStyle = '#9a9994'; for (let i = 0; i < 7; i++) c.fillRect(12, 150 + i * 22, 190 + ((i * 37) % 40), 6);
         pinAt(ww / 2, 10, '#c0392b');
       });
-      note(310, 40, 160, 120, 0.05, '#ffe66b', () => { c.fillStyle = '#3a3a3a'; c.font = '600 17px system-ui'; c.fillText(tx('np. cel: 9 na 10', 'e.g. goal: 9 in 10'), 12, 34); c.fillText(tx('kategorii', 'categories'), 12, 58); c.fillText(tx('trafnych', 'right'), 12, 82); pinAt(80, 8, '#1f6fb2'); });
-      note(300, 190, 180, 150, -0.04, '#fff', () => { c.fillStyle = '#c9cdd0'; c.fillRect(10, 10, 160, 110); c.fillStyle = '#1f6fb2'; c.fillRect(60, 30, 60, 76); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(90, 52, 20, 9, 0, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#7a1d14'; c.lineWidth = 4; c.beginPath(); c.moveTo(60, 74); c.quadraticCurveTo(70, 82, 64, 96); c.stroke(); c.fillStyle = '#3a3a3a'; c.font = '600 14px system-ui'; c.fillText(tx('wgniecenie?', 'dent?'), 12, 140); pinAt(90, 6, '#2f8f47'); });
-      note(510, 30, 210, 150, 0.02, '#f4f8fb', () => { c.fillStyle = '#1c1917'; c.font = '700 15px system-ui'; c.fillText(tx('Bezpieczeństwo żywności', 'Food safety'), 10, 26); c.fillStyle = '#c0392b'; c.font = '700 15px system-ui'; c.fillText(tx('zapach · wybrzuszenie · syk', 'smell · bulging · hiss'), 10, 52); c.fillStyle = '#5b5a56'; c.font = '600 14px system-ui'; c.fillText(tx('zawsze do działu jakości', 'always to quality'), 10, 78); c.fillStyle = '#9a9994'; for (let i = 0; i < 2; i++) c.fillRect(10, 98 + i * 20, 170, 6); pinAt(105, 6, '#c0392b'); });
-      note(520, 210, 200, 140, -0.05, '#9fd7f0', () => { c.fillStyle = '#1c1917'; c.font = '600 16px system-ui'; c.fillText(tx('Dyżur: zmiana A', 'Duty: shift A'), 12, 30); c.fillText('8:00–16:00', 12, 56); c.fillStyle = '#5b5a56'; c.fillText(tx('tel. 214', 'ext. 214'), 12, 86); pinAt(100, 6, '#e08a00'); });
+      note(310, 40, 160, 120, 0.05, '#ffe66b', () => { c.fillStyle = '#3a3a3a'; c.font = '600 17px Raleway, system-ui'; c.fillText(tx('np. cel: 9 na 10', 'e.g. goal: 9 in 10'), 12, 34); c.fillText(tx('kategorii', 'categories'), 12, 58); c.fillText(tx('trafnych', 'right'), 12, 82); pinAt(80, 8, '#1f6fb2'); });
+      note(300, 190, 180, 150, -0.04, '#fff', () => { c.fillStyle = '#c9cdd0'; c.fillRect(10, 10, 160, 110); c.fillStyle = '#1f6fb2'; c.fillRect(60, 30, 60, 76); c.fillStyle = '#ffd500'; c.beginPath(); c.ellipse(90, 52, 20, 9, 0, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#7a1d14'; c.lineWidth = 4; c.beginPath(); c.moveTo(60, 74); c.quadraticCurveTo(70, 82, 64, 96); c.stroke(); c.fillStyle = '#3a3a3a'; c.font = '600 14px Raleway, system-ui'; c.fillText(tx('wgniecenie?', 'dent?'), 12, 140); pinAt(90, 6, '#2f8f47'); });
+      note(510, 30, 210, 150, 0.02, '#f4f8fb', () => { c.fillStyle = '#1c1917'; c.font = '700 15px Raleway, system-ui'; c.fillText(tx('Bezpieczeństwo żywności', 'Food safety'), 10, 26); c.fillStyle = '#c0392b'; c.font = '700 15px Raleway, system-ui'; c.fillText(tx('zapach · wybrzuszenie · syk', 'smell · bulging · hiss'), 10, 52); c.fillStyle = '#5b5a56'; c.font = '600 14px Raleway, system-ui'; c.fillText(tx('zawsze do działu jakości', 'always to quality'), 10, 78); c.fillStyle = '#9a9994'; for (let i = 0; i < 2; i++) c.fillRect(10, 98 + i * 20, 170, 6); pinAt(105, 6, '#c0392b'); });
+      note(520, 210, 200, 140, -0.05, '#9fd7f0', () => { c.fillStyle = '#1c1917'; c.font = '600 16px Raleway, system-ui'; c.fillText(tx('Dyżur: zmiana A', 'Duty: shift A'), 12, 30); c.fillText('8:00–16:00', 12, 56); c.fillStyle = '#5b5a56'; c.fillText(tx('tel. 214', 'ext. 214'), 12, 86); pinAt(100, 6, '#e08a00'); });
     };
     const pFrame = kit.batch(pin, M.oak, { uv: 1, shadow: false });
     pFrame.box([1.64, 0.04, 0.03], [0, 2.03, 0.015]).box([1.64, 0.04, 0.03], [0, 0.99, 0.015]).box([0.04, 1.08, 0.03], [-0.8, 1.51, 0.015]).box([0.04, 1.08, 0.03], [0.8, 1.51, 0.015]);
@@ -266,20 +266,20 @@
     kit.box(lead, [0.07, 0.31, 0.27], [-0.68, 0.91, -0.15], kit.mat(0xe08a00, { rough: 0.55 }));
     const guide = (c, w, h) => {
       c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#1c1917'; c.fillRect(0, 0, w, 50);
-      c.fillStyle = '#ffd500'; c.font = '800 22px system-ui'; c.fillText(tx('JAK KATEGORYZUJEMY', 'HOW WE CATEGORISE'), 14, 33);
+      c.fillStyle = '#ffd500'; c.font = '800 22px Raleway, system-ui'; c.fillText(tx('JAK KATEGORYZUJEMY', 'HOW WE CATEGORISE'), 14, 33);
       const list = cats.length ? cats : [tx('kategoria', 'category')];
-      list.forEach((t, i) => { const y = 74 + i * 52; c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(14, y, 12, 38); c.fillStyle = '#1c1917'; c.font = '700 19px system-ui'; c.fillText(t, 36, y + 18); c.fillStyle = '#9a9994'; c.fillRect(36, y + 28, 150 + ((i * 41) % 60), 5); });
-      c.fillStyle = '#c0392b'; c.font = '700 16px system-ui'; c.fillText('PROCES-04', 14, h - 18);
+      list.forEach((t, i) => { const y = 74 + i * 52; c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillRect(14, y, 12, 38); c.fillStyle = '#1c1917'; c.font = '700 19px Raleway, system-ui'; c.fillText(t, 36, y + 18); c.fillStyle = '#9a9994'; c.fillRect(36, y + 28, 150 + ((i * 41) % 60), 5); });
+      c.fillStyle = '#c0392b'; c.font = '700 16px Raleway, system-ui'; c.fillText('PROCES-04', 14, h - 18);
     };
     kit.plane(lead, [0.3, 0.4], [0.25, 0.97, 0.12], [-0.3, -0.3, 0], kit.mat(0xffffff, { map: tex.screen(guide, { w: 300, h: 400 }), rough: 0.5 })).castShadow = false;
     lDark.box([0.3, 0.012, 0.1], [0.25, 0.76, 0.2], [0, -0.3, 0]);
     // desk sign
-    kit.plane(lead, [0.24, 0.065], [-0.2, 0.79, 0.37], [-0.6, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 70, (c, w, h) => { c.fillStyle = '#26292d'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f2ee'; c.font = '700 22px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('Lider zespołu', 'Team lead'), w / 2, h / 2 + 2); }), rough: 0.4 }));
+    kit.plane(lead, [0.24, 0.065], [-0.2, 0.79, 0.37], [-0.6, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 70, (c, w, h) => { c.fillStyle = '#26292d'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f2ee'; c.font = '700 22px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('Lider zespołu', 'Team lead'), w / 2, h / 2 + 2); }), rough: 0.4 }));
     kit.prop.chair({ dark: lDark, metal: lGrey }, [-0.15, -0.72], 0);
     lDesk.done(); lDark.done(); lGrey.done(); lWhite.done();
     // a flag stand / screen partition behind the lead desk
     // hanging sign over the team lead's desk, so it reads from across the room
-    kit.box(lead, [0.95, 0.22, 0.02], [0, 2.15, -0.1], kit.mat(0xffffff, { map: kit.canvasTexture(420, 98, (c, w, h) => { c.fillStyle = '#2f3438'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 38px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('LIDER ZESPOŁU', 'TEAM LEAD'), w / 2, h / 2 + 2); }), rough: 0.5 }));
+    kit.box(lead, [0.95, 0.22, 0.02], [0, 2.15, -0.1], kit.mat(0xffffff, { map: kit.canvasTexture(420, 98, (c, w, h) => { c.fillStyle = '#2f3438'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 38px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('LIDER ZESPOŁU', 'TEAM LEAD'), w / 2, h / 2 + 2); }), rough: 0.5 }));
     kit.batch(lead, M.grey, { shadow: false }).rod([-0.4, 2.26, -0.1], [-0.4, H, -0.1], 0.004, 4).rod([0.4, 2.26, -0.1], [0.4, H, -0.1], 0.004, 4).done();
 
     // ---- retention-sample shelf (back wall, right): cans of each batch, kept for checks ----
@@ -292,7 +292,7 @@
     const canGeo = new T.CylinderGeometry(0.037, 0.037, 0.105, 18);
     const PRODUCT_LAB = [['#b3261e', '#ffd500'], ['#2f6f3a', '#f2f2ee'], ['#d0a020', '#1c1917'], ['#1f5f9e', '#ffd500']];
     PRODUCT_LAB.forEach(([bg, fg], pi) => {
-      const lab = kit.canvasTexture(256, 64, (c, w, h) => { c.fillStyle = '#c9cdd0'; c.fillRect(0, 0, w, h); c.fillStyle = bg; c.fillRect(0, 10, w, 44); c.fillStyle = fg; c.font = '800 18px system-ui'; c.fillText('RYBEX', 18, 38); c.fillText('RYBEX', 146, 38); });
+      const lab = kit.canvasTexture(256, 64, (c, w, h) => { c.fillStyle = '#c9cdd0'; c.fillRect(0, 0, w, h); c.fillStyle = bg; c.fillRect(0, 10, w, 44); c.fillStyle = fg; c.font = '800 18px Raleway, system-ui'; c.fillText('RYBEX', 18, 38); c.fillText('RYBEX', 146, 38); });
       const list = [];
       levels.slice(1).forEach((y, li) => { for (let k = 0; k < 6; k++) { const idx = li * 24 + pi * 6 + k; const x = RX - RW / 2 + 0.08 + ((pi * 6 + k) % 24) * 0.078; if (x > RX + RW / 2 - 0.05) continue; list.push({ p: [x, y + 0.01 + 0.0525, RZ + 0.05 - (idx % 2) * 0.09] }); } });
       kit.inst(g, canGeo, [kit.mat(0xffffff, { map: lab, rough: 0.35, metal: 0.4 }), M.grey, M.grey], list, { shadow: false });
@@ -300,7 +300,7 @@
     // batch tags on the shelf lips
     const tags = kit.canvasTexture(1024, 48, (c, w, h) => { c.fillStyle = 'rgba(0,0,0,0)'; c.clearRect(0, 0, w, h); for (let i = 0; i < 6; i++) { c.fillStyle = '#fbfbf6'; c.fillRect(i * 170 + 10, 4, 140, 40); c.fillStyle = '#1c1917'; c.font = '700 20px ui-monospace, monospace'; c.fillText(`RYB-26${(10 + i * 3) % 100}`.slice(0, 9), i * 170 + 18, 31); } });
     for (const y of levels.slice(1)) kit.plane(g, [RW - 0.05, 0.035], [RX, y + 0.012, RZ + RD / 2 + 0.008], [0, 0, 0], new T.MeshStandardMaterial({ map: tags, transparent: true, roughness: 0.6 })).castShadow = false;
-    kit.plane(g, [1.6, 0.22], [RX, 2.2, -D / 2 + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(720, 100, (c, w, h) => { c.fillStyle = '#2f3438'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 40px system-ui'; c.textBaseline = 'middle'; c.fillText(tx('PRÓBKI ARCHIWALNE', 'RETENTION SAMPLES'), 22, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
+    kit.plane(g, [1.6, 0.22], [RX, 2.2, -D / 2 + 0.02], [0, 0, 0], kit.mat(0xffffff, { map: kit.canvasTexture(720, 100, (c, w, h) => { c.fillStyle = '#2f3438'; c.fillRect(0, 0, w, h); c.fillStyle = '#fff'; c.font = '800 40px Raleway, system-ui'; c.textBaseline = 'middle'; c.fillText(tx('PRÓBKI ARCHIWALNE', 'RETENTION SAMPLES'), 22, h / 2 + 3); }), rough: 0.5 })).castShadow = false;
 
     // ---- more of the room: plants, water dispenser, printer, a wallboard over the pod, a clock ----
     kit.prop.plant(greenB, [-5.0, -4.0], 1.3, 5);
@@ -313,10 +313,10 @@
     // wallboard on the left wall: shift, opening hours, no counts
     kit.rbox(g, [0.06, 0.66, 1.16], [-W / 2 + 0.03, 1.95, 0.0], M.dark, 0.012);
     kit.screenPlane(g, [1.1, 0.6], [-W / 2 + 0.065, 1.95, 0.0], Math.PI / 2, (c, w, h) => {
-      c.fillStyle = '#16191c'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 44px system-ui'; c.fillText(tx('OBSŁUGA KLIENTA', 'CUSTOMER SERVICE'), 30, 70);
-      c.fillStyle = '#cfd6db'; c.font = '600 32px system-ui'; c.fillText(tx('Pn–Pt 8:00–16:00', 'Mon–Fri 8:00–16:00'), 30, 140); c.fillText(tx('Infolinia: wew. 214', 'Hotline: ext. 214'), 30, 190);
+      c.fillStyle = '#16191c'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '800 44px Raleway, system-ui'; c.fillText(tx('OBSŁUGA KLIENTA', 'CUSTOMER SERVICE'), 30, 70);
+      c.fillStyle = '#cfd6db'; c.font = '600 32px Raleway, system-ui'; c.fillText(tx('Pn–Pt 8:00–16:00', 'Mon–Fri 8:00–16:00'), 30, 140); c.fillText(tx('Infolinia: wew. 214', 'Hotline: ext. 214'), 30, 190);
       c.fillStyle = '#2fd15a'; c.beginPath(); c.arc(w - 60, 60, 14, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#7f8b93'; c.font = '600 26px system-ui'; c.fillText(tx('Kanały: e-mail · telefon · formularz', 'Channels: e-mail · phone · form'), 30, h - 50);
+      c.fillStyle = '#7f8b93'; c.font = '600 26px Raleway, system-ui'; c.fillText(tx('Kanały: e-mail · telefon · formularz', 'Channels: e-mail · phone · form'), 30, h - 50);
     });
     const clock = kit.screenPlane(g, [0.32, 0.32], [0.6, 2.35, -D / 2 + 0.02], 0, (c, w, h) => {
       c.fillStyle = '#f7f7f4'; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 4, 0, Math.PI * 2); c.fill(); c.lineWidth = 10; c.strokeStyle = '#222'; c.stroke();
@@ -328,7 +328,7 @@
     const box = kit.batch(g, kit.mat(0xffffff, { map: tex.cardboard(), rough: 0.85 }), { uv: 2.5 });
     box.box([0.4, 0.3, 0.3], [3.0, 0.15, -3.95], [0, 0.2, 0]).box([0.36, 0.26, 0.3], [3.05, 0.43, -3.9], [0, -0.1, 0]).box([0.45, 0.32, 0.35], [0.6, 0.16, -4.05], [0, 0.05, 0]);
     box.done();
-    kit.plane(g, [0.3, 0.12], [3.0, 0.2, -3.79], [0, 0.2, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 100, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#c0392b'; c.font = '800 34px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('ZWROT', 'RETURN'), w / 2, h / 2 + 2); }), rough: 0.6 })).castShadow = false;
+    kit.plane(g, [0.3, 0.12], [3.0, 0.2, -3.79], [0, 0.2, 0], kit.mat(0xffffff, { map: kit.canvasTexture(256, 100, (c, w, h) => { c.fillStyle = '#fff'; c.fillRect(0, 0, w, h); c.fillStyle = '#c0392b'; c.font = '800 34px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(tx('ZWROT', 'RETURN'), w / 2, h / 2 + 2); }), rough: 0.6 })).castShadow = false;
 
     desk.done(); white.done(); grey.done(); dark.done(); seat.done(); paper.done(); greenB.pot.done(); greenB.leaf.done();
 
@@ -348,7 +348,7 @@
         const r = kit.rng(29);
         const sky = c.createLinearGradient(0, 0, 0, h * 0.55); sky.addColorStop(0, '#a9c9e2'); sky.addColorStop(1, '#eef3f5'); c.fillStyle = sky; c.fillRect(0, 0, w, h);
         c.fillStyle = '#d4cfc5'; c.fillRect(0, h * 0.35, w, h * 0.3); c.fillStyle = 'rgba(0,0,0,.08)'; for (let x = 0; x < w; x += 48) c.fillRect(x, h * 0.35, 3, h * 0.3);   // the factory across the yard
-        c.fillStyle = '#1f6fb2'; c.fillRect(w * 0.3, h * 0.38, 300, 46); c.fillStyle = '#fff'; c.font = '800 32px system-ui'; c.fillText('RYBEX', w * 0.3 + 20, h * 0.38 + 34);
+        c.fillStyle = '#1f6fb2'; c.fillRect(w * 0.3, h * 0.38, 300, 46); c.fillStyle = '#fff'; c.font = '800 32px Raleway, system-ui'; c.fillText('RYBEX', w * 0.3 + 20, h * 0.38 + 34);
         c.fillStyle = '#7d8286'; c.fillRect(0, h * 0.65, w, h * 0.35);
         for (let i = 0; i < 7; i++) { const x = 80 + r() * (w - 200); c.fillStyle = ['#c0392b', '#e8e8e8', '#2b3a44', '#1f5f9e'][i % 4]; c.fillRect(x, h * 0.6, 110, 40); c.fillStyle = '#222'; c.fillRect(x + 12, h * 0.6 + 34, 20, 12); c.fillRect(x + 78, h * 0.6 + 34, 20, 12); }
       });
