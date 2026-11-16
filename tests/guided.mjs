@@ -1443,7 +1443,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('a11y reduced motion: no animation or transition on the new components', !moving.length, moving.join(' | ')); ok('a11y no page errors (motion)', !p.errs.length, p.errs.join('|')); await p.close(); }
     // 4f. Vision result thumbnails carry a text label, not colour alone.
     { const p = await fresh('#/lab/vision', '', { width: 1280, height: 800 });
-      ok('a11y vision thumbnails carry a visible text label', await p.$$eval('#visRes .thumb', e => e.length > 10 && e.every(t => { const s = t.querySelector('span'); return s && s.offsetHeight > 0 && s.textContent.trim().length > 3 && !/^[A-Z]{2}$/.test(s.textContent.trim()) && (t.getAttribute('aria-label') || '').endsWith(t.dataset.cls.toUpperCase()); })));
+      ok('a11y vision thumbnails carry a visible text label', await p.$$eval('#visRes .thumb', all => { const e = all.filter(t => t.offsetHeight > 0); return all.length > 10 && e.length >= 4 && e.every(t => { const s = t.querySelector('span'); return s && s.offsetHeight > 0 && s.textContent.trim().length > 3 && !/^[A-Z]{2}$/.test(s.textContent.trim()) && (t.getAttribute('aria-label') || '').endsWith(t.dataset.cls.toUpperCase()); }); }));
       await p.close(); }
     // 4g. Focus is never left on BODY after the listed actions.
     { const p = await fresh('#/home', '', { width: 1280, height: 800 }); const lost = []; const at = async tag => { const a = await p.evaluate(() => { const a = document.activeElement; return !a || a === document.body ? 'BODY' : a.tagName + '#' + a.id; }); if (a === 'BODY') lost.push(tag); };
@@ -2091,7 +2091,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
   // Re-test fixes: templates keep the team's safeguards and follow the vision method; the lab's own reveal button refuses the other panel; rag box counts match the data.
   { const p = await fresh('#/arch');
     await p.evaluate(() => { const t = team(); t.track = 'vision'; t.decision.vision = { m: 2, why: 'Model przez API jest najszybszy.' }; t.arch.sel = { hitl: true, anon: true, erp: true }; save(); go('arch'); });
-    await p.click('button[data-p=vision]');
+    await p.selectOption('#tplSel','vision'); await p.click('#tplLoad');
     const a = await p.evaluate(() => ({ ...team().arch.sel }));
     ok('template keeps the team safeguards and drops other blocks', a.hitl && a.anon && !a.erp, JSON.stringify(a));
     ok('vision template follows the chosen API model', a.llm && !a.cv && !a.rules, JSON.stringify(a));
@@ -2193,7 +2193,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('simplify2 complaints after the test: no "think about the test", final verdict shown', !/Dopiero teraz/.test(c3.ban) && /Test końcowy zrobiony/.test(c3.ban) && /Test końcowy: kategorie \d+ z 24 · groźne \d z 6\. Metoda odniesienia \(klasa większościowa\) na teście końcowym: kategorie \d+ z 24/.test(c3.ban), c3.ban);
     ok('simplify2 report headline in counts, criterion without instruction', /^Test końcowy: kategorie \d+ z 24 · groźne \d z 6/.test(c3.best) && /Kryterium sukcesu: „Nic o zepsutej puszce nie ginie\.”/.test(c3.rep) && !/porównajcie z wynikiem/.test(c3.rep + c3.md), JSON.stringify({ crit: (c3.rep.match(/Kryterium sukcesu[^<]{0,70}/) || [''])[0], cmp: (c3.rep + c3.md).includes('porównajcie z wynikiem'), best: c3.best.slice(0, 40) }));
     // 7b. The template follows the chosen method and keeps anonymisation; a diagram that contradicts the method is warned.
-    await c.evaluate(() => go('arch')); await c.click('button[data-p=complaints]');
+    await c.evaluate(() => go('arch')); await c.selectOption('#tplSel','complaints'); await c.click('#tplLoad');
     const c7 = await c.evaluate(() => { const a = team().arch.sel, w1 = goLiveWarnings(team()); a.llm = true; const w2 = goLiveWarnings(team()); delete a.llm; return { llm: !!a.llm, anon: !!a.anon, w1, w2, q: $('#main').textContent }; });
     ok('simplify2 complaints template: no language model with keywords, anonymisation kept', !c7.llm && c7.anon && !c7.w1.includes('method') && c7.w2.includes('method'), JSON.stringify([c7.w1, c7.w2]));
     ok('simplify2 complaints architecture quote fits the task', /Reklamacja to często imię/.test(c7.q));

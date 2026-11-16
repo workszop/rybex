@@ -117,22 +117,22 @@
     // n: a number badge in front (the station's place in the walk). userData.setState('next' | 'done' | ''):
     // next = the pill turns yellow, done = a tick instead of the number.
     label(text, n) {
-      const T = window.THREE, fs = 44, pad = 22, h = fs + 20, R = 23, font = `600 ${fs}px Raleway, system-ui, sans-serif`;
+      const T = window.THREE, fs = 40, pad = 18, h = fs + 16, R = 20, font = `600 ${fs}px Raleway, system-ui, sans-serif`;
       const probe = document.createElement('canvas').getContext('2d');
       let state = '';
       const make = () => { // the pill is as wide as its text, so a late font means a new canvas, not a redraw
         probe.font = font; const x0 = n ? pad - 8 + R * 2 + 12 : pad, w = Math.ceil(probe.measureText(text).width) + x0 + pad;
-        const dark = 'rgba(28,25,23,.86)', ink = '#1c1917', yel = '#FFD500', next = state === 'next';
+        const dark = 'rgba(20,18,16,.74)', ink = '#1c1917', yel = '#FFD500', next = state === 'next';
         const tex = kit.canvasTexture(w, h, g => {
-          g.fillStyle = next ? yel : dark; const r = h / 2;
+          g.fillStyle = dark; const r = 13; // a marker plate, not a button
           g.beginPath(); g.moveTo(r, 0); g.arcTo(w, 0, w, h, r); g.arcTo(w, h, 0, h, r); g.arcTo(0, h, 0, 0, r); g.arcTo(0, 0, w, 0, r); g.fill();
           if (n) {
             const cx = pad - 8 + R, cy = h / 2;
-            g.fillStyle = next ? ink : yel; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
-            if (state === 'done') { g.strokeStyle = ink; g.lineWidth = 6; g.lineCap = g.lineJoin = 'round'; g.beginPath(); g.moveTo(cx - 11, cy + 1); g.lineTo(cx - 3, cy + 9); g.lineTo(cx + 12, cy - 8); g.stroke(); }
-            else { g.fillStyle = next ? yel : ink; g.font = `800 32px Raleway, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), cx, cy + 2); g.textAlign = 'left'; }
+            g.fillStyle = state === 'done' ? '#078342' : next ? yel : '#ffffff'; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+            if (state === 'done') { g.strokeStyle = '#ffffff'; g.lineWidth = 6; g.lineCap = g.lineJoin = 'round'; g.beginPath(); g.moveTo(cx - 11, cy + 1); g.lineTo(cx - 3, cy + 9); g.lineTo(cx + 12, cy - 8); g.stroke(); }
+            else { g.fillStyle = ink; g.font = `800 32px Raleway, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), cx, cy + 2); g.textAlign = 'left'; }
           }
-          g.font = font; g.fillStyle = next ? ink : yel; g.textBaseline = 'middle'; g.fillText(text, x0, h / 2 + 2);
+          g.font = font; g.fillStyle = '#ffffff'; g.textBaseline = 'middle'; g.fillText(text, x0, h / 2 + 2);
         }, { refont: false });
         return { tex, aspect: w / h };
       };

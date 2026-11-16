@@ -111,3 +111,20 @@
 @keyframes room-in { from { opacity: 0; transform: translateX(24px); } }
 @keyframes room-up { from { opacity: 0; transform: translateY(24px); } }
 @media (prefers-reduced-motion: reduce) { .room-panel { animation: none; } .room-hint { transition: none; } }
+
+/* ── Focus pass 3: one navigation, not three ──────────────────────────────
+   The station bar is a solid bar above the picture (it used to float over it, in the same
+   white-pill language as the in-scene labels). The labels in the scene are markers now, drawn
+   quieter in engine.js: dark plate, white text, and only the NEXT station gets the yellow disc. */
+.room-root { padding-top: 50px; }
+.room-canvas { inset: 50px 0 0 0; }
+.room-toolbar {
+  top: 0; left: 0; right: 0; max-width: none; padding: 7px 10px; gap: 4px;
+  background: var(--paper, #fff); border: 0; border-bottom: 1px solid var(--line-2, #C9C2B7);
+  border-radius: 0; box-shadow: none; overflow-x: auto;
+}
+.room-toolbar .room-btn { border: 0; padding: 6px 10px; }
+.room-toolbar .room-btn:hover { background: var(--paper-2, #F5F3F0); }
+.room-toolbar .room-btn.room-2d { margin-left: auto; border: 1px solid var(--line-strong, #857C69); }
+.room-panel { top: 62px; }
+@media (max-width: 900px) { .room-panel { top: auto; } .room-root { padding-top: 46px; } .room-canvas { inset: 46px 0 0 0; } }
