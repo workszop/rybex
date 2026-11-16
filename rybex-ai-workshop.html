@@ -691,6 +691,72 @@ body.in-room #main .page-head{padding-top:14px;padding-bottom:14px}body.in-room 
 .room-slot .sec{padding:0;border:0;background:none}.room-slot .wrap{padding:0}.room-pane>*+*,.room-pane .sec+.sec{margin-top:18px}
 .room-slot .grid2,.room-slot .grid3,.room-slot .group-hero{grid-template-columns:minmax(0,1fr)}.room-slot .group-hero{padding:18px 20px;gap:16px}.room-slot .sec-head h2{font-size:24px}
 </style>
+<style id="focus-pass">
+/* ── Focus pass (2026-11-15) ──────────────────────────────────────────────
+   One accent means one thing: yellow = the action to take now. Two nav
+   levels look different from each other. Chrome costs one line, not five.
+   Rules here override the base sheet on purpose; keep them together. */
+
+/* 1. Global menu: quiet "you are here" — a stone pill with an ink rule, not the action colour */
+.nav button.on{background:var(--paper-3);color:var(--ink);font-weight:700;box-shadow:inset 0 -2px 0 var(--ink);border-radius:var(--r-sm)}
+
+/* 2. Language switch is a control, not the action */
+.edu-seg button.on{background:var(--ink);color:var(--paper)}
+
+/* 3. Section tabs: underline tabs, so they never read as the menu above or as chips below */
+.tabs{gap:2px;border-bottom:1px solid var(--line-2)}
+.tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-2);border-radius:0;padding:9px 12px;margin-bottom:-1px;font-weight:500}
+.tabs button:hover{background:var(--paper-2);color:var(--ink)}
+.tabs button.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.tabs button.on .tab-mark svg{color:var(--green)}
+/* nested tab row (a stage inside a demo) reads one step quieter than the row that owns the page */
+#lifeSteps{gap:0;border-bottom-color:var(--line)}
+#lifeSteps button{font-size:14px;padding:7px 10px;color:var(--ink-3)}
+#lifeSteps button.on{color:var(--ink)}
+
+/* 4. Earned badges are a state, not an action */
+.bd.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+/* 5. Passive notes are notes: stone with a full contour. Yellow stays for actions, chips and the track hero.
+      The app keeps full contours everywhere (no left-stripe accents), so this is a border, not an edge bar. */
+.callout.tone-yellow{background:var(--paper-2);color:var(--ink);border:1px solid var(--line-2)}
+#visionAssetStatus{padding:10px 14px;font-size:13.5px;line-height:1.5}
+
+/* 6. Team bar: one line (everything stays visible, nothing hidden behind a toggle) */
+.teambar{padding:7px var(--gutter);gap:8px 16px;align-items:center}
+.teambar .field{display:flex;align-items:center;gap:8px;min-width:0}
+.teambar .field>label,.teambar .field>.label{margin:0;white-space:nowrap;font-size:11px}
+.teambar .f-name{flex:1 1 260px;max-width:340px}
+.tb-prog{flex:1 1 240px;max-width:320px}
+.tb-prog>.field{display:block;min-width:0}
+.tb-prog .label{display:block;margin-bottom:3px;font-size:10.5px;line-height:1.3;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-actions{flex:none}
+#badges{display:flex;align-items:center;gap:4px;flex:none}
+#badges>.label{display:none}
+#badges .bd{width:24px;height:24px}
+
+/* 7. Path bar: one line from tablet width up. On phones (<=768px) it keeps wrapping, as before. */
+.pb-in{min-height:40px;padding:7px var(--gutter)}
+@media (min-width:769px){
+  .pb-in{flex-wrap:nowrap;gap:8px 12px}
+  .pb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pathNext{white-space:nowrap}
+}
+@media (max-width:1439px){.pb-min{display:none}}
+@media (max-width:1300px){.pb-hint{display:none}}
+
+/* 8. Report tiles: neutral. The "what is still missing" list is the message, not three coloured zeros. */
+#delivStats .stat{background:var(--paper-2);color:var(--ink);border:1px solid var(--line-2)}
+
+/* 9. The track hero carries the task, so give it less air */
+.group-hero{padding:18px 24px;gap:20px}
+
+/* 10. The company site is a simulation, so its fake browser stays quiet: muted dots, back button in the ghost style.
+       The site's own content is the thing to read. */
+.rybex-frame .rf-dots i{background:var(--paper-3);box-shadow:inset 0 0 0 1px var(--line-2)}
+.rybex-frame .rf-back{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.rybex-frame .rf-back:hover{background:var(--paper-2)}
+</style>
 </head>
 <body class="edu">
 <a class="skip" id="skip" href="#main">Przejdź do treści</a>
@@ -1471,7 +1537,7 @@ function bindMoreMetrics(){const M=X.moreOpen||(X.moreOpen={});
 function essentials(head,rest,{cls='grid3',extra='',recap='',open=false}={}){return`<div class="headline">${statGrid(head,'grid2')}</div>${recap}<details class="more-metrics"${open?' open':''}><summary>${T('Więcej miar','More metrics')}</summary>${rest.length?statGrid(rest,cls):''}${extra}</details>`}
 const KIND=k=>k==='maint'?{pos:T('minuta awarii','failure minute'),found:T('Minuty awarii z alarmem','Failure minutes with an alarm'),tp:T('min. z alarmem','min. with alarm'),fn:T('min. bez alarmu','min. without alarm')}:{pos:T('wada','defect'),found:T('Wykryte wady','Defects found'),tp:T('wykryta wada','defect found'),fn:T('przeoczona wada','missed defect')};
 // Maintenance headline counts whole breakdowns; the per-minute recall moves into the folded metrics.
-function kpis(m,{kind='vision',recap='',open=false,more=[]}={}){const K=KIND(kind),ev=kind==='maint'&&isObj(m.ev)?m.ev:null,rec=[pct(m.r),`${K.found} (${gl('recall',T('czułość','recall'))})`,'blue'];
+function kpis(m,{kind='vision',recap='',open=false,more=[]}={}){const K=KIND(kind),ev=kind==='maint'&&isObj(m.ev)?m.ev:null,rec=[pct(m.r),`${K.found} (${gl('recall',T('czułość','recall'))})`,'stone'];
  return essentials([ev?[`${ev.caught} ${T('z','of')} ${ev.total}`,T('Wykryte awarie (całe awarie, nie minuty)','Breakdowns detected (whole breakdowns, not minutes)'),ev.caught<ev.total?'red':'green']:rec,[Math.round(m.fp),ev?T('Fałszywe alarmy (minuty)','False alarms (minutes)'):T('Fałszywe alarmy','False alarms'),Math.round(m.fp)?'red':'green']],[...(ev?[rec]:[]),[pct(m.p),gl('precision',T('Precyzja','Precision')),'yellow'],[pct(f0(m.f1)),gl('f1','F1'),'green'],[pct(m.acc),gl('accuracy',T('Trafność','Accuracy')),'ink'],...more],{recap,open,extra:confMat(m,kind)})}
 // Maintenance speaks in minutes and alarms, without the TP/FN codes, plus one plain line on precision and F1.
 function confMat(m,kind='vision'){const K=KIND(kind),r=x=>Math.round(x);if(kind==='maint')return`<p class="hint" id="mtMoreHelp">${T('Precyzja: jaka część minut z alarmem przypadła na awarię. F1: jedna liczba łącząca obie miary – 100% znaczy, że każda minuta awarii miała alarm i nie było ani jednego fałszywego. Trafność: odsetek wszystkich minut ocenionych dobrze (przy rzadkich awariach zawsze wysoka, więc mało mówi).','Precision: the share of alarm minutes that fell during a breakdown. F1: one number combining both measures – 100% means every failure minute had an alarm and there was not a single false one. Accuracy: the share of all minutes judged right (always high when breakdowns are rare, so it says little).')}</p><div class="tscroll conf"><table><thead><tr><th></th><th>${T('Alarm','Alarm')}</th><th>${T('Bez alarmu','No alarm')}</th></tr></thead><tbody><tr><td>${T('Minuty awarii','Failure minutes')}</td><td><span class="edu-chip tone-green">${r(m.tp)} ${T('trafnie','caught')}</span></td><td><span class="edu-chip tone-red">${r(m.fn)} ${T('przegapione','missed')}</span></td></tr><tr><td>${T('Minuty bez awarii','Minutes without a failure')}</td><td><span class="edu-chip tone-red">${r(m.fp)} ${T('fałszywie','false alarm')}</span></td><td><span class="edu-chip tone-green">${r(m.tn)} ${T('spokój, słusznie','quiet, rightly')}</span></td></tr></tbody></table></div>`;return`<div class="tscroll conf"><table><thead><tr><th></th><th>${T('System mówi','System says')}: ${K.pos}</th><th>${T('System mówi: OK','System says: OK')}</th></tr></thead><tbody><tr><td>${T('Naprawdę','Actually')}: ${K.pos}</td><td><span class="edu-chip tone-green">${r(m.tp)} ${K.tp} (TP)</span></td><td><span class="edu-chip tone-red">${r(m.fn)} ${K.fn} (FN)</span></td></tr><tr><td>${T('Naprawdę: OK','Actually: OK')}</td><td><span class="edu-chip tone-red">${r(m.fp)} ${T('fałszywy alarm','false alarm')} (FP)</span></td><td><span class="edu-chip tone-green">${r(m.tn)} ${T('poprawnie OK','correctly OK')} (TN)</span></td></tr></tbody></table></div>`}
@@ -2033,7 +2099,7 @@ function sitePreviewHTML(){const R=RYBEX_SITE(),h=R.home;
  <div class="rf-bar"><span class="rf-nav">${ic('arrow-left')}${ic('arrow-right')}</span><span class="rf-url">${ic('lock')}<b>rybex.example/${R.addr.home}</b></span></div></div>
  <div class="rf-page"><div class="rf-hero"><div><p class="sp-name">Rybex</p><p class="rf-lead">${h.lead}</p><p>${h.p[0]}</p></div><div class="rf-hero-pic">${rybexHeroImg()}</div></div>
  <div class="rf-teaser"><p><b>${h.news[0]}</b> ${h.news[1]}</p></div></div></div>
- <div class="card-foot"><a class="btn btn-sm" id="siteOpen" href="#/rybex/news">${ic('globe')}${T('Otwórzcie stronę firmową','Open the company site')}</a></div></article>`}
+ <div class="card-foot"><a class="btn-ghost btn-sm" id="siteOpen" href="#/rybex/news">${ic('globe')}${T('Otwórzcie stronę firmową','Open the company site')}</a></div></article>`}
 // The workshop description stays on the start page for good: inside the onboarding card first, then as its own card.
 const aboutParas=()=>`<p>${glh(T('Pracujecie jako zespół AI w firmie Rybex, która produkuje konserwy rybne. Zakład ma kłopot: sieć handlowa zwróciła partię puszek. Na początek przeczytacie o tym komunikat na stronie firmy.','You work as an AI team at Rybex, a company that makes canned fish. The plant has a problem: a retail chain returned a batch of cans. You start by reading the notice about it on the company site.'))}</p>
  <p>${glh(T('Potem wybierzecie jedno z pięciu zadań, sprawdzicie proste rozwiązanie na danych warsztatowych i zmierzycie, jak działa. Na koniec zaprojektujecie architekturę, ocenicie ryzyka i wyeksportujecie raport. Pasek u góry strony pokazuje, który krok jest następny.','Then you pick one of five tasks, try a simple solution on workshop data and measure how it works. At the end you design the architecture, assess the risks and export a report. The bar at the top of the page shows which step comes next.'))}</p>
@@ -2042,7 +2108,7 @@ const aboutHTML=()=>`<div class="card" id="about"><div class="card-head"><span c
 function onboardHTML(){return`<div class="card" id="onboard"><div class="card-head"><span class="tile-h">${badge('hand','yellow')}<h2>${T('Zanim zaczniecie','Before you start')}</h2></span></div><div class="card-body ob-grid"><div>${aboutParas()}</div>
  <div><div class="field"><label for="onboardName">${T('Nazwa zespołu','Team name')}</label><input id="onboardName" class="input" type="text" maxlength="120" value="${esc(team().name)}" placeholder="${T('Np. Zespół Szprot','E.g. Team Sprat')}" aria-describedby="onboardNameMsg"><p class="hint" id="onboardNameMsg" aria-live="polite"></p></div>
 </div></div>
- <div class="card-foot"><button type="button" class="btn" id="onboardGo">${T('Zaczynamy','Let’s start')} ${ic('arrow-down')}</button></div></div>`}
+ <div class="card-foot"><button type="button" class="btn-ink" id="onboardGo">${T('Zaczynamy','Let’s start')} ${ic('arrow-down')}</button></div></div>`}
 function bindOnboard(){const n=$('#onboardName');if(!n)return;n.oninput=e=>{if(e.target.value.trim()){n.removeAttribute('aria-invalid');$('#onboardNameMsg').textContent=''}team().name=e.target.value;$('#teamName').value=e.target.value;save();renderTeamOptions();renderProg()};
  // An empty name keeps the card open: the message sits under the visible field, which gets the cursor.
  $('#onboardGo').onclick=()=>{if(!team().name.trim()){n.setAttribute('aria-invalid','true');$('#onboardNameMsg').textContent=T('Wpiszcie nazwę zespołu, np. Zespół Szprot – trafi na okładkę raportu.','Type a team name, e.g. Team Sprat – it goes on the report cover.');n.scrollIntoView({block:'center'});n.focus({preventScroll:true});return}
@@ -2058,7 +2124,7 @@ function vHome(){const desc={brief:T('Zadanie i wymagania projektu końcowego dl
  const tm=m=>Math.floor(m/60)+':'+String(m%60).padStart(2,'0'),ob=!team().onboardedAt&&!hasWork({...team(),name:''});
  mainEl.innerHTML=(ob?`<h1 class="sr-only">${T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company')}</h1>`:pageHead(T('Jak prowadzić projekt AI w firmie','How to run an AI project in a company'),T('Warsztaty na przykładzie firmy Rybex – producenta konserw rybnych. Od wyboru zadania i danych, przez architekturę i prototyp, po ocenę działania i plan wdrożenia.','A hands-on workshop based on Rybex, a fish-can manufacturer. From choosing the task and data, through architecture and prototype, to evaluation and a deployment plan.'),`<p class="mt"><button type="button" class="btn" id="heroNext" data-go="${nx?nx.go.join('/'):'deliver'}">${nx?nextLabel(nx):T('Przejdźcie do raportu','Go to the report')} ${ic('arrow-right')}</button></p>`))
  +`<section class="sec${ob?' ob-sec':''}"><h2 class="sr-only">${T('Sprawa zakładu','The plant’s case')}</h2><div class="wrap ob-pair">${ob?onboardHTML():aboutHTML()}${sitePreviewHTML()}</div>${S.example?'':`<div class="wrap"><p class="row ex-entry">${exampleBtn()}<span class="hint">${T('Podgląd skończonego, niedoskonałego projektu innego zespołu. Wasza praca zostaje nietknięta.','A preview of another team’s finished, imperfect project. Your work stays untouched.')}</span></p></div>`}</section>`
- +sectionBand('layout-grid',T('Co znajdziecie na warsztatach','What is in the workshop'),`<div class="grid3 wide">${keys.map((v,i)=>card(NAV.find(n=>n[0]===v)[1],nm(v),`<p>${desc[v]}</p>`,{tone:tones[i],foot:`<button type="button" class="btn-ghost btn-sm" data-go="${v}">${T('Otwórz','Open')}</button>`})).join('')}</div>`)
+ // The six "what is in the workshop" cards repeated the top menu item for item; the menu is the menu.
  +sectionBand('calendar-clock',T(`Proponowany przebieg warsztatów (ok. ${Math.floor(tot/60)} godz.${tot%60?` ${tot%60} min`:''})`,`Suggested workshop flow (about ${Math.floor(tot/60)} h${tot%60?` ${tot%60} min`:''})`),`<div class="card" id="agenda"><div class="card-body flush" style="padding:6px 8px">${ag.map(([a,m,p],i)=>`<button type="button" class="g-row" data-step="${p.id}" data-go="${p.go.join('/')}"><span class="g-label">${badge(stIc(p),tones[i%tones.length])}<span><span class="g-name">${p.label}</span><span class="g-time">${tm(a)}–${tm(a+m)}</span></span></span><span class="g-track" aria-hidden="true"><span class="g-bar" style="left:${a/tot*100}%;width:${m/tot*100}%"></span></span></button>`).join('')}</div></div>`);
  $$('[data-go]',mainEl).forEach(b=>b.onclick=()=>go(...b.dataset.go.split('/')));const hn=$('#heroNext');if(hn&&nx)hn.onclick=()=>{const b=$('#pathNext');if(b)b.click();else go(...hn.dataset.go.split('/'))};bindExampleBtn();bindOnboard()}
 const exampleBtn=()=>`<button type="button" class="btn-ghost" id="showExample">${ic('eye')}${T('Pokażcie przykład zespołu','Show an example team')}</button>`;

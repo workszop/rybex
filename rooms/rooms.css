@@ -19,7 +19,9 @@
   background: transparent; border: 1px solid transparent; border-radius: var(--r-pill, 999px); padding: 7px 12px; cursor: pointer;
 }
 .room-btn:hover { background: var(--paper-3, #EAE6E0); }
-.room-btn[aria-pressed="true"] { background: var(--yellow, #FFD500); color: var(--yellow-ink, #1C1917); }
+/* Focus pass: an open station is "you are here", the same quiet marker the top menu uses.
+   Yellow stays for the one action the app asks for. */
+.room-btn[aria-pressed="true"] { background: var(--paper-3, #EAE6E0); color: var(--ink, #1C1917); box-shadow: inset 0 -2px 0 var(--ink, #1C1917); }
 .room-btn.room-2d { border-color: var(--line-strong, #857C69); margin-left: 4px; }
 .room-root button:focus-visible { outline: none; box-shadow: var(--focus-ring, 0 0 0 2px #fff, 0 0 0 5px #1C1917); }
 /* The title only takes focus when a station opens (tabindex -1, never tabbed to): a quiet yellow underline, not the ring. */
