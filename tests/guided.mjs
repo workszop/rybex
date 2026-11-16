@@ -1443,7 +1443,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       ok('a11y reduced motion: no animation or transition on the new components', !moving.length, moving.join(' | ')); ok('a11y no page errors (motion)', !p.errs.length, p.errs.join('|')); await p.close(); }
     // 4f. Vision result thumbnails carry a text label, not colour alone.
     { const p = await fresh('#/lab/vision', '', { width: 1280, height: 800 });
-      ok('a11y vision thumbnails carry a visible text label', await p.$$eval('#visRes .thumb', e => e.length > 10 && e.every(t => { const s = t.querySelector('span'); return s && s.offsetHeight > 0 && s.textContent.trim() === t.dataset.cls.toUpperCase() && (t.getAttribute('aria-label') || '').endsWith(t.dataset.cls.toUpperCase()); })));
+      ok('a11y vision thumbnails carry a visible text label', await p.$$eval('#visRes .thumb', e => e.length > 10 && e.every(t => { const s = t.querySelector('span'); return s && s.offsetHeight > 0 && s.textContent.trim().length > 3 && !/^[A-Z]{2}$/.test(s.textContent.trim()) && (t.getAttribute('aria-label') || '').endsWith(t.dataset.cls.toUpperCase()); })));
       await p.close(); }
     // 4g. Focus is never left on BODY after the listed actions.
     { const p = await fresh('#/home', '', { width: 1280, height: 800 }); const lost = []; const at = async tag => { const a = await p.evaluate(() => { const a = document.activeElement; return !a || a === document.body ? 'BODY' : a.tagName + '#' + a.id; }); if (a === 'BODY') lost.push(tag); };
@@ -1507,8 +1507,8 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const fit = await p.$eval('#teamSel', e => { const c = document.createElement('canvas').getContext('2d'), s = getComputedStyle(e); c.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`; const w = c.measureText(e.selectedOptions[0].textContent).width; return { w: Math.round(w), box: e.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) }; });
       ok('a11y team selector shows "Zespół 1 – Zespół 1" uncut', fit.w <= fit.box, JSON.stringify(fit));
       await p.evaluate(() => go('arch')); const t = await p.$eval('#pathBar .pb-txt', e => e.textContent);
-      ok('a11y path bar on #/arch for a team at step 1: position and the earlier open step agree', /krok 8 z 9/.test(t) && /Najpierw wróćcie do kroku 1 z 9: /.test(t) && !/Następny krok/.test(t), t);
-      await p.click('#langSeg button[data-l=en]'); const e = await p.$eval('#pathBar .pb-txt', e => e.textContent); ok('a11y the same in English', /step 8 of 9/.test(e) && /First go back to step 1 of 9: /.test(e), e);
+      ok('a11y path bar on #/arch for a team at step 1: position and the earlier open step agree', /krok 8 z 9/.test(t) && /Brakuje wcześniejszego kroku 1 z 9: /.test(t) && !/Następny krok/.test(t), t);
+      await p.click('#langSeg button[data-l=en]'); const e = await p.$eval('#pathBar .pb-txt', e => e.textContent); ok('a11y the same in English', /step 8 of 9/.test(e) && /Earlier step 1 of 9 still open: /.test(e), e);
       await seed(p, () => { const t = team(); t.onboardedAt = 'x'; t.site.newsRead = true; }); await p.evaluate(() => go('home'));
       ok('a11y a forward next step keeps "Next step"', /Next step: /.test(await p.$eval('#pathBar .pb-txt', e => e.textContent)));
       ok('a11y no page errors (cleanup)', !p.errs.length, p.errs.join('|')); await p.close(); }
