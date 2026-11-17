@@ -7,8 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FFD500'/%3E%3Cpath d='M13 7.5c2-2.5 5.5-3 8-2-1.5 1.2-2.4 2.8-2.6 4.6z' fill='%231C1917'/%3E%3Cpath d='M2.5 16.5C4.5 7.5 15.5 5 22 12.5l6.5-5.5c-.9 3-1.4 6-1.4 9.5s.5 6.5 1.4 9.5L22 20.5C15.5 28 4.5 25.5 2.5 16.5z' fill='%231C1917'/%3E%3Ccircle cx='9.5' cy='14.5' r='2.8' fill='%23FFD500'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Raleway:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Raleway:wght@500;600;700;800&display=swap">
 
 
 <style>
@@ -17,7 +16,6 @@
   @media print { html:not(.app-ready) body { visibility: visible; animation: none; } }
 </style>
 <noscript><style>html:not(.app-ready) body { visibility: visible; animation: none; }</style></noscript>
-<script src="https://cdn.jsdelivr.net/npm/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous" async></script>
 <link rel="stylesheet" href="rooms/rooms.css">
 <style>
 /* ============================================================
@@ -873,13 +871,7 @@ details.lane>summary:hover>b{text-decoration:underline}
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="sr-only" id="live" aria-live="polite"></div>
 
-<script src="vendor/three/three.global.js"></script>
-<script src="rooms/engine.js"></script>
-<script src="rooms/room-vision.js"></script>
-<script src="rooms/room-rag.js"></script>
-<script src="rooms/room-complaints.js"></script>
-<script src="rooms/room-forecast.js"></script>
-<script src="rooms/room-maint.js"></script>
+<script src="vendor/icons.js"></script>
 <script>
 // ─── Constants ───
 const APP_ID='rybex-ai-workshop',STORE_KEY='rybexws',FILE_VERSION=3,TEAM_COUNT=8,MIN_EXPERIMENTS=3,PREVIEW_ROWS=40,TOAST_MS=8000,TOAST_ACTION_MS=20000,WEAK_SIM=.35,FONT_WAIT_MS=1500;
@@ -1522,7 +1514,11 @@ const pct=x=>isFinite(x)?num(x*100,1)+'%':'–';
 const setHTML=(el,h)=>{if(el._h===h)return false;el._h=h;el.innerHTML=h;return true};
 const ic=n=>`<i data-lucide="${n}" class="ic" aria-hidden="true"></i>`;
 const badge=(n,t='ink',lg)=>`<span class="badge ${lg?'badge-lg ':''}tone-${t}">${ic(n)}</span>`;
-function icons(root=document){if(window.lucide)window.lucide.createIcons({root})}
+// <i data-lucide="name"> becomes the inline svg from vendor/icons.js (lucide icons, built by tools/build-icons.mjs); an unknown name stays an empty <i>.
+function icons(root=document){for(const el of root.querySelectorAll('i[data-lucide]')){const n=el.getAttribute('data-lucide'),b=ICONS[n];if(!b)continue;const v=document.createElementNS('http://www.w3.org/2000/svg','svg');
+ for(const a of el.attributes)if(a.name!=='data-lucide'&&a.name!=='class')v.setAttribute(a.name,a.value);
+ for(const[k,x]of Object.entries({width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':2,'stroke-linecap':'round','stroke-linejoin':'round',class:'lucide lucide-'+n+(el.getAttribute('class')?' '+el.getAttribute('class'):'')}))v.setAttribute(k,x);
+ v.innerHTML=b;el.replaceWith(v)}}
 function save(){if(S.example)return true;let ok=true;try{const cur=readStore()||{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,lang:S.lang,team:S.team,view:S.view==='trainer'?cur.view||'home':S.view,sub:S.sub,ai:S.ai,rooms:S.rooms,teams:{...(cur.teams||{}),[S.team]:team()}}))}catch(e){ok=false}saveFailed=!ok;renderSaveWarn();return ok}
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
@@ -2283,7 +2279,7 @@ function RYBEX_SITE(){const s=STORY(),lot=s.lot;return{town:'Mirszyce',
 const RYBEX_FISH='<svg class="rf-fish" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#FFD500"/><path d="M13 7.5c2-2.5 5.5-3 8-2-1.5 1.2-2.4 2.8-2.6 4.6z" fill="#1C1917"/><path d="M2.5 16.5C4.5 7.5 15.5 5 22 12.5l6.5-5.5c-.9 3-1.4 6-1.4 9.5s.5 6.5 1.4 9.5L22 20.5C15.5 28 4.5 25.5 2.5 16.5z" fill="#1C1917"/><circle cx="9.5" cy="14.5" r="2.8" fill="#FFD500"/></svg>';
 // Generated catalogue packshots are independent of the vision-lab training images.
 const RYBEX_PACKSHOTS=['szprot-w-oleju','makrela-w-pomidorach','sledz-po-kaszubsku','tunczyk-w-sosie-wlasnym'];
-function rybexHeroImg(){return`<img data-slot="hero" src="assets/images/rybex-hero-fishing-boat-square.png" alt="${esc(T('Kuter rybacki na Morzu Bałtyckim','Fishing boat on the Baltic Sea'))}" width="1254" height="1254">`}
+function rybexHeroImg(){return`<img data-slot="hero" src="assets/images/rybex-hero-fishing-boat.webp" alt="${esc(T('Kuter rybacki na Morzu Bałtyckim','Fishing boat on the Baltic Sea'))}" width="960" height="960" decoding="async">`}
 function rybexImg(slot,pi){const nm2=PRODUCTS[pi];return`<img data-slot="${slot}" data-product="${pi}" src="assets/products/${RYBEX_PACKSHOTS[pi]}.webp" alt="${esc(T(`Puszka Rybex: ${nm2[0]}`,`Rybex can: ${nm2[1]}`))}" width="1122" height="1402"${slot[0]==='p'?' loading="lazy"':''}>`}
 // A packshot that fails to load becomes a neutral tile with the product name (same slot, size and accessible name).
 addEventListener('error',e=>{const i=e.target;if(!(i instanceof HTMLImageElement)||!i.matches('.rybex-frame img[data-product]'))return;const pi=+i.dataset.product,f=document.createElement('span');
@@ -2599,7 +2595,14 @@ function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=
 // handlers and typed text stay). #roomHost sits outside #main: re-renders keep the canvas and only swap the panels.
 // ?rooms=0 forces the page view (old test suites); S.rooms is the participant's choice; no WebGL2 -> page view with a notice.
 const ROOMS_OFF=new URLSearchParams(location.search).get('rooms')==='0',roomHost=$('#roomHost');
-const roomCan=()=>!!window.Rooms&&!X.roomFail&&Rooms.supported(),roomOk=()=>!ROOMS_OFF&&S.rooms!==false&&roomCan();
+// The 3D stack (three.js, the engine and the one room script of the track) is fetched when a lab first needs it, not with the page:
+// a team that stays on the pages never downloads it. Until it arrives the lab shows as a page, then render() swaps in the room.
+const roomJs={},roomReady={},roomBusy={};
+const roomSrc=u=>roomJs[u]||(roomJs[u]=new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error(u));document.head.appendChild(e)}));
+const roomLoad=k=>roomSrc('vendor/three/three.global.js').then(()=>roomSrc('rooms/engine.js')).then(()=>roomSrc('rooms/room-'+k+'.js'));
+function roomFetch(k){if(roomBusy[k])return;roomBusy[k]=true;roomLoad(k).then(()=>{roomReady[k]=true},()=>{X.roomFail=true}).then(()=>{roomBusy[k]=false;if(S.view==='lab'&&S.sub.lab===k)render()})}
+let glMemo;const glOk=()=>{if(glMemo===undefined)try{const g=document.createElement('canvas').getContext('webgl2');glMemo=!!g;const l=g&&g.getExtension('WEBGL_lose_context');if(l)l.loseContext()}catch(e){glMemo=false}return glMemo};
+const roomCan=()=>!X.roomFail&&(window.Rooms?Rooms.supported():glOk()),roomWant=()=>!ROOMS_OFF&&S.rooms!==false&&roomCan(),roomOk=(k=S.sub.lab)=>roomWant()&&!!window.Rooms&&!!roomReady[k];
 const roomBar=()=>ROOMS_OFF?'':S.rooms===false?(roomCan()?`<p class="mt" style="margin-bottom:0"><button type="button" class="btn-ghost btn-sm" id="roomOn">${ic('box')}${T('Wejdźcie do pokoju 3D','Enter the 3D room')}</button></p>`:''):roomCan()?'':`<p class="hint mt" id="roomNote" style="margin-bottom:0">${T('Ta przeglądarka nie pokaże pokoju 3D (brak WebGL2), dlatego zadanie jest w zwykłym widoku strony.','This browser cannot show the 3D room (no WebGL2), so the task is shown as a plain page.')}</p>`;
 const ROOM_TITLES=()=>({brief:{pl:'Zadanie',en:'Brief'},data:{pl:'Dane',en:'Data'},method:{pl:'Metoda',en:'Method'},experiment:{pl:'Eksperyment',en:'Experiment'},results:{pl:'Wyniki',en:'Results'}});
 // What the room shows of the real data: can photos (data: URLs only, safe on file://), document codes, categories,
@@ -2625,7 +2628,7 @@ function roomGuide(k,seen){const t=team(),n=expOf(t,k),M=MIN_EXPERIMENTS,tags={e
  return{done:true,tags,text:T('Laboratorium gotowe: eksperymenty zapisane i porównane. Kolejny krok pokazuje pasek u góry.','Lab done: experiments saved and compared. The bar at the top shows the next step.')}}
 // The walk is kept in the team (seen['room.<track>.<station>']), so it survives the room being mounted again (language or team switch, reload).
 const ROOM_STATIONS=['brief','data','method','experiment','results'],roomSeen=k=>ROOM_STATIONS.filter(s=>team().seen['room.'+k+'.'+s]);
-function roomSync(k){if(!roomOk()){roomDispose();roomHost.dataset.roomStatus='2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
+function roomSync(k){if(roomWant()&&!roomReady[k])roomFetch(k);if(!roomOk(k)){roomDispose();roomHost.dataset.roomStatus=roomBusy[k]?'loading':'2d';const b=$('#roomOn');if(b)b.onclick=()=>guardRun(()=>{S.rooms=true;save();render()});return}
  const pane=(...n)=>{const d=document.createElement('div');d.className='room-pane';d.append(...n.filter(Boolean));return d};
  const hero=$('#main .group-hero').closest('.sec'),bd=$('#baseDef'),bi=bd.nextElementSibling,row=document.createElement('p');row.className='row';row.append($('#runBase'));
  const exp=pane(row,bd,bi,$('#baseBanner'),$('#baseOut'),$('#labProto')),meth=pane($('#labMethod')),brief=pane(hero,$('#labData')),res=pane($('#labExp')),data=pane();
@@ -3279,7 +3282,8 @@ function labMaint(){const L=lab().mt,fl=[['temp_c',T('temperatura','temperature'
 // Checked on tuning data only (vision: validation set, RAG: the built-in out-of-scope question, complaints: dev set,
 // forecast and maintenance: the lab's visible evaluation window), never on a hidden test set. Thresholds were swept on
 // the workshop data (tests/guided.mjs, section challenge): a fresh team starts open on every track, rules alone can pass.
-const CH={visFp:2,complPp:.5,fcPp:.01,fcShort:3,fcLong:9,mtMin:10,mtFp:3};
+// visFp: on the generated photo set the sensitivity slider first catches every practice-set defect at 72 and keeps doing so up to about 84, with 15 false alarms there (the can photos have borderline good cans; 2 was the limit on the earlier photo set). The guided test sweeps the slider, so a new photo set that makes this unreachable fails it.
+const CH={visFp:15,complPp:.5,fcPp:.01,fcShort:3,fcLong:9,mtMin:10,mtFp:3};
 // The retort failure the challenge is about: the temperature event in the evaluation window (minutes 300–600), [start, end).
 const retortWindow=()=>{const e=SENSOR_EVENTS.find(([s,k])=>k==='t'&&s>=300);return[e[0],e[0]+SENSOR_EVENT_LEN]};
 function CHALLENGES(){return{

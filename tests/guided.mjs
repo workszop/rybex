@@ -568,7 +568,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     await p.evaluate(() => Promise.all([...document.querySelectorAll('.rf-prod img')].map(img => img.decode().catch(() => {}))));
     ok('site product packshots load', await p.$$eval('.rf-prod img', imgs => imgs.every(img => img.complete && img.naturalWidth > 0)));
     await p.evaluate(() => { go('rybex', 'home'); visionRefresh(); });
-    ok('site hero uses the generated fishing boat', await p.$$eval('.rf-hero-pic img', imgs => imgs.length === 1 && imgs[0].getAttribute('src') === 'assets/images/rybex-hero-fishing-boat-square.png'));
+    ok('site hero uses the generated fishing boat', await p.$$eval('.rf-hero-pic img', imgs => imgs.length === 1 && imgs[0].getAttribute('src') === 'assets/images/rybex-hero-fishing-boat.webp'));
     ok('site vision refresh leaves product packshots unchanged', await p.$$eval('.rf-prod img', (imgs, expected) => imgs.length === 4 && imgs.every((img, i) => img.getAttribute('src') === expected[i] && !img.hasAttribute('data-vi')), packshots));
     await p.evaluate(() => go('rybex', 'products'));
     await p.click('.rybex-frame [data-lab=vision]'); ok('site product links to the vision lab', await p.evaluate(() => S.view === 'lab' && S.sub.lab === 'vision'));
@@ -800,7 +800,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       L.rag.min = .6; out.rag_oos_strict = (() => { try { return chFacts('rag_oos', { simulate: true }).pass; } catch (e) { return String(e); } })();
       out.rag_needs_question = chFacts('rag_oos').pass; L.rag.min = .12;
       L.mt.f.temp_c = 1; let best = false; for (let thr = 1.5; thr <= 10 && !best; thr += .5) for (let w = 1; w <= 8 && !best; w++) { L.mt.thr = thr; L.mt.win = w; best = chFacts('maint_retort').pass; } out.maint = best;
-      const th = visTh(), R = VIS.rng; out.vision = false; for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200 && !out.vision; i++) { L.vision.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; out.vision = chFacts('vision_borderline').pass; }
+      out.vision = false; for (let sens = 0; sens <= 100 && !out.vision; sens++) { L.vision.th = { sens, fk: VIS.featureSource }; out.vision = chFacts('vision_borderline').pass; }
       L.vision.th = null;
       L.compl.kw = { ...KW, damage: KW.damage + ', wypukł, napuch, poszarp', quality: KW.quality + ', tward', smell: KW.smell + ', smród, pachni', delivery: KW.delivery + ', karton' }; out.compl = chFacts('compl_mixed').pass;
       L.compl.safety = 'zapach'; out.compl_needs_safety = chFacts('compl_mixed').pass; L.compl.kw = { ...KW }; L.compl.safety = SAFETY_KW;
@@ -810,7 +810,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('maint challenge is reachable on the workshop data', reachable.maint === true, JSON.stringify(reachable));
     ok('rag challenge is reachable at a strict threshold', reachable.rag_oos_strict === true, JSON.stringify(reachable));
     ok('rag challenge needs the question to be asked', reachable.rag_needs_question === false);
-    ok('vision challenge is reachable with one rule threshold', reachable.vision === true, JSON.stringify(reachable));
+    ok('vision challenge is reachable with the sensitivity slider', reachable.vision === true, JSON.stringify(reachable));
     ok('complaints challenge is reachable with keywords', reachable.compl === true && reachable.compl_needs_safety === false, JSON.stringify(reachable));
     ok('forecast challenge is reachable and needs the 9-month horizon', reachable.fc === true && reachable.fc_needs_h9 === false, JSON.stringify(reachable));
     await p.evaluate(() => { go('lab', 'maint'); });
@@ -933,7 +933,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('badges survive reload and are in the team file', await p.evaluate(() => team().badges.includes('news') && JSON.stringify(team()).includes('"badges"')));
     ok('names are sober', await p.evaluate(() => BADGES().every(b => !/[!🏆🎉]/u.test(b.name + b.desc) && !/\p{Extended_Pictographic}/u.test(b.name + b.desc))));
     ok('the two spec texts are verbatim', await p.evaluate(() => { const B = Object.fromEntries(BADGES().map(b => [b.id, b])); return B.fairTest.name === 'Uczciwy test' && B.fairTest.desc === 'odsłoniliście test końcowy jeden raz, dopiero po zapisaniu metody odniesienia i uzasadnienia.' && B.noGuess.name === 'Linia nie zgaduje' && B.noGuess.desc === 'asystent wiedzy poprawnie odmówił odpowiedzi poza dokumentami.'; }));
-    ok('every badge icon exists in the loaded icon set', await p.evaluate(() => BADGES().every(b => { const n = b.icon.split('-').map(s => s[0].toUpperCase() + s.slice(1)).join(''); return !!window.lucide.icons[n]; })));
+    ok('every badge icon exists in the inlined icon set', await p.evaluate(() => BADGES().every(b => { return !!ICONS[b.icon]; })));
     const conds = await p.evaluate(() => { const T0 = () => defaultTeam(), e = t => earnedBadges(t), out = {};
       const base = (k, tv = 0) => ({ id: 'b', ts: '', track: k, cfg: { base: true }, res: { primary: { m: 'x', v: .3, base: .3, hi: true } }, note: '', testViews: tv, base: true });
       let t = T0(); t.log.push(base('vision')); t.track = 'vision'; out.firstBase = e(t).includes('firstBase');
@@ -966,7 +966,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     { const q = await fresh('#/home');
       ok('a badge earned on a switched-to team is stored silently', await q.evaluate(() => new Promise(r => { S.teams[2] = normTeam({ site: { newsRead: true } }); hideToast(); S.team = 2; render(); setTimeout(() => r(team().badges.includes('news') && toastEl.hidden && !liveEl.textContent.includes('Aktualność')), 700); })));
       ok('a badge toast does not replace a gate message', await q.evaluate(() => { toast(GATE_MSG(), { reason: 'baseline' }); team().seen.report = true; renderProg(); return toastEl.dataset.reason === 'baseline' && team().badges.includes('report'); }));
-      ok('the badge line sits under the gate message, nothing follows once it closes', await q.evaluate(() => new Promise(r => setTimeout(() => { const under = toastEl.dataset.reason === 'baseline' && toastEl.textContent.startsWith(GATE_MSG()) && toastEl.querySelector('.toast-bd').textContent.includes('Raport wyeksportowany') && !!window.lucide.icons.Award; hideToast(); setTimeout(() => r(under && toastEl.hidden && !badgeQ.length), 500); }, 50))));
+      ok('the badge line sits under the gate message, nothing follows once it closes', await q.evaluate(() => new Promise(r => setTimeout(() => { const under = toastEl.dataset.reason === 'baseline' && toastEl.textContent.startsWith(GATE_MSG()) && toastEl.querySelector('.toast-bd').textContent.includes('Raport wyeksportowany') && !!ICONS.award; hideToast(); setTimeout(() => r(under && toastEl.hidden && !badgeQ.length), 500); }, 50))));
       ok('a badge stays once announced', await q.evaluate(() => { team().seen.report = false; renderProg(); return team().badges.includes('report') && $('#badges').dataset.earned.split(' ').includes('report'); }));
       ok('earned badges are in both reports by name', await q.evaluate(() => reportMD().includes('Raport wyeksportowany') && reportHTML().includes('Raport wyeksportowany') && !reportMD().includes('Uczciwy test')));
       await q.evaluate(() => go('deliver'));
@@ -1271,7 +1271,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const fb = await p.evaluate(() => [...document.querySelectorAll('.rf-prod .rf-ph')].map(e => ({ t: e.textContent, l: e.getAttribute('aria-label'), r: e.getAttribute('role'), h: e.getBoundingClientRect().height })));
       ok('exit2r2 blocked packshot: a visible tile with the product name', fb.length === 4 && fb.every((x, i) => x.r === 'img' && /^Puszka Rybex: /.test(x.l) && x.h > 50) && fb.map(x => x.t).join() === (await p.evaluate(() => PRODUCTS.map(x => x[0]).join())), JSON.stringify(fb));
       await p.evaluate(() => go('rybex', 'home')); await p.locator('.rf-hero-pic img').evaluate(i => i.decode());
-      ok('exit2r2 boat hero independent of blocked packshots', await p.$$eval('.rf-hero-pic img', e => e.length === 1 && e[0].naturalWidth === 1254 && e[0].naturalHeight === 1254));
+      ok('exit2r2 boat hero independent of blocked packshots', await p.$$eval('.rf-hero-pic img', e => e.length === 1 && e[0].naturalWidth === 960 && e[0].naturalHeight === 960));
       ok('exit2r2 no page errors (blocked packshots)', !errs.length, errs.join('|'));
       await ctx.close(); }
     { const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } }); const p = await ctx.newPage();
