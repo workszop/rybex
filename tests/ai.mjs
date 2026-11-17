@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8796, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
 // rooms=0: the lab as the plain page (the walk-in 3D rooms have their own suite, tests/rooms.mjs integration).
-const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0${q}`;
+const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0&i18n=all${q}`;
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
 
@@ -68,7 +68,7 @@ try {
     await mock('replay', { method: 'POST', body: rec });
     await p.close();
     const ctx = await browser.newContext(); const q = await ctx.newPage(); q.errs = [];
-    await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`);
+    await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0&i18n=all#/lab/rag`);
     await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     await q.evaluate(() => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; });
     const rp = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return { replayed: x.replayed, a: x.data && x.data.answer }; });
@@ -77,7 +77,7 @@ try {
     ok('unreachable Worker, not in replay -> network error', miss === 'network', miss);
     await ctx.close();
     const ctx3 = await browser.newContext(); const q3 = await ctx3.newPage();
-    await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`);
+    await q3.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0&i18n=all#/lab/rag`);
     await q3.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     const par = await q3.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek';
       const msgs = [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }];
@@ -391,15 +391,18 @@ try {
     const p = await openVision(pathToFileURL(path.join(ROOT_DIR, 'rybex-ai-workshop.html')).href);
     const viaFile = await p.evaluate(visState);
     ok('file:// loads all 210 photos and measures them', viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
-    ok('file:// photos are the same bytes as the served JPEGs (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
+    ok('file:// photos are the same bytes as the served images (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
     ok('file:// rules score the same as over HTTP', Math.abs(viaFile.f1 - viaHttp.f1) < 1e-9, `${viaFile.f1} vs ${viaHttp.f1}`);
     await p.evaluate(() => { const b = document.querySelector('#visRes .gal-filter [data-gf=all]'); if (b) b.click(); }); await p.click('#visRes .thumb[data-i="0"]');
-    ok('file:// inspector shows the photo', /^data:image\/jpeg/.test(await p.$eval('#insp img', e => e.src).catch(() => '')));
+    ok('file:// inspector shows the photo', /^data:image\/(jpeg|webp)/.test(await p.$eval('#insp img', e => e.src).catch(() => '')));
     ok('no page errors (file)', !p.errs.length, p.errs.join(' | '));
     await p.close();
     // Without the bundle next to it, the page falls back to drawn cans and says how to fix it.
     const lone = fs.mkdtempSync(path.join(os.tmpdir(), 'rybex-file-'));
+    // the app without its photo bundle: the page, its styles and scripts, the icons; no assets/ folder at all
     fs.copyFileSync(path.join(ROOT_DIR, 'rybex-ai-workshop.html'), path.join(lone, 'rybex-ai-workshop.html'));
+    for (const d of ['css', 'js']) fs.cpSync(path.join(ROOT_DIR, d), path.join(lone, d), { recursive: true });
+    fs.mkdirSync(path.join(lone, 'vendor')); fs.copyFileSync(path.join(ROOT_DIR, 'vendor', 'icons.js'), path.join(lone, 'vendor', 'icons.js'));
     const q = await openVision(pathToFileURL(path.join(lone, 'rybex-ai-workshop.html')).href);
     const miss = await q.evaluate(visState);
     ok('file:// without the bundle -> drawn fallback, no errors', miss.src === 'synthetic' && miss.reason === 'file' && !q.errs.length, JSON.stringify(miss) + q.errs.join('|'));

@@ -5,7 +5,7 @@ const openLane = (pg, k) => pg.evaluate(k => { const c = document.querySelector(
 import { chromium, firefox } from 'playwright';
 import fs from 'fs';
 import { lowContrast as contrastWalker } from '../tests/contrast.mjs';
-const ROOT = process.env.APP_URL || 'http://localhost:8794/rybex-ai-workshop.html?rooms=0'; // rooms=0: the lab as the plain page
+const ROOT = process.env.APP_URL || 'http://localhost:8794/rybex-ai-workshop.html?rooms=0&i18n=all'; // rooms=0: the lab as the plain page
 const engineName = process.argv[2] || 'chromium';
 const ffPath = (process.argv.find(a => a.startsWith('--firefox-path=')) || '').split('=')[1];
 const EV = process.env.EVIDENCE_DIR || '';

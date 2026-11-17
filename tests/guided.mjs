@@ -12,7 +12,7 @@ import { lowContrast } from './contrast.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8797, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
 // rooms=0: the lab as the plain page (the walk-in 3D rooms have their own suite, tests/rooms.mjs integration).
-const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0${q}`;
+const APP = (q = '') => `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0&i18n=all${q}`;
 const want = process.argv.slice(2);
 const run = s => !want.length || want.includes(s);
 
@@ -800,7 +800,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       L.rag.min = .6; out.rag_oos_strict = (() => { try { return chFacts('rag_oos', { simulate: true }).pass; } catch (e) { return String(e); } })();
       out.rag_needs_question = chFacts('rag_oos').pass; L.rag.min = .12;
       L.mt.f.temp_c = 1; let best = false; for (let thr = 1.5; thr <= 10 && !best; thr += .5) for (let w = 1; w <= 8 && !best; w++) { L.mt.thr = thr; L.mt.win = w; best = chFacts('maint_retort').pass; } out.maint = best;
-      out.vision = false; for (let sens = 0; sens <= 100 && !out.vision; sens++) { L.vision.th = { sens, fk: VIS.featureSource }; out.vision = chFacts('vision_borderline').pass; }
+      const th = visTh(), R = VIS.rng; out.vision = false; for (const [k, f] of [['d', 'dent'], ['s', 'shift'], ['c', 'code']]) for (let i = 0; i <= 200 && !out.vision; i++) { L.vision.th = { ...th, [k]: R[f][0] + (R[f][1] - R[f][0]) * i / 200, fk: VIS.featureSource }; out.vision = chFacts('vision_borderline').pass; }
       L.vision.th = null;
       L.compl.kw = { ...KW, damage: KW.damage + ', wypukł, napuch, poszarp', quality: KW.quality + ', tward', smell: KW.smell + ', smród, pachni', delivery: KW.delivery + ', karton' }; out.compl = chFacts('compl_mixed').pass;
       L.compl.safety = 'zapach'; out.compl_needs_safety = chFacts('compl_mixed').pass; L.compl.kw = { ...KW }; L.compl.safety = SAFETY_KW;
@@ -810,7 +810,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     ok('maint challenge is reachable on the workshop data', reachable.maint === true, JSON.stringify(reachable));
     ok('rag challenge is reachable at a strict threshold', reachable.rag_oos_strict === true, JSON.stringify(reachable));
     ok('rag challenge needs the question to be asked', reachable.rag_needs_question === false);
-    ok('vision challenge is reachable with the sensitivity slider', reachable.vision === true, JSON.stringify(reachable));
+    ok('vision challenge is reachable with one rule threshold', reachable.vision === true, JSON.stringify(reachable));
     ok('complaints challenge is reachable with keywords', reachable.compl === true && reachable.compl_needs_safety === false, JSON.stringify(reachable));
     ok('forecast challenge is reachable and needs the 9-month horizon', reachable.fc === true && reachable.fc_needs_h9 === false, JSON.stringify(reachable));
     await p.evaluate(() => { go('lab', 'maint'); });
@@ -1668,7 +1668,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
       const rec = await p.evaluate(async () => { S.ai.code = 'test-code'; await callModel({ model: 'deepseek', messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] }); return aiRecordedJSON(); });
       await fetch(MOCK + '/replay', { method: 'POST', body: rec }); await p.close();
       const ctx = await browser.newContext(); const q = await ctx.newPage();
-      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+      await q.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent('http://127.0.0.1:9')}&rooms=0&i18n=all#/lab/rag`); await q.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
       await q.evaluate(async () => { S.ai.code = 'test-code'; S.ai.model = 'deepseek'; lab().rag.gen = 'llm'; render(); await aiCheck(); });
       const before = await q.$eval('#aiStatus', e => e.textContent);
       const r = await q.evaluate(async () => { const x = await callModel({ messages: [{ role: 'system', content: 'Odpowiadaj na podstawie fragmentów.' }, { role: 'user', content: '[PROCES-01 §1] Szew co 30 minut.\nPytanie: jak często?' }] });
@@ -2174,7 +2174,7 @@ ok('story site preview is a still picture with one working button', await p.$eva
     // 6. Complaints in her language: stems hint, "inne" explained, Polish columns, no "etykieta" for categories.
     const c6 = await c.evaluate(() => ({ h: [...$$('#cList th')].map(x => x.textContent), stem: !!$('#cStemHint') && /wgniecenie/.test($('#cStemHint').textContent), other: /Inne \(nic nie pasuje\)/.test($('#cOtherHint').textContent), lbl: CAT.label[0], g: $('#cGuide summary').textContent }));
     ok('simplify2 complaints lab columns, stems hint, "inne" and category names', c6.h.join('|') === '#|Treść (PL)|Prawdziwa kategoria|Odpowiedź metody' && c6.stem && c6.other && c6.lbl === 'Etykieta i oznaczenia' && !/etykiet/i.test(c6.g), JSON.stringify(c6));
-    ok('simplify2 model prompt still sends the category ids', await c.evaluate(() => /damage \(uszkodzenie puszki\), label \(etykieta lub kod partii\)/.test(lab().compl.draft || '') || /damage \(uszkodzenie puszki\)/.test(document.documentElement.innerHTML)));
+    ok('simplify2 model prompt still sends the category ids', await c.evaluate(async () => /damage \(uszkodzenie puszki\), label \(etykieta lub kod partii\)/.test(lab().compl.draft || '') || /damage \(uszkodzenie puszki\)/.test(await (await fetch('js/lab-complaints.js')).text())));
     // 7a. A run but unsaved baseline survives a reload.
     await c.click('#runBase'); await c.reload(); await c.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
     ok('simplify2 an unsaved baseline run is shown again after a reload', await c.evaluate(() => { const o = $('#baseOut'); return !!o && !o.hidden && !!$('#saveBase') && !hasBaseline(team(), 'complaints'); }));

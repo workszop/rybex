@@ -4,15 +4,15 @@ Workshop app for running an AI project end to end for Rybex, a canned-fish manuf
 
 **Open:** https://workszop.github.io/rybex/
 
-The vision lab now loads the separately generated can dataset from `assets/vision-generated/web/`; the previous dataset remains in `assets/vision-realistic/web/`. Its defect classes are generation-prompt labels and have not been visually verified, so experiment scores are provisional. The generated artwork and framing differ from the original data, so pixel-rule performance and recorded AI responses may also differ. Rebuild the local-file bundle with `node tools/vision-bundle.mjs` after changing the new dataset.
+The vision lab now loads the separately generated can dataset from `assets/vision-generated/web/`; the previous dataset remains in `assets/vision-realistic/web/`. Its defect classes are generation-prompt labels and have not been visually verified, so experiment scores are provisional. The generated artwork and framing differ from the original data, so pixel-rule performance and recorded AI responses may also differ. Rebuild the local-file bundle with `node tools/vision-bundle.mjs` after changing the new dataset. The photos are WebP re-encodes of the earlier JPEGs (git history): per photo the lowest quality that keeps its pixel features within tolerance, 2.9 MB instead of 7.5 MB; about 1% of photo and slider-position combinations change class, and the borderline cans that did are the ones whose label-shift reading sits on the 1.75 threshold.
 
-- One HTML file (`rybex-ai-workshop.html`), no build step. Next to it ship the vision photo set (`assets/vision-realistic/web/`) and four product images for the company site (`assets/products/`). Team work is stored in the browser and can be exported as a team file.
-- Rybex data: 210 photo-style can images (`assets/vision-realistic/web/`, 320×400 JPEG, about 5 MB; drawn images are the fallback when they cannot load; the photos load on the first visit to the vision lab or the image folder), plus synthetic sales history, sensor readings, complaints and company documents (12: procedures PROCES-01…08, a seamer workstation instruction, a quality FAQ, a procedure-change notice and one archived procedure version).
+- A static page with no build step: `rybex-ai-workshop.html` (the shell), `css/`, `js/` and `i18n/` next to it (see Code layout below). Also shipped: the vision photo set (`assets/vision-generated/web/`) and four product images for the company site (`assets/products/`). Team work is stored in the browser and can be exported as a team file.
+- Rybex data: 210 photo-style can images (`assets/vision-generated/web/`, 320×400 WebP, about 3 MB; drawn images are the fallback when they cannot load; the photos load on the first visit to the vision lab or the image folder), plus synthetic sales history, sensor readings, complaints and company documents (12: procedures PROCES-01…08, a seamer workstation instruction, a quality FAQ, a procedure-change notice and one archived procedure version).
 - The vision rules measure the photos (dent, label shift, batch-code sharpness). The set includes borderline cases (shallow dents, small label shifts, light smudges, harmless glare, soft print) so the sensitivity involves a real trade-off. The participant drives a single "czułość" (sensitivity) knob; the three per-feature thresholds and the baseline's operating point stay in the engine room.
 - Build lab with five tracks (vision, knowledge assistant, complaints, demand forecast, machine failures), each with a plain, knob-free baseline — visual inspection, literal Ctrl+F search, the most common answer, last period's average, the fixed PROCES-05 sensor threshold — and a train / test discipline.
 - Real model calls in the vision, knowledge-assistant and complaints labs (DeepSeek V4.1 Flash or Claude Haiku 5.5 via OpenRouter): prompt versions, few-shot examples, a learning curve, an LLM judge and a model comparison, with tokens, cost and time for every call. No model is trained.
 
-The app also runs opened straight from disk (`file://`). There the photos come from `assets/vision-realistic/web/photos.js`, a generated bundle of the same JPEGs. Rebuild it whenever the JPEGs or their `manifest.json` change (`node tests/ai.mjs file` fails while it is out of date):
+The app also runs opened straight from disk (`file://`). There the photos come from `assets/vision-generated/web/photos.js`, a generated bundle of the same WebP files. Rebuild it whenever the images or their `manifest.json` change (`node tests/ai.mjs file` fails while it is out of date):
 
 ```bash
 node tools/vision-bundle.mjs
@@ -121,11 +121,29 @@ Four `[uzupełnij: …]` placeholders on slides 1, 23, 25 and 27 must be filled 
 
 The screenshots in `assets/presentation/` come from the real app. Refresh them with `node tools/presentation-shots.mjs` (modes `base`, `ai`, `all`). The two AI shots need the class code and spend a few cents of class budget: `CC=<class code> node tools/presentation-shots.mjs ai`. The class server caches identical requests, so a retake on the same day as the previous one is refused by the tool when the run comes back cached; change the prompt sentence in `aiShots` and run again.
 
+## Code layout
+
+Classic scripts and plain CSS, no bundler, no modules (they must keep working from `file://`, where Chrome blocks module imports).
+
+| Path | What it holds |
+|---|---|
+| `rybex-ai-workshop.html` | The shell: head, markup, and the ordered `<link>` and `<script defer>` tags |
+| `css/tokens.css`, `css/app.css`, `css/overrides.css` | Design tokens, the app styles, and the later focus-pass layers that override `app.css` on purpose (fold a rule back into `app.css` when you touch it) |
+| `js/*.js` | The app in load order: `data`, `docs`, `constants`, `state`, `helpers`, `vision-engine`, `ai-client`, `logging`, `routing-path`, `views-start`, `site-personas`, `demos`, `lab-core`, `lab-vision`, `prompt-versions`, `lab-rag`, `lab-complaints`, `lab-forecast`, `lab-maint`, `challenges`, `golive`, `deliver`, `trainer`, `main` |
+| `i18n/en.js` | The English texts, keyed by the Polish text |
+| `vendor/icons.js` | The lucide icons the app uses (`node tools/build-icons.mjs`) |
+| `vendor/three/`, `rooms/` | three.js, the 3D room engine and one script per track room, fetched when a lab first needs them |
+
+- The `js/` files share one global scope and run in the order of the `<script>` tags. A function declaration is not hoisted across files, so code that runs while a file loads can only call what an earlier file defined (`rng` and `gauss` sit at the top of `data.js` for that reason).
+- Texts: `T('Polish text')` returns the Polish text; the English comes from `i18n/en.js`, which is fetched only when an English reader needs it (at start, or when the language is switched). `T('Polish', 'English')` keeps both inline, for texts with `${}` parts or a Polish text that needs more than one English version. Add the English of a new `T('...')` to `i18n/en.js`; `node tests/i18n.mjs` fails when an entry is missing or unused. `?i18n=all` loads the dictionary for everyone (the test suites flip the language directly).
+- The 3D stack loads on demand: three.js, the engine and the one room script of the team's track, when a lab first needs them. Until then the lab shows as a page, then the room replaces it.
+
 ## Tests
 
 ```bash
 cd tests && npm install
-npm test                   # the five suites below, one after another (presentation.mjs without `ai`)
+npm test                   # the suites below, one after another (presentation.mjs without `ai`)
+node i18n.mjs              # every T('...') has an English entry; the dictionary is fetched only for English readers
 node ai.mjs                # app probes against a mock Worker (no real calls)
 node vision-realistic.mjs  # photo asset loading and fallback
 node worker.mjs            # Worker contract against a mock OpenRouter

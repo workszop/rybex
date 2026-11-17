@@ -1,0 +1,145 @@
+/* Later layers that override css/app.css on purpose (focus pass 1 and 2, 2026-11-15). When you touch a rule here, fold it into app.css and delete the earlier declaration. */
+/* ── Focus pass (2026-11-15) ──────────────────────────────────────────────
+   One accent means one thing: yellow = the action to take now. Two nav
+   levels look different from each other. Chrome costs one line, not five.
+   Rules here override the base sheet on purpose; keep them together. */
+
+/* 1. Global menu: quiet "you are here" — a stone pill with a full ink contour, not the action colour */
+.nav button.on{background:var(--paper-3);color:var(--ink);font-weight:700;box-shadow:inset 0 0 0 2px var(--ink);border-radius:var(--r-sm)}.nav button.on:focus-visible{box-shadow:inset 0 0 0 2px var(--ink),var(--focus-ring)}
+
+/* 2. Language switch is a control, not the action */
+.edu-seg button.on{background:var(--ink);color:var(--paper)}
+
+/* 3. Section tabs: underline tabs, so they never read as the menu above or as chips below */
+.tabs{gap:2px;border-bottom:1px solid var(--line-2)}
+.tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--ink-2);border-radius:0;padding:9px 12px;margin-bottom:-1px;font-weight:500}
+.tabs button:hover{background:var(--paper-2);color:var(--ink)}
+.tabs button.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.tabs button.on .tab-mark svg{color:var(--green)}
+/* nested tab row (a stage inside a demo) reads one step quieter than the row that owns the page */
+#lifeSteps{gap:0;border-bottom-color:var(--line)}
+#lifeSteps button{font-size:14px;padding:7px 10px;color:var(--ink-3)}
+#lifeSteps button.on{color:var(--ink)}
+
+/* 4. Earned badges are a state, not an action */
+.bd.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+/* 5. Passive notes are notes: stone with a full contour. Yellow stays for actions, chips and the track hero.
+      The app keeps full contours everywhere (no left-stripe accents), so this is a border, not an edge bar. */
+.callout.tone-yellow{background:var(--paper-2);color:var(--ink);border:1px solid var(--line-2)}
+#visionAssetStatus{padding:10px 14px;font-size:13.5px;line-height:1.5}
+
+/* 6. Team bar: one line (everything stays visible, nothing hidden behind a toggle) */
+.teambar{padding:7px var(--gutter);gap:8px 16px;align-items:center}
+.teambar .field{display:flex;align-items:center;gap:8px;min-width:0}
+.teambar .field>label,.teambar .field>.label{margin:0;white-space:nowrap;font-size:11px}
+.teambar .f-name{flex:1 1 260px;max-width:340px}
+.tb-prog{flex:1 1 240px;max-width:320px}
+.tb-prog>.field{display:block;min-width:0}
+.tb-prog .label{display:block;margin-bottom:3px;font-size:10.5px;line-height:1.3;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-actions{flex:none}
+#badges{display:flex;align-items:center;gap:4px;flex:none}
+#badges>.label{display:none}
+#badges .bd{width:24px;height:24px}
+
+/* 7. Path bar: one line from tablet width up. On phones (<=768px) it keeps wrapping, as before. */
+.pb-in{min-height:40px;padding:7px var(--gutter)}
+@media (min-width:769px){
+  .pb-in{flex-wrap:nowrap;gap:8px 12px}
+  .pb-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pathNext{white-space:nowrap}
+}
+@media (max-width:1439px){.pb-min{display:none}}
+@media (max-width:1300px){.pb-hint{display:none}}
+
+/* 8. Report tiles: neutral. The "what is still missing" list is the message, not three coloured zeros. */
+#delivStats .stat{background:var(--paper-2);color:var(--ink);border:1px solid var(--line-2)}
+
+/* 9. The track hero carries the task, so give it less air */
+.group-hero{padding:18px 24px;gap:20px}
+
+/* 10. The company site is a simulation, so its fake browser stays quiet: muted dots, back button in the ghost style.
+       The site's own content is the thing to read. */
+.rybex-frame .rf-dots i{background:var(--paper-3);box-shadow:inset 0 0 0 1px var(--line-2)}
+.rybex-frame .rf-back{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.rybex-frame .rf-back:hover{background:var(--paper-2)}
+/* Pass 3: the site's single simulation bar - one label, one address, one way back */
+.rybex-frame .sym-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 14px;background:var(--paper-2);border-bottom:1px solid var(--line-2);color:var(--ink)}
+.rybex-frame .sym-tag{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:13px}
+.rybex-frame .sym-addr{font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+.rybex-frame .sym-bar .rf-back{margin-left:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.rybex-frame .sym-bar .rf-back:hover{background:var(--paper-3)}
+/* Pass 3: the architecture flow strip - six picks then a count */
+.arch-mini{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px;padding:9px 12px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--r-md);font-size:14px;min-height:38px}
+.arch-mini:empty{display:none}
+.arch-mini .am-k{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);margin-right:2px}
+.arch-mini .am-i{padding:2px 8px;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-pill);white-space:nowrap}
+.arch-mini .am-a{color:var(--ink-3)}
+.arch-mini .am-rest{font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+.arch-mini .am-hint{color:var(--ink-2)}
+.tpl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tpl-lbl{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.tpl-sel{max-width:320px;width:auto}
+/* Pass 5: the component groups fold, and the diagram sits above them */
+details.lane{display:block;padding:0;border-top:1px solid var(--line)}
+details.lane:first-of-type{border-top:0}
+details.lane>summary{display:flex;align-items:baseline;gap:8px;cursor:pointer;padding:9px 2px;list-style:none}
+details.lane>summary::-webkit-details-marker{display:none}
+details.lane>summary::before{content:"▸";color:var(--ink-3);font-size:12px;transition:transform .15s}
+details.lane[open]>summary::before{transform:rotate(90deg)}
+details.lane>summary>b{font-size:14px;color:var(--ink)}
+details.lane>summary:hover>b{text-decoration:underline}
+.lane-chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px 18px}
+.lane-bar{display:flex;justify-content:flex-end;margin:0 0 4px}
+.lane-bar .linkbtn{font-size:13px}
+.diagram[data-empty="true"]{padding:10px 14px;min-height:0}
+.diagram[data-empty="true"] p{margin:0;color:var(--ink-2)}
+.lane-need{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);border:1px solid var(--line-2);border-radius:var(--r-pill);padding:1px 7px}
+#archOut{scroll-margin-top:120px}
+
+/* ── Focus pass 2 (2026-11-15): the middle of the screen ──────────────────
+   Bigger evidence, fewer competing cells, a type floor. Same convention:
+   rules here override the base sheet, keep them together. */
+
+/* 1. Photo galleries: evidence at a readable size, mismatches first, correct ones hideable */
+.thumb{width:120px}
+.thumb img{height:134px}
+.thumb span{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;padding:3px 4px}
+.gal{gap:10px}
+.gal-filter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.thumb[hidden]{display:none}
+
+/* 2. Method choice as cards; the 4-column table moves behind a disclosure */
+.meth-cards{display:grid;gap:8px;padding:2px 0}
+.meth-card{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);padding:10px 12px}
+.meth-card:hover{background:var(--paper-2)}
+.meth-card.on{border-color:var(--ink);background:var(--paper-2);box-shadow:inset 0 0 0 1px var(--ink)}
+.meth-card input{margin:3px 0 0;flex:none;width:16px;height:16px}
+.mc-txt{display:grid;gap:3px;min-width:0}
+.mc-name{font-size:16px}
+.mc-l{display:flex;gap:6px;align-items:baseline;font-size:14px;line-height:1.4;color:var(--ink-2)}
+.mc-l i{font-style:normal;font-weight:700;flex:none;width:10px}
+.mc-p{color:var(--green-600)}
+.mc-m{color:var(--red-600)}
+.mc-cost{font-size:14px;color:var(--ink-3)}
+.mc-cost i{font-style:normal;font-weight:600;margin-right:4px;font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.meth-table{margin-top:12px;border-top:1px solid var(--line-2);padding-top:10px}
+.meth-table>summary{cursor:pointer;font-weight:600;font-size:14px}
+.meth-table>table{margin-top:10px}
+
+/* 3. Architecture: each lane counts what is chosen and marks the chips the team's task usually needs */
+.lane-n{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);font-weight:500}
+.chip{padding:4px 10px;font-size:13.5px}
+.chip .need-t{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-left:6px}
+.chip.need[aria-pressed="true"] .need-t{color:var(--paper)}
+
+/* 4. Type floor: nothing a participant must read stays below 14px */
+.hint{font-size:14px}
+.edu-overline{font-size:13px}
+.edu-chip{font-size:12px}
+
+/* 5. The task hero carries one statement, not a wall of purple */
+.group-hero{padding:14px 20px;gap:16px}
+.group-hero .gh-title{font-size:23px;margin-bottom:2px}
+.group-hero p:not(.gh-title):not(.edu-overline){font-size:14.5px;line-height:1.45;margin:4px 0}
+.group-hero .gh-num{font-size:26px}

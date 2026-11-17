@@ -299,7 +299,7 @@ try {
   if (run('integration')) {
     // The real app, served by the mock Worker server (as in guided.mjs), with the rooms mounted in the lab.
     const IPORT = 8799, IB = `http://127.0.0.1:${IPORT}`, IMOCK = `${IB}/mock`;
-    const APP = (q = '') => `${IB}/rybex-ai-workshop.html?ai=${encodeURIComponent(IMOCK)}${q}`;
+    const APP = (q = '') => `${IB}/rybex-ai-workshop.html?ai=${encodeURIComponent(IMOCK)}&i18n=all${q}`;
     const msrv = spawn('node', [path.join(HERE, 'mock-server.mjs'), String(IPORT)], { stdio: ['ignore', 'pipe', 'inherit'] });
     // A busy port makes the mock server exit before it prints: fail (the outer catch closes the browser and the 8798 server).
     await new Promise((res, rej) => {
