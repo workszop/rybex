@@ -1,3 +1,4 @@
+// VISION-REBUILD: the whole file checks the vision lab as the language-model lab (#vPrompt, #visRun, visExamples); to be rewritten for the model trained in the browser.
 // The generated can photographs the vision lab sends to the model, opened straight from disk.
 // The pixel-rules engine and the "visual inspection" baseline this file used to score were removed with the guided labs;
 // what is left to check here is the photo set itself. Usage (from the repo root): node tests/vision-generated-baseline.mjs

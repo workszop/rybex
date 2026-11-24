@@ -34,6 +34,7 @@ async function fresh(hash = '#/lab/rag', q = '', vp = { width: 1440, height: 900
 // The three model labs always show the language-model bar (there is no method switch any more).
 async function modelOn(p) { await p.waitForSelector('#aiBar'); }
 // A seeded practice-set vision run (the shape visRunLLM stores), for checks that need the result gallery without 60 calls.
+// VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
 const seedVisRun = p => p.evaluate(() => { const L = lab().vision; L.mruns = [{ id: 'sv1', ts: '', ver: 'v1', model: 'deepseek', datasetKey: VIS.datasetKey, shots: 0, set: 'val', failed: 0, n: 60, m: { tp: 5, fp: 2, fn: 3, tn: 50, p: .7, r: .6, f1: .65, acc: .9 }, types: [['dent', 3, 4, 3], ['label', 1, 2, 1], ['code', 1, 2, 1]], sum: { model: 'deepseek', calls: 60, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, preds: Array.from({ length: 60 }, () => ({ d: 'ok', r: '', bad: false })) }]; L.vsel = 'sv1'; save(); render(); const b = document.querySelector('#visGal .gal-filter [data-gf=all]'); if (b) b.click(); });
 const aiState = async p => { await modelOn(p); return p.$eval('#aiBar', e => e.dataset.aiState); };
 async function connect(p, code = 'test-code') {
@@ -199,41 +200,62 @@ try {
   if (run('vision')) {
     console.log('vision');
     await mock('reset?delay=5');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const p = await fresh('#/lab/vision', '&trainer=1'); // trainer mode: the test opens without a saved experiment
     await connect(p);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const nd = await p.evaluate(() => [normDefect('Dent'), normDefect('wgniecenie'), normDefect('none'), normDefect('smudged code'), normDefect('xyz'), normDefect(' Label shift')]);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('normDefect maps synonyms, unknown -> null', JSON.stringify(nd) === JSON.stringify(['dent', 'dent', 'ok', 'code', null, 'label']), JSON.stringify(nd));
     ok('no method switch: the lab is built on the language model', await p.evaluate(() => !document.querySelector('#visMethod, #vd, #cal, #visRes') && lab().vision.method === 'llm'));
     let c0 = (await mock('calls')).calls;
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRun');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 20000 });
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     let d = await p.$eval('#visModelRes', e => ({ ...e.dataset }));
     let last = (await mock('calls')).last;
     const imgs = m => m.flatMap(x => Array.isArray(x.content) ? x.content.filter(c => c.type === 'image_url') : []);
     ok('validation run: 60 images, 60 calls, F1 reported', d.n === '60' && d.set === 'val' && (await mock('calls')).calls - c0 === 60 && d.f1 !== undefined && +d.cost > 0, JSON.stringify(d));
     ok('request carries one 320x400 JPEG', imgs(last.messages).length === 1 && imgs(last.messages)[0].image_url.url.startsWith('data:image/jpeg'));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('gallery shows 60 model-coloured thumbs', await p.$$eval('#visGal .thumb', t => t.length) === 60);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visGal .thumb:nth-child(2)');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('thumb click shows model reason', /mock/.test(await p.$eval('#visDetail', e => e.textContent)));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visShots button[data-s="4"]');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRun');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.waitForSelector('#visModelRes[data-ai-run="done"][data-shots="4"]', { timeout: 20000 });
     last = (await mock('calls')).last;
     ok('4 examples -> 4 labelled train images (one per class) + the query', last.messages.length === 10 && imgs(last.messages).length === 5 && /"defect"/.test(last.messages[2].content));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const ex = await p.evaluate(() => visExamples(8).map(x => x.id + ':' + x.type));
     ok('examples come from the training set, balanced', ex.length === 8 && ex.every(s => s.startsWith('train_')) && ['ok', 'dent', 'label', 'code'].every(t => ex.filter(s => s.endsWith(':' + t)).length === 2), JSON.stringify(ex));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const size = await p.evaluate(() => JSON.stringify(visMessages(8, VIS.val[0])).length);
     ok('8-example request stays under the Worker size limit', size < 380000, size);
     await p.fill('#expNote', 'vision llm'); await p.click('#sv');
     const lg = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { mode: l.cfg.mode, txt: logText(l) }; });
     ok('save -> readable log entry with model', lg.mode === 'llm' && /DeepSeek/.test(lg.txt) && !/nieczytelny|unreadable/.test(lg.txt), lg.txt);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRv');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRun');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.waitForSelector('#visModelRes[data-ai-run="done"][data-set="test"]', { timeout: 20000 });
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('test revealed -> run on 60 test images, view counted', await p.evaluate(() => lab().vision.testViews) === 1 && await p.$eval('#visModelRes', e => e.dataset.n) === '60');
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready') && document.body.dataset.visionStatus === 'ready');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('model runs survive reload', await p.$eval('#visModelRes', e => e.dataset.aiRun) === 'done' && await p.$$eval('#visHist tbody tr', t => t.length) === 3);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRv');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('after hiding the test the instruction is editable again; still no threshold sliders', await p.evaluate(() => !lab().vision.revealed && !document.querySelector('#vPrompt').disabled && !document.querySelector('#vd, #visMethod')));
     ok('no page errors (vision)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -252,14 +274,19 @@ try {
     await p.click('#logBox button[data-r]');
     let st = await p.evaluate(() => ({ m: lab().compl.method, s: lab().compl.shots, kw: lab().compl.kw.damage, view: S.view }));
     ok('restore complaints model entry -> 2 examples again, stored keywords of older files untouched', st.m === 'llm' && st.s === 2 && st.kw === 'custom' && st.view === 'lab', JSON.stringify(st));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.goto(APP() + '#/lab/vision'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.evaluate(() => { const L = lab().vision; L.vshots = 4; L.th = { d: 1, s: 2, c: 3 }; save(); render(); });
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.click('#visRun'); await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 20000 });
     await p.click('#sv');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await p.evaluate(() => { const L = lab().vision; L.vshots = 0; save(); });
     await p.click('#nav button[data-v=deliver]');
     const n = await p.$$eval('#logBox button[data-r]', b => b.length);
     await p.click(`#logBox tr[data-log="${n - 1}"] button[data-r]`);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     st = await p.evaluate(() => ({ m: lab().vision.method, s: lab().vision.vshots, th: lab().vision.th }));
     ok('restore vision model entry -> 4 examples again, stored thresholds of older files untouched', st.m === 'llm' && st.s === 4 && st.th && st.th.d === 1, JSON.stringify(st));
     await p.click('#nav button[data-v=deliver]');
@@ -341,6 +368,7 @@ try {
   if (run('photo')) {
     console.log('photo');
     await mock('reset?delay=5');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const p = await fresh('#/lab/vision');
     await p.evaluate(() => { const L = lab().vision; L.th = { d: 1, s: 2, c: 3 }; save(); });
     await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
@@ -354,9 +382,12 @@ try {
     ok('the pixel-rules engine is gone', r.engine.length === 0 && !r.rng && !r.pf, JSON.stringify([r.engine, r.rng, r.pf]));
     const txt = await p.$eval('#proto', e => e.textContent);
     ok('lab text has no rules, thresholds or synthetic-image wording', !/syntetycznego obrazu|synthetic image|suwak|reguły pikseli|próg czułości/i.test(txt), txt.match(/.{0,60}(syntetycz|suwak|reguły pikseli|próg czułości).{0,60}/)?.[0] || '');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await seedVisRun(p); await p.click('#visGal .thumb[data-i="0"]');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('a clicked thumbnail shows the photo, the true label and the model answer', await p.evaluate(() => { const d = document.querySelector('#visDetail'); return /^data:image\//.test(d.querySelector('img').src) && /Fakt/.test(d.textContent) && /Model/.test(d.textContent); }));
     await p.reload(); await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('the run and its gallery survive a reload; old stored thresholds do no harm', await p.evaluate(() => document.querySelector('#visModelRes').dataset.aiRun === 'done' && document.querySelectorAll('#visGal .thumb').length === 60));
     ok('no page errors (photo)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -370,6 +401,7 @@ try {
     const openVision = async url => {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage(); p.errs = [];
       p.on('pageerror', e => p.errs.push(e.message));
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.goto(url + (url.includes('?') ? '&' : '?') + 'rooms=0#/lab/vision');
       await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
       return p;
@@ -379,7 +411,9 @@ try {
     const viaFile = await p.evaluate(visState);
     ok('file:// loads all 210 photos', viaFile.sets === '90,60,60' && viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
     ok('file:// photos are the same bytes as the served images (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     await seedVisRun(p); await p.click('#visGal .thumb[data-i="0"]');
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('file:// the result gallery and the photo detail show the photo', /^data:image\/(jpeg|webp)/.test(await p.$eval('#visDetail img', e => e.src).catch(() => '')) && await p.$$eval('#visGal .thumb img', e => e.length === 60 && e.every(i => /^data:image\//.test(i.src))));
     ok('no page errors (file)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -492,6 +526,7 @@ try {
     console.log('record');
     await mock('reset');
     // Each model lab opens with the AI bar and its run button: the tool needs no switch.
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     for (const [k, runBtn] of [['rag', '#ragRun'], ['complaints', '#cRun'], ['vision', '#visRun']]) {
       const p = await fresh('#/lab/' + k);
       await p.evaluate(() => { S.team = 8; S.lang = 'pl'; save(); render(); });
@@ -511,6 +546,7 @@ try {
     await p.evaluate(() => { const L = lab().compl; save(); render(); });
     ok('record: a re-render keeps the AI bar and #cRun', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#cRun')));
     await p.evaluate(() => { go('lab', 'vision'); const L = lab().vision; save(); render(); });
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     ok('record: same for vision (#visRun)', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#visRun')));
     await p.close();
     // The tool's guards: a dry run (AI set) must name an OUT outside the repo's replay.json, and the app must really use AI.

@@ -97,7 +97,9 @@ try {
     mismatch: { id: VIS.train[0].id, type: VIS.train[0].type, bad: VIS.train[0].bad, source: VIS.train[0].source },
     second: { id: VIS.train[1].id, type: VIS.train[1].type, source: VIS.train[1].source, url: VIS.train[1].url },
     big: visBig(VIS.train[2]),
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     payload: JSON.stringify(visMessages(0, VIS.val[1])),
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     selected: visSel({ vsel: 'old', mruns: [{ id: 'old', datasetKey: 'synthetic-baseline-v1' }] }),
     statusText: document.querySelector('#visionAssetStatus')?.textContent || '',
   }));
@@ -120,9 +122,11 @@ try {
   const cache = await page.evaluate(() => {
     const oldKey = VIS.datasetKey;
     const L = lab().vision;
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     L.mruns = [{ id: 'old', datasetKey: oldKey }];
     VIS.train[2].photoHash = 'repaired-content';
     finishVisionAssets();
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     return { oldKey, newKey: VIS.datasetKey, kept: L.mruns.some(run => run.id === 'old'), hashes: VIS.photoHashes };
   });
   ok('content change on same photo ID invalidates cached runs', cache.oldKey !== cache.newKey && !cache.kept && cache.hashes.some(hash => hash.includes('repaired-content')), JSON.stringify(cache));

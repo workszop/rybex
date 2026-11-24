@@ -310,6 +310,7 @@ try {
     });
     const ierrs = [], aborted = [];
     const TRACKS = ['vision', 'rag', 'complaints', 'forecast', 'maint'], ST = ['brief', 'data', 'method', 'experiment', 'results'];
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const app = async (hash = '#/lab/vision', q = '', init = null, vp = { width: 1440, height: 900 }) => {
       const ctx = await browser.newContext({ viewport: vp });
       const p = await ctx.newPage();
@@ -325,12 +326,14 @@ try {
     const station = p => p.evaluate(() => { const r = document.querySelector('#roomHost .room-root'); return r ? r.dataset.roomStation : null; });
     const openSt = (p, s) => p.evaluate(s => X.room.handle.open(s), s);
     // The vision lab gates its run button on the photo set: wait for the app's own state, not a timer.
+    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
     const readyPhotos = q => q.waitForFunction(() => typeof VIS !== 'undefined' && VIS.photoCount >= VIS.expectedPhotoCount, null, { timeout: 60000 }).catch(() => {});
     const inSlot = (p, s, sel) => p.evaluate(([s, sel]) => !!document.querySelector(`#roomHost .room-slot[data-station="${s}"] ${sel}`), [s, sel]);
     const dupIds = p => p.evaluate(() => { const c = {}; document.querySelectorAll('[id]').forEach(e => c[e.id] = (c[e.id] || 0) + 1); return Object.keys(c).filter(k => c[k] > 1); });
     const seedTeam = (p, fn) => p.evaluate(`(${fn})(); save(); render();`);
     try {
       // integration.mount + integration.panels
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       let p = await app('#/lab/vision');
       for (const k of TRACKS) {
         if (k !== 'vision') await p.evaluate(k => go('lab', k), k);
@@ -339,7 +342,8 @@ try {
         if (!ready) continue;
         ok(`integration.panels ${k}: brief holds #pickTrack`, await inSlot(p, 'brief', '#pickTrack'));
         ok(`integration.panels ${k}: brief holds the five lab steps`, await inSlot(p, 'brief', '#labSteps li[data-step=task]') && await p.evaluate(() => document.querySelectorAll('#roomHost #labSteps li').length === 5));
-        ok(`integration.panels ${k}: the build station holds the build card and no choice to make`, await inSlot(p, 'method', '#labBuild li') && !(await inSlot(p, 'method', 'input, textarea, select')));
+        ok(`integration.panels ${k}: the build station holds the build card and no choice to make`, await inSlot(p, 'method', '#labBuild li') && !(await inSlot(p, 'method', ':is(input, textarea, select)')));
+        // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
         ok(`integration.panels ${k}: experiment holds #proto with its build control and the save button`, await inSlot(p, 'experiment', '#proto') && await inSlot(p, 'experiment', '#sv') && await inSlot(p, 'experiment', { vision: '#visRun', rag: '#ragRun', complaints: '#cRun', forecast: '#fcTrain', maint: '#mtTrain' }[k]));
         ok(`integration.panels ${k}: results holds the saved experiments`, await inSlot(p, 'results', '#labLog'));
         ok(`integration.panels ${k}: nothing of the baseline, the method choice or the comparison in the room`, await p.evaluate(() => !document.querySelector('#runBase, #saveBase, #baseOut, #baseBanner, #methWhy, input[name=meth], #cmpList, #cmpGo') && !/odniesieni|baseline|Porównajcie dwa przebiegi|Compare two runs|Wybór metody/i.test(document.querySelector('#roomHost').textContent + document.querySelector('#main').textContent)));
@@ -389,6 +393,7 @@ try {
 
       // integration.photos: on a fresh load the room mounts with the drawn cans; once the real photos arrive the
       // inspection monitor switches to them without a remount.
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await roomReady(p, 'vision');
       await p.evaluate(() => { window.__cv = document.querySelector('#roomHost canvas'); });
@@ -419,46 +424,100 @@ try {
       ok('integration.result the lab steps follow the training in the room too', b3 && b2 && b3.steps === b2.steps && b3.steps[2] === '1', `${b3 && b3.steps} vs ${b2 && b2.steps}`);
 
       // integration.rerender + integration.typing
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await roomReady(p, 'vision');
       await p.evaluate(() => { window.__cv = document.querySelector('#roomHost canvas'); });
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await readyPhotos(p);
       await p.click('#roomHost .room-toolbar [data-station="experiment"]');
       await p.waitForFunction(() => document.querySelector('#roomHost .room-root').dataset.roomStation === 'experiment', null, { timeout: PICK_MS }).catch(() => {});
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.fill('#vPrompt', 'Oceń puszkę. Odpowiedz JSON.');
       const pos0 = await p.evaluate(() => X.room.handle._debug.cameraPos());
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.focus('#vPrompt'); await p.keyboard.press('Control+End'); await p.keyboard.type(' wasd'); await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(400);
       const pos1 = await p.evaluate(() => X.room.handle._debug.cameraPos());
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       ok('integration.typing WASD in the instruction field does not move the camera', JSON.stringify(pos0) === JSON.stringify(pos1) && (await p.inputValue('#vPrompt')).endsWith(' wasd'), JSON.stringify([pos0, pos1]));
       // A full re-render (choosing the team's task re-renders the page) keeps the room, the station and the typed text.
       await p.evaluate(() => { const b = document.querySelector('#roomHost #pickTrack'); if (b) b.click(); });
       await p.evaluate(() => render());
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       const rr = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, same: document.querySelector('#roomHost canvas') === window.__cv, canv: document.querySelectorAll('#roomHost canvas').length, txt: document.querySelector('#vPrompt').value, saved: lab().vision.draft, track: team().track, inSlot: !!document.querySelector('#roomHost .room-slot[data-station="experiment"] #vPrompt') }));
       ok('integration.rerender station, canvas and the typed instruction kept', rr.st === 'experiment' && rr.same && rr.canv === 1 && rr.inSlot && rr.txt === 'Oceń puszkę. Odpowiedz JSON. wasd', JSON.stringify(rr));
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       ok('integration.rerender the instruction draft and the task choice saved', rr.saved === rr.txt && rr.track === 'vision', JSON.stringify(rr));
       const rd = await dupIds(p);
       ok('integration.rerender no duplicate ids', rd.length === 0, rd.join());
       await p.close();
 
+      // integration.fullscreen: "Otwórz" lays the open panel over the window under the app header; Esc, the same button
+      // and every move to another station bring the room back with the panel beside it.
+      {
+        const f = await app('#/lab/forecast'); await roomReady(f, 'forecast'); await openSt(f, 'experiment');
+        const FB = '#roomHost .room-panel [data-room-full]';
+        const fs_ = () => f.evaluate(() => { const r = document.querySelector('#roomHost .room-root'), pn = r.querySelector('.room-panel'), b = pn.querySelector('[data-room-full]'), box = pn.getBoundingClientRect(), hdr = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h')) || 0;
+          return { full: pn.classList.contains('is-full'), attr: r.dataset.roomPanel || 'side', label: b.textContent.trim(), pressed: b.getAttribute('aria-pressed'), pos: getComputedStyle(pn).position, top: Math.round(box.top), hdr: Math.round(hdr), left: Math.round(box.left), w: Math.round(box.width), bottom: Math.round(box.bottom), iw: document.documentElement.clientWidth, ih: innerHeight, st: r.dataset.roomStation, wide: getComputedStyle(pn.querySelector('[data-room-wide]')).display }; });
+        const s0 = await fs_();
+        ok('integration.fullscreen the panel opens beside the room with an "Otwórz" button', !s0.full && s0.attr === 'side' && s0.label === 'Otwórz' && s0.pressed === 'false' && s0.pos !== 'fixed' && s0.w < s0.iw - 100, JSON.stringify(s0));
+        await f.click(FB); const s1 = await fs_();
+        ok('integration.fullscreen "Otwórz" covers the window under the app header', s1.full && s1.attr === 'full' && s1.pos === 'fixed' && Math.abs(s1.top - s1.hdr) <= 2 && s1.left === 0 && s1.w >= s1.iw - 2 && s1.bottom >= s1.ih - 2 && s1.st === 'experiment', JSON.stringify(s1));
+        ok('integration.fullscreen the button now reads "Wróć do pokoju"; the widen control is hidden', s1.label === 'Wróć do pokoju' && s1.pressed === 'true' && s1.wide === 'none', JSON.stringify(s1));
+        await f.click('#fcTrain');
+        ok('integration.fullscreen the lab works in the full-screen panel (training shows the result there)', await f.evaluate(() => fcTrained() && document.querySelector('#roomHost .room-panel.is-full #fcRes').dataset.trained === 'true' && document.querySelector('#roomHost .room-panel.is-full #fcTable').getBoundingClientRect().width > 0));
+        await f.click(FB); const s2 = await fs_();
+        ok('integration.fullscreen the same button returns to the room, station kept', !s2.full && s2.attr === 'side' && s2.label === 'Otwórz' && s2.pressed === 'false' && s2.st === 'experiment', JSON.stringify(s2));
+        await f.click(FB); await f.keyboard.press('Escape'); const e1 = await fs_(); await f.keyboard.press('Escape'); const e2 = await fs_();
+        ok('integration.fullscreen the first Esc only leaves full screen, the second closes the panel', !e1.full && e1.attr === 'side' && e1.st === 'experiment' && e2.st === 'none', JSON.stringify([e1, e2]));
+        // Moving on from a full-screen panel: the onward button (it follows the guide), the arrows and the toolbar open
+        // another station with the panel beside the room again.
+        const stIs = s => f.waitForFunction(s => document.querySelector('#roomHost .room-root').dataset.roomStation === s, s, { timeout: PICK_MS + 3000 }).catch(() => {});
+        const stNot = s => f.waitForFunction(s => !['none', s].includes(document.querySelector('#roomHost .room-root').dataset.roomStation), s, { timeout: PICK_MS + 3000 }).catch(() => {});
+        await openSt(f, 'brief'); await f.click(FB);
+        const hasOn = await f.evaluate(() => { const b = document.querySelector('#roomHost .room-panel [data-room-onward]'); return !!b && b.getBoundingClientRect().width > 0; });
+        if (hasOn) { await f.click('#roomHost .room-panel [data-room-onward]'); await stNot('brief'); }
+        const o1 = await fs_();
+        ok('integration.fullscreen the onward button goes on to another station beside the room', hasOn && !o1.full && o1.attr === 'side' && !['brief', 'none'].includes(o1.st) && o1.label === 'Otwórz', JSON.stringify([hasOn, o1]));
+        await openSt(f, 'data'); await f.click(FB); await f.click('#roomHost .room-panel button[data-room-next]'); await stIs('method'); const a1 = await fs_();
+        await f.click(FB); await f.click('#roomHost .room-panel button[data-room-prev]'); await stIs('data'); const a2 = await fs_();
+        ok('integration.fullscreen the arrows leave full screen for the neighbouring station', !a1.full && a1.attr === 'side' && a1.st === 'method' && !a2.full && a2.attr === 'side' && a2.st === 'data', JSON.stringify([a1, a2]));
+        await f.click(FB); await f.evaluate(() => document.querySelector('#roomHost .room-toolbar [data-station="results"]').click()); await stIs('results'); const t1 = await fs_();
+        ok('integration.fullscreen a toolbar station button leaves full screen too', !t1.full && t1.attr === 'side' && t1.st === 'results', JSON.stringify(t1));
+        await f.click(FB); await f.evaluate(() => X.room.handle.close()); await openSt(f, 'results'); const c1 = await fs_();
+        ok('integration.fullscreen a closed panel does not come back full screen', !c1.full && c1.attr === 'side', JSON.stringify(c1));
+        await f.click('#langSeg button[data-l="en"]'); await roomReady(f, 'forecast'); await openSt(f, 'experiment');
+        const en0 = await fs_(); await f.click(FB); const en1 = await fs_();
+        ok('integration.fullscreen English labels', en0.label === 'Open' && en1.label === 'Back to the room' && en1.full, JSON.stringify([en0.label, en1.label]));
+        await f.close();
+      }
+
       // integration.airun: a model run survives closing and reopening the panel.
       await fetch(IMOCK + '/reset?delay=350');
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await seedTeam(p, () => { S.ai.code = 'test-code'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const a0 = aborted.length;
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await readyPhotos(p);
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.click('#visRun');
       const live = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
       await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       const during = await p.evaluate(() => !!AIS.run || !!document.querySelector('#visModelRes[data-ai-run="done"]'));
       await p.click('#roomHost .room-toolbar [data-station="experiment"]');
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       const done = await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 30000 }).then(() => true, () => false);
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       const out = await p.evaluate(() => { const e = document.querySelector('#visModelRes'); return e ? e.innerText.length : 0; });
       ok('integration.airun run active, survives close, finishes with output', live && during && done && out > 20 && await station(p) === 'experiment', JSON.stringify({ live, during, done, out }));
       ok('integration.airun no request aborted', aborted.length === a0, aborted.slice(a0).join());
       await p.close(); await fetch(IMOCK + '/reset');
 
       // integration.switch: tracks, language, team, leaving the lab.
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await roomReady(p, 'vision');
       const one = () => p.evaluate(() => ({ host: document.querySelectorAll('#roomHost canvas.room-canvas').length, all: document.querySelectorAll('canvas.room-canvas').length, roots: document.querySelectorAll('.room-root').length }));
@@ -475,6 +534,7 @@ try {
       await p.evaluate(() => { location.hash = '#/home'; }); await p.waitForFunction(() => S.view === 'home');
       const hc = await one();
       ok('integration.switch outside the lab: no room, host hidden', hc.all === 0 && hc.roots === 0 && await p.evaluate(() => document.querySelector('#roomHost').hidden && !document.body.classList.contains('in-room')), JSON.stringify(hc));
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.evaluate(() => { location.hash = '#/lab/vision'; });
       const back = await roomReady(p, 'vision'), bc = await one();
       ok('integration.switch back in the lab: exactly one room', back && bc.all === 1 && bc.host === 1, JSON.stringify(bc));
@@ -490,6 +550,7 @@ try {
       const jp = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, trained: fcTrained(), res: document.querySelector('#roomHost .room-slot[data-station="experiment"] #fcRes').dataset.trained }));
       ok('integration.jump the path action on the build step opens the experiment station and trains the model', jp.st === 'experiment' && jp.trained && jp.res === 'true', JSON.stringify(jp));
       // The reveal gate (vision, no saved experiment yet) sends the focus to the save button: its station opens.
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await seedTeam(p, () => { const t = team(); setTrack(t, 'vision'); t.log = []; });
       await p.evaluate(() => go('lab', 'vision')); await roomReady(p, 'vision'); await openSt(p, 'results');
       await p.evaluate(() => tryReveal('vision', lab().vision, () => {})); await p.waitForTimeout(200);
@@ -499,6 +560,7 @@ try {
 
       // integration.chrome: in the room the team bar, the page title and the footer are out of the way; the page view has them back.
       {
+        // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
         const c = await app('#/lab/vision'); await roomReady(c, 'vision');
         const vis = () => c.evaluate(() => { const shown = s => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0 && e.getBoundingClientRect().height > 2; }; const h = document.querySelector('#roomHost').getBoundingClientRect(); return { team: shown('#teamBar'), title: shown('#main .app-title'), foot: document.querySelector('#foot').textContent.trim(), footShown: shown('#foot'), tabs: shown('#trackTabs'), path: shown('#pathBar'), nav: shown('#nav'), fits: h.bottom <= innerHeight + 1 && document.documentElement.scrollHeight <= innerHeight + 1 }; });
         const c1 = await vis();
@@ -552,6 +614,7 @@ try {
       }
 
       // integration.2d: the toolbar 2D button, kept over a reload, and back to the room.
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await roomReady(p, 'vision');
       await p.click('#roomHost [data-room-2d]');
@@ -564,6 +627,7 @@ try {
       await p.click('#roomOn');
       ok('integration.2d the 3D button brings the room back', await roomReady(p, 'vision') && await p.evaluate(() => S.rooms === true && document.body.classList.contains('in-room') && !document.querySelector('#roomHost').hidden));
       await p.close();
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision', '&rooms=0');
       const f3 = await flat();
       ok('integration.2d ?rooms=0 forces the page view', f3.host && f3.rooms === 0 && f3.proto && !f3.on, JSON.stringify(f3));
@@ -571,6 +635,7 @@ try {
 
       // integration.fallback: no WebGL -> the 2D page with a notice.
       const e0 = ierrs.length;
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision', '', () => { const g = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (t, ...a) { return /webgl/i.test(t) ? null : g.call(this, t, ...a); }; });
       const fb = await p.evaluate(() => ({ rooms: document.querySelectorAll('.room-root').length, proto: !!document.querySelector('#main #labProto'), note: (document.querySelector('#roomNote') || {}).textContent || '', host: document.querySelector('#roomHost').hidden }));
       ok('integration.fallback no WebGL: 2D page with a notice, no errors', fb.rooms === 0 && fb.proto && fb.host && fb.note.length > 10 && ierrs.length === e0, JSON.stringify(fb) + ierrs.slice(e0).join('|'));
@@ -590,11 +655,14 @@ try {
 
       // integration.aistop: a run survives closing the panel, and the stop control on the reopened station ends it.
       await fetch(IMOCK + '/reset?delay=400');
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await seedTeam(p, () => { S.ai.code = 'test-code'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const s0 = aborted.length;
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await readyPhotos(p);
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       await p.click('#visRun');
       const started = await p.waitForFunction(() => !!AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
       await p.evaluate(() => X.room.handle.close()); await p.waitForTimeout(300);
@@ -606,12 +674,14 @@ try {
       if (hasStop) await stop.click();
       const ended = await p.waitForFunction(() => !AIS.run, null, { timeout: 5000 }).then(() => true, () => false);
       await p.waitForTimeout(300);
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       const st = await p.evaluate(() => ({ run: (document.querySelector('#visModelRes') || { dataset: {} }).dataset.aiRun, station: document.querySelector('#roomHost .room-root').dataset.roomStation }));
       ok('integration.aistop stop on the reopened station ends the run', started && alive && hasStop && ended && st.run !== 'done' && st.station === 'experiment', JSON.stringify({ started, alive, hasStop, ended, ...st }));
       ok('integration.aistop the stopped request is aborted', aborted.slice(s0).some(e => /ABORTED/i.test(e || '')), aborted.slice(s0).join());
       await p.close(); await fetch(IMOCK + '/reset');
 
       // integration.resize: side panel at 1440x900 -> bottom sheet at 390x844 -> side panel again; the canvas fills the host.
+      // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
       p = await app('#/lab/vision');
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const geo = () => p.evaluate(() => { const h = document.querySelector('#roomHost').getBoundingClientRect(), c = document.querySelector('#roomHost canvas').getBoundingClientRect(), pn = document.querySelector('#roomHost .room-panel').getBoundingClientRect(); return { hw: Math.round(h.width), hh: Math.round(h.height), cw: Math.round(c.width), ch: Math.round(c.height), pw: Math.round(pn.width), pb: Math.round(h.bottom - pn.bottom), sw: document.documentElement.scrollWidth, iw: innerWidth }; });
