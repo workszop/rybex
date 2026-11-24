@@ -246,7 +246,7 @@
       const arrow = (x0, y0, x1, y1, col) => { pen(col, 4); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); const a = Math.atan2(y1 - y0, x1 - x0); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - 16 * Math.cos(a - 0.45), y1 - 16 * Math.sin(a - 0.45)); c.moveTo(x1, y1); c.lineTo(x1 - 16 * Math.cos(a + 0.45), y1 - 16 * Math.sin(a + 0.45)); c.stroke(); };
       pen('#1f3f8f', 3); word(tx('Jak asystent znajdzie odpowiedź?', 'How does the assistant find the answer?'), 40, 62, 36);
       boxAt(40, 120, 190, 76, tx('pytanie', 'question'), '#1f3f8f');
-      boxAt(330, 120, 250, 76, tx('szukaj w PROCES', 'search PROCES'), '#1f3f8f');
+      boxAt(330, 120, 250, 76, tx('szukaj w bazie', 'search the base'), '#1f3f8f');
       boxAt(680, 120, 200, 76, tx('fragmenty', 'passages'), '#1f3f8f');
       boxAt(330, 290, 300, 76, tx('odpowiedź + źródło', 'answer + source'), '#2f7f3f');
       arrow(232, 158, 322, 158, '#1f3f8f'); arrow(582, 158, 672, 158, '#1f3f8f'); arrow(780, 200, 600, 284, '#1f3f8f');

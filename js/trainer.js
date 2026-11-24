@@ -52,7 +52,7 @@ function storedTeamCount(){try{const x=readStore();return x&&isObj(x.teams)?Obje
 function trWipeAll(){toast(T('Usunąć pracę wszystkich zespołów (sloty 1–8) z tej przeglądarki? Zespoły, które nie pobrały pliku zespołu, stracą swoją pracę.'),{reason:'wipe',action:[T('Usuń wszystkie zespoły'),()=>guardRun(()=>{
   let raw=null,ok=true;try{raw=localStorage.getItem(STORE_KEY);const cur=raw?JSON.parse(raw):{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,team:1,teams:{}}))}catch(e){ok=false}
   if(!ok){toast(T('Nie udało się wyczyścić danych w tej przeglądarce. Nic nie zmieniono.'));return}
-  S.teams={};S.team=1;badgeQ=[];['moreOpen','rc','ragLastMsgs','ragPending'].forEach(k=>delete X[k]);render();
+  S.teams={};S.team=1;badgeQ=[];['moreOpen','rc','ragLast','ragPipe','ragPending'].forEach(k=>delete X[k]);render();
   toast(T('Usunięto pracę wszystkich zespołów z tej przeglądarki.'),{reason:'wiped',action:[T('Cofnij'),()=>{try{if(raw)localStorage.setItem(STORE_KEY,raw);else localStorage.removeItem(STORE_KEY)}catch(e){return}
    const x=raw?JSON.parse(raw):{};S.teams=normTeams(x.teams);S.team=clampInt(x.team,1,TEAM_COUNT,1);render();announce(T('Cofnięto'))}]})})]})}
 function vTrainer(){const fn=X.trFiles||[];

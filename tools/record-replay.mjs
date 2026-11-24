@@ -48,12 +48,14 @@ try {
     console.log('done', what, 'recorded', await p.evaluate(() => AIS.rec.size), 'calls', await p.evaluate(() => AIS.calls));
   };
   const lab = async k => { await p.evaluate(k => go('lab', k), k); await p.waitForTimeout(300); };
-  // Photos load on the first visit to the vision lab; start that now so the vision runs below find them ready.
-  await p.evaluate(() => visInit());
-  await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 60000 });
+  // The vision lab trains its own model in the browser and makes no model calls, so nothing of it is recorded.
   for (const model of ['deepseek', 'haiku']) {
     await lab('rag'); await p.selectOption('#aiModel', model);
-    await p.evaluate(() => { const L = lab().rag; L.judge = true; L.revealed = false; save(); render(); });
+    // The knowledge base on the default settings first (documents, fragment size, overlap): the embedding requests are recorded
+    // on the first model's pass; the second pass finds the vectors in the browser and asks for nothing.
+    await p.evaluate(() => { const L = lab().rag, d = defaultLab().rag; Object.assign(L, { docs: d.docs, size: d.size, overlap: d.overlap, k: d.k, min: d.min, ins: null, judge: true, revealed: false }); save(); render(); });
+    await run('#ragBuildBtn', model + ' rag build');
+    await p.waitForFunction(() => document.querySelector('#ragBase').dataset.built === 'true', null, { timeout: 60000 });
     await run('#ragRun', model + ' rag dev');
     await p.evaluate(() => { lab().rag.revealed = true; save(); render(); }); await run('#ragRun', model + ' rag test');
     await p.evaluate(() => { lab().rag.revealed = false; save(); });
@@ -63,10 +65,6 @@ try {
     await run('#cCurve', model + ' compl curve');
     await p.evaluate(() => { lab().compl.revealed = true; save(); render(); }); await run('#cRun', model + ' compl test');
     await p.evaluate(() => { lab().compl.revealed = false; save(); });
-    await lab('vision');
-    for (const s of [0, 4, 8]) { await p.evaluate(s => { const L = lab().vision; L.vshots = s; L.revealed = false; save(); render(); }, s); await run('#visRun', `${model} vision val ${s}`); }
-    await p.evaluate(() => { const L = lab().vision; L.vshots = 0; L.revealed = true; save(); render(); }); await run('#visRun', model + ' vision test');
-    await p.evaluate(() => { lab().vision.revealed = false; save(); });
   }
   const json = await p.evaluate(() => aiRecordedJSON());
   fs.writeFileSync(OUT, json);

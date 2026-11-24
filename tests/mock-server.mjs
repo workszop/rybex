@@ -75,6 +75,45 @@ http.createServer((req, res) => {
       });
       return;
     }
+    // ─── Embeddings (the Worker's POST /embed) ───
+    // Deterministic word-hash vectors: lower-case words, stop words dropped, cut to a 5-letter stem, unigrams and bigrams hashed
+    // (FNV-1a) into EMBED_DIM signed buckets, plus one shared component so unrelated texts score about 0.2 as with a real
+    // model. Texts that share wording really are similar; nothing here understands meaning.
+    // embed-calls: {calls, texts, last}; embed-calls?reset=1 clears the counters. The chat reset's delay, fail and cache apply here too.
+    if (route === 'embed-calls') { const out = { calls: state.embedCalls || 0, texts: state.embedTexts || 0, last: state.lastEmbed || null }; if (url.searchParams.get('reset') === '1') { state.embedCalls = 0; state.embedTexts = 0; state.lastEmbed = null; } return send(res, 200, out); }
+    if (route === 'embed' && req.method === 'POST') {
+      let b = ''; req.on('data', c => b += c); req.on('end', () => {
+        const EMBED_MODEL = 'openai/text-embedding-3-small', EMBED_DIM = 256, EMBED_PRICE = 0.02;
+        if (code === 'broke') return send(res, 429, { error: 'budget_team' });
+        if (code !== 'test-code') return send(res, 401, { error: 'bad_code' });
+        let body; try { body = JSON.parse(b); } catch (e) { return send(res, 400, { error: 'bad_request' }); }
+        if (body.model !== EMBED_MODEL) return send(res, 400, { error: 'model_not_allowed' });
+        if (body.dimensions != null && body.dimensions !== EMBED_DIM) return send(res, 400, { error: 'bad_dimensions' });
+        const texts = typeof body.input === 'string' ? [body.input] : body.input;
+        if (!Array.isArray(texts) || !texts.length || texts.some(t => typeof t !== 'string' || !t.trim())) return send(res, 400, { error: 'bad_request' });
+        if (texts.length > 32) return send(res, 400, { error: 'too_large' });
+        if (state.fail && texts.some(t => t.includes(state.fail))) { state.embedCalls = (state.embedCalls || 0) + 1; return send(res, 502, { error: 'upstream', status: 429 }); }
+        const prev = state.cache && state.seen.get('embed:' + b);
+        if (prev) { const out = JSON.parse(prev); out.rybex = { ...out.rybex, cached: true }; return send(res, 200, out); }
+        const STOPW = new Set('i w z na do się nie to że o a po co ile jak jest są dla od przy lub oraz czy ma być ten ta te the of to in is are and or for on at how what do does be'.split(' '));
+        const fnv = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; };
+        const vec = t => {
+          const w = t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').split(' ').filter(x => x && !STOPW.has(x)).map(x => x.slice(0, 5)), v = new Array(EMBED_DIM).fill(0);
+          const add = (k, wt) => { const h = fnv(k); v[h % (EMBED_DIM - 1)] += (h & 0x10000 ? 1 : -1) * wt; };
+          w.forEach((x, i) => { add(x, 1); if (i) add(w[i - 1] + ' ' + x, 0.5); });
+          const n = Math.sqrt(v.reduce((a, x) => a + x * x, 0)) || 1;
+          // the last bucket is the shared component: cos' = (cos + 0.25) / 1.25
+          for (let i = 0; i < EMBED_DIM - 1; i++) v[i] = v[i] / n; v[EMBED_DIM - 1] = 0.5;
+          const m = Math.sqrt(1.25); return v.map(x => Math.round(x / m * 1e5) / 1e5);
+        };
+        state.embedCalls = (state.embedCalls || 0) + 1; state.embedTexts = (state.embedTexts || 0) + texts.length; state.lastEmbed = body;
+        const tok = texts.reduce((a, t) => a + Math.ceil(t.length / 3), 0);
+        const outObj = { object: 'list', model: EMBED_MODEL, data: texts.map((t, i) => ({ index: i, embedding: vec(t) })), usage: { prompt_tokens: tok, total_tokens: tok, cost: tok * EMBED_PRICE / 1e6 }, rybex: { cached: false, teamSpend: 0.01 + 0.0001 * state.embedCalls, totalSpend: 0.05, limits: { team: 1, total: 15 }, dim: EMBED_DIM } };
+        state.seen.set('embed:' + b, JSON.stringify(outObj));
+        setTimeout(() => send(res, 200, outObj), state.hang && texts.some(t => t.includes(state.hang)) ? 3000 : state.delay);
+      });
+      return;
+    }
     return send(res, 404, { error: 'not_found' });
   }
   if (url.pathname === '/replay.json' && state.replay) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(state.replay); }

@@ -68,7 +68,7 @@ function goLiveWarnings(t){const a=t.arch,rw=goLiveAns(t,'runWhere'),w=[];
  if((t.track==='complaints'||t.track==='rag')&&(rw==='cloud'||rw==='hybrid')&&!a.sel.anon)w.push('privacy');
  if(goLiveAns(t,'stopAuthority')&&!a.sel.hitl)w.push('hitl');
  if(goLiveAns(t,'monitor')==='nothing')w.push('monitor');
- // The three model tracks are built with the language model: a diagram with components but without its block says something else.
+ // Complaints and the knowledge assistant are built with the language model: a diagram with components but without its block says something else.
  if(AI_TRACKS.includes(t.track)&&!a.sel.llm&&Object.values(a.sel).some(Boolean))w.push('method');return w}
 // Which decision each warning sits next to, and the diagram component its button adds (none for monitoring).
 // The human-in-the-loop button sits in decision 2's note while the diagram lacks the component, so the warning does not repeat it.

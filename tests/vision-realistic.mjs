@@ -1,4 +1,4 @@
-// Focused probes for the optional photographic vision asset manifest.
+// Focused probes for the optional photographic vision asset manifest and the drawn-can fallback of the vision lab.
 // Usage: node tests/vision-realistic.mjs
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -96,20 +96,17 @@ try {
     first: { id: VIS.train[2].id, type: VIS.train[2].type, source: VIS.train[2].source, url: VIS.train[2].url, originalUrl: VIS.train[2].originalUrl },
     mismatch: { id: VIS.train[0].id, type: VIS.train[0].type, bad: VIS.train[0].bad, source: VIS.train[0].source },
     second: { id: VIS.train[1].id, type: VIS.train[1].type, source: VIS.train[1].source, url: VIS.train[1].url },
-    big: visBig(VIS.train[2]),
-    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
-    payload: JSON.stringify(visMessages(0, VIS.val[1])),
-    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
-    selected: visSel({ vsel: 'old', mruns: [{ id: 'old', datasetKey: 'synthetic-baseline-v1' }] }),
+    source: VIS.featureSource,
+    gone: ['visBig', 'visMessages', 'visSel', 'visRunLLM'].filter(n => { try { return typeof (0, eval)(n) !== 'undefined'; } catch (e) { return false; } }),
     statusText: document.querySelector('#visionAssetStatus')?.textContent || '',
   }));
-  const shortState = { ...state, first: { ...state.first, url: state.first.url.slice(0, 24) }, second: { ...state.second, url: state.second.url.slice(0, 24) }, big: state.big.slice(0, 24), payload: state.payload.slice(-120) };
+  const shortState = { ...state, first: { ...state.first, url: state.first.url.slice(0, 24) }, second: { ...state.second, url: state.second.url.slice(0, 24) } };
   ok('photos are not loaded until the image folder is opened', idle.status === 'idle' && idle.initialized === false, JSON.stringify(idle));
   ok('manifest becomes ready with expected and loaded counts', state.status === 'ready' && state.expected === 210 && state.photos === 3 && state.fallback === 207, JSON.stringify(shortState));
   ok('loaded item uses a data URL and keeps its source URL separately', state.first.id === 'train_003' && state.first.type === 'ok' && state.first.source === 'photo' && state.first.url.startsWith('data:image/jpeg') && /assets\/vision-generated\/web\/train_003\.jpg$/.test(state.first.originalUrl), JSON.stringify(state.first));
   ok('manifest label mismatch is rejected without changing immutable truth', state.rejected === 1 && state.mismatch.id === 'train_001' && state.mismatch.type === 'code' && state.mismatch.bad && state.mismatch.source === 'synthetic', JSON.stringify(state.mismatch));
   ok('missing items visibly remain synthetic fallback', state.second.source === 'synthetic' && state.second.type === 'code' && state.second.url.startsWith('data:image/'), JSON.stringify(state.second));
-  ok('visBig and model payload contain data URLs, not photo paths', state.big.startsWith('data:image/') && !state.payload.includes('/assets/vision-generated/') && !state.payload.includes('train_003.jpg'), state.payload.slice(-200));
+  ok('no model payload any more: the language-model helpers are gone and a partly loaded set is not a photo set', state.gone.length === 0 && state.source !== 'photo', JSON.stringify([state.gone, state.source]));
     const zip = await page.evaluate(async () => {
       const blob = zipStore([
         { name: 'train/train_001.jpg', data: dataUrlBytes(VIS.train[0].url) },
@@ -119,18 +116,29 @@ try {
       return { size: bytes.length, signature: Array.from(bytes.slice(0, 4)) };
     });
     ok('ZIP accepts photo and synthetic data URLs', zip.size > 100 && JSON.stringify(zip.signature) === '[80,75,3,4]', JSON.stringify(zip));
+  // The lab on this mostly drawn set (3 photos, 207 drawn cans): it mounts, trains and shows a result. The numbers are not specified for drawn cans.
+  await page.goto(`${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}&rooms=0#/lab/vision`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
+  await page.waitForFunction(() => { const x = document.querySelector('#visTrain'); return x && !x.disabled; }, null, { timeout: 60000 });
+  const mounted = await page.evaluate(() => ({ steps: [...document.querySelectorAll('#proto [data-lab-step]')].map(e => e.dataset.labStep).join(), status: !!document.querySelector('#visionAssetStatus'), bar: !!document.querySelector('#aiBar'), old: !!document.querySelector('#visRun, #vPrompt, #visShots'), trained: document.querySelector('#visRes').dataset.trained, photos: +document.body.dataset.visionPhotos, source: VIS.featureSource, feats: [...VIS.train, ...VIS.val, ...VIS.test].every(i => i.vf && i.vf.b.length === 80 && i.vf.e.length === 80) }));
+  ok('with photos missing the lab still mounts: three steps, no AI bar, #visTrain enabled', mounted.steps === 'build,experiment,result' && mounted.status && !mounted.bar && !mounted.old && mounted.trained === 'false' && mounted.photos === 3 && mounted.source !== 'photo', JSON.stringify(mounted));
+  ok('drawn cans get their grid numbers too', mounted.feats, JSON.stringify(mounted));
+  await page.click('#visTrain');
+  await page.waitForFunction(() => document.querySelector('#visRes').dataset.trained === 'true' && !X.visBusy, null, { timeout: 60000 });
+  const trained = await page.evaluate(() => ({ ...document.querySelector('#visRes').dataset, points: document.querySelector('#visCurveBox').dataset.points, thumbs: document.querySelectorAll('#visGal .thumb').length, maps: document.querySelectorAll('#visLearnedBox .vis-heat figure').length, fit: lab().vision.fit,
+    challenge: [...document.querySelectorAll('.challenge')].map(e => e.dataset.state).join() }));
+  ok('training on drawn cans completes: a result on the practice set, the curve, the maps and the gallery', trained.set === 'val' && trained.total === '18' && Number.isFinite(+trained.found) && Number.isFinite(+trained.fp) && trained.points === '100' && trained.thumbs === 60 && trained.maps === 3 && trained.fit === '30|100|1|1', JSON.stringify(trained));
+  ok('the challenge is not available without the photographs (state "na")', trained.challenge === 'na', trained.challenge);
   const cache = await page.evaluate(() => {
-    const oldKey = VIS.datasetKey;
-    const L = lab().vision;
-    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
-    L.mruns = [{ id: 'old', datasetKey: oldKey }];
+    const oldKey = VIS.datasetKey, had = !!visModel();
     VIS.train[2].photoHash = 'repaired-content';
     finishVisionAssets();
-    // VISION-REBUILD: drives or seeds the vision lab built on the language model; to be rewritten for the model trained in the browser.
-    return { oldKey, newKey: VIS.datasetKey, kept: L.mruns.some(run => run.id === 'old'), hashes: VIS.photoHashes };
+    return { oldKey, newKey: VIS.datasetKey, had, kept: !!visModel(), cached: !!(X.visModel && X.visModel.sig.endsWith('@' + VIS.datasetKey)), hashes: VIS.photoHashes };
   });
-  ok('content change on same photo ID invalidates cached runs', cache.oldKey !== cache.newKey && !cache.kept && cache.hashes.some(hash => hash.includes('repaired-content')), JSON.stringify(cache));
-  ok('synthetic run cache cannot be selected for photographic data', state.selected === null, JSON.stringify(state.selected));
+  ok('content change on same photo ID drops the model trained on the old set', cache.oldKey !== cache.newKey && cache.had && !cache.kept && !cache.cached && cache.hashes.some(hash => hash.includes('repaired-content')), JSON.stringify(cache));
+  await page.evaluate(() => X.labRedraw());
+  await page.waitForFunction(() => document.querySelector('#visRes').dataset.trained === 'true' && !X.visBusy && X.visModel && X.visModel.sig.endsWith('@' + VIS.datasetKey), null, { timeout: 60000 });
+  ok('the model is trained again, silently, for the changed set', await page.evaluate(() => !!visModel() && document.querySelectorAll('#visGal .thumb').length === 60));
   ok('status disclosure reports photographic and fallback counts', /3/.test(state.statusText) && /210/.test(state.statusText) && /synthetic|syntetycz/i.test(state.statusText), state.statusText);
   ok('no page errors', errors.length === 0, errors.join(' | '));
 } finally {

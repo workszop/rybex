@@ -464,7 +464,7 @@
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 44);
       c.fillStyle = '#fff'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('KONTROLA JAKOŚCI · L2', 'QUALITY CONTROL · L2'), 14, 30);
       c.fillStyle = '#1c1917'; c.font = '600 20px Raleway, system-ui';
-      [tx('Polecenie dla modelu', 'Instruction for the model'), tx('Przykłady zdjęć', 'Example photos'), tx('Format odpowiedzi', 'Answer format')].forEach((t, i) => { c.fillStyle = '#dfe5e8'; c.fillRect(14, 64 + i * 70, w - 28, 56); c.fillStyle = '#1c1917'; c.fillText(t, 28, 98 + i * 70); });
+      [tx('Oznaczone zdjęcia', 'Labelled photos'), tx('Rundy nauki', 'Training rounds'), tx('Wytrenowany model', 'Trained model')].forEach((t, i) => { c.fillStyle = '#dfe5e8'; c.fillRect(14, 64 + i * 70, w - 28, 56); c.fillStyle = '#1c1917'; c.fillText(t, 28, 98 + i * 70); });
     };
     const qaScreen = new T.Mesh(new T.PlaneGeometry(0.54, 0.32), new T.MeshBasicMaterial({ map: tex.screen(drawQa, { w: 540, h: 320 }), toneMapped: false }));
     qaScreen.position.set(0, 0, 0.021); qaMon.add(qaScreen);

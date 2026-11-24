@@ -76,7 +76,7 @@ const SHOTS = [
   { id: 'baseline', hash: '#/lab/rag', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'rag', goal: GOAL.rag, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok', 'rag']);
       await settle(p); await p.evaluate(() => { document.querySelector('#labSteps').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
-    alt: 'Laboratorium asystenta wiedzy firmowej: pasek pięciu kroków (Zadanie, Dokumenty firmy, Polecenie i wyszukiwanie, Eksperymenty, Test końcowy), karta „Krok 2 · Dane” i karta „Budowa: jak powstaje to rozwiązanie”.' },
+    alt: 'Laboratorium asystenta wiedzy firmowej: pasek pięciu kroków (Zadanie, Dokumenty firmy, Budowa bazy wiedzy, Eksperymenty, Test końcowy), karta „Krok 2 · Dane” i karta „Budowa: jak powstaje to rozwiązanie”.' },
   { id: 'test-reveal', hash: '#/lab/complaints', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true }, log: [SAVED_EXPERIMENT] }, ['life', 'split', 'metr', 'tok']);
       await p.click('#rv'); await settle(p); await p.evaluate(() => { document.querySelector('#rv').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },

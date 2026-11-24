@@ -1,5 +1,6 @@
 // Rybex workshop AI proxy: browser app -> this Worker -> OpenRouter.
 // The OpenRouter key and the class code are Worker secrets; the page never sees the key.
+// POST /chat: one model call. POST /embed: texts to vectors (the knowledge assistant's search). GET /status: spend and limits.
 // One SQLite Durable Object ("Gate") keeps daily spend per team and a response cache,
 // so identical requests from different teams are paid once.
 import { DurableObject } from 'cloudflare:workers';
@@ -11,6 +12,11 @@ const MAX_IMAGE_URL = 150_000;
 const MAX_MESSAGES = 60;
 const CACHE_DAYS = 7;
 const CACHE_MAX_BYTES = 64_000;
+// Embeddings (/embed): a batch of short texts in, one vector per text out.
+const EMBED_MAX_INPUTS = 32;
+const EMBED_MAX_CHARS = 8_000;
+const EMBED_CACHE_MAX_BYTES = 400_000; // 32 vectors of 256 numbers rounded to 5 decimals stay well below this
+const EMBED_DECIMALS = 1e5;
 const UPSTREAM_TIMEOUT_MS = 40_000; // below the app's 45 s, so the Worker answers before the page gives up
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
@@ -71,6 +77,23 @@ function buildUpstream(input, env) {
   return { body };
 }
 
+// Validate an embeddings request and build the upstream body. Returns {error} or {body, dim}.
+// The model must be on EMBED_MODELS and the vector size is fixed by EMBED_DIMENSIONS: the page cannot ask for another.
+function buildEmbedUpstream(input, env) {
+  if (!input || typeof input !== 'object') return { error: 'bad_request' };
+  if (!listVar(env.EMBED_MODELS).includes(input.model)) return { error: 'model_not_allowed' };
+  const dim = Math.round(numVar(env.EMBED_DIMENSIONS, 256));
+  if (input.dimensions != null && input.dimensions !== dim) return { error: 'bad_dimensions' };
+  const texts = typeof input.input === 'string' ? [input.input] : input.input;
+  if (!Array.isArray(texts) || !texts.length) return { error: 'bad_request' };
+  if (texts.length > EMBED_MAX_INPUTS) return { error: 'too_large' };
+  for (const t of texts) {
+    if (typeof t !== 'string' || !t.trim()) return { error: 'bad_request' };
+    if (t.length > EMBED_MAX_CHARS) return { error: 'too_large' };
+  }
+  return { body: { model: input.model, input: texts, dimensions: dim, encoding_format: 'float' }, dim };
+}
+
 // ─── Durable Object: spend + cache ───
 export class Gate extends DurableObject {
   constructor(ctx, env) {
@@ -98,11 +121,11 @@ export class Gate extends DurableObject {
     return { cached: null, ...this.totals(day, team) };
   }
   // Replace the reservation with the real cost (0 and no call counted when the upstream call failed).
-  async finish(day, team, cost, reserve, hash, body, ok = true) {
+  async finish(day, team, cost, reserve, hash, body, ok = true, maxBytes = CACHE_MAX_BYTES) {
     const sql = this.ctx.storage.sql;
     sql.exec(`INSERT INTO spend (day, team, usd, calls) VALUES (?, ?, ?, ?)
       ON CONFLICT (day, team) DO UPDATE SET usd = MAX(0, usd + excluded.usd), calls = calls + excluded.calls`, day, team, cost - reserve, ok ? 1 : 0);
-    if (hash && body && body.length <= CACHE_MAX_BYTES) sql.exec('INSERT OR REPLACE INTO cache (hash, body, ts) VALUES (?, ?, ?)', hash, body, Date.now());
+    if (hash && body && body.length <= maxBytes) sql.exec('INSERT OR REPLACE INTO cache (hash, body, ts) VALUES (?, ?, ?)', hash, body, Date.now());
     if (Math.random() < 0.02) sql.exec('DELETE FROM cache WHERE ts < ?', Date.now() - CACHE_DAYS * 864e5);
     return this.totals(day, team);
   }
@@ -149,6 +172,53 @@ async function handleChat(req, env) {
   return json(req, env, 200, out);
 }
 
+// POST /embed {model, input: string | string[], dimensions?} -> {object:'list', model, data:[{index, embedding}], usage, rybex}
+// Same gate as /chat: class code, team, daily budgets with a reservation, and the request cache.
+async function handleEmbed(req, env) {
+  if (!env.CLASS_CODE || !env.OPENROUTER_API_KEY) return json(req, env, 500, { error: 'not_configured' });
+  if (!codeOk(env, req.headers.get('x-class-code'))) return json(req, env, 401, { error: 'bad_code' });
+  const team = teamOf(req, env);
+  if (!team) return json(req, env, 400, { error: 'bad_team' });
+  if (+req.headers.get('content-length') > MAX_BODY_BYTES) return json(req, env, 400, { error: 'too_large' });
+  const raw = await req.text();
+  if (raw.length > MAX_BODY_BYTES) return json(req, env, 400, { error: 'too_large' });
+  let input; try { input = JSON.parse(raw); } catch (e) { return json(req, env, 400, { error: 'bad_request' }); }
+  const { error, body, dim } = buildEmbedUpstream(input, env);
+  if (error) return json(req, env, 400, { error });
+
+  const payload = JSON.stringify(body), hash = await sha256('embed:' + payload), day = today();
+  const gate = env.GATE.getByName('class');
+  const limits = limitsOf(env), reserve = numVar(env.EMBED_RESERVE_USD, 0.001);
+  const pre = await gate.begin(day, team, hash, limits, reserve);
+  if (pre.cached) {
+    const out = JSON.parse(pre.cached);
+    out.rybex = { cached: true, teamSpend: pre.teamSpend, totalSpend: pre.totalSpend, limits, dim };
+    return json(req, env, 200, out);
+  }
+  if (pre.blocked) { const { blocked, ...t } = pre; return json(req, env, 429, { error: blocked, ...t, limits }); }
+
+  let up, text = '';
+  try {
+    up = await fetch(env.EMBED_URL || 'https://openrouter.ai/api/v1/embeddings', { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${env.OPENROUTER_API_KEY}`, 'HTTP-Referer': 'https://workszop.github.io', 'X-Title': 'Rybex AI workshop' }, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
+    text = await up.text();
+  } catch (e) { await gate.finish(day, team, 0, reserve, null, null, false); return json(req, env, 502, { error: 'upstream', status: 0 }); }
+  let res; try { res = JSON.parse(text); } catch (e) { res = null; }
+  // One vector of the fixed size per input, in input order; anything else is an upstream failure and is not charged or cached.
+  const rows = res && Array.isArray(res.data) ? [...res.data].sort((a, b) => (a.index || 0) - (b.index || 0)) : null;
+  const good = up.ok && rows && rows.length === body.input.length && rows.every(r => r && Array.isArray(r.embedding) && r.embedding.length === dim && r.embedding.every(Number.isFinite));
+  if (!good) {
+    await gate.finish(day, team, 0, reserve, null, null, false);
+    return json(req, env, 502, { error: 'upstream', status: up.status, detail: res && res.error ? String(res.error.message || '').slice(0, 300) : '' });
+  }
+  const tokens = numVar(res.usage && res.usage.prompt_tokens, 0);
+  // OpenRouter reports the cost of the call; when it does not, the token count and the list price give it.
+  const cost = numVar(res.usage && res.usage.cost, tokens * numVar(env.EMBED_USD_PER_MTOK, 0.02) / 1e6);
+  const out = { object: 'list', model: body.model, data: rows.map((r, i) => ({ index: i, embedding: r.embedding.map(x => Math.round(x * EMBED_DECIMALS) / EMBED_DECIMALS) })), usage: { prompt_tokens: tokens, total_tokens: tokens, cost } };
+  const post = await gate.finish(day, team, cost, reserve, hash, JSON.stringify(out), true, EMBED_CACHE_MAX_BYTES);
+  out.rybex = { cached: false, teamSpend: post.teamSpend, totalSpend: post.totalSpend, limits, dim };
+  return json(req, env, 200, out);
+}
+
 async function handleStatus(req, env) {
   if (!env.CLASS_CODE) return json(req, env, 500, { error: 'not_configured' });
   if (!req.headers.get('x-class-code')) return json(req, env, 200, { ok: false, error: 'bad_code' });
@@ -156,7 +226,7 @@ async function handleStatus(req, env) {
   const team = req.headers.get('x-team') ? teamOf(req, env) : '0';
   if (!team) return json(req, env, 400, { error: 'bad_team' });
   const t = await env.GATE.getByName('class').totals(today(), team);
-  return json(req, env, 200, { ok: true, ...t, limits: limitsOf(env), models: listVar(env.ALLOWED_MODELS) });
+  return json(req, env, 200, { ok: true, ...t, limits: limitsOf(env), models: listVar(env.ALLOWED_MODELS), embed: { models: listVar(env.EMBED_MODELS), dimensions: Math.round(numVar(env.EMBED_DIMENSIONS, 256)) } });
 }
 
 export default {
@@ -167,6 +237,11 @@ export default {
       // Keep the call running if the page cancels or times out, so the reservation made in begin() is still
       // settled in finish() and cancelled runs do not eat into the team's daily budget.
       const res = handleChat(req, env);
+      ctx.waitUntil(res.catch(() => {}));
+      return res;
+    }
+    if (pathname === '/embed' && req.method === 'POST') {
+      const res = handleEmbed(req, env);
       ctx.waitUntil(res.catch(() => {}));
       return res;
     }

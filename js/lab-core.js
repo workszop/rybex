@@ -11,11 +11,11 @@ function bindJump(){setHdrH();
 // ─── The five steps of every lab (the same order as the five room stations) ───
 // The labels name what the team does on its track; the done-state comes only from the team's saved work.
 const LAB_STEPS=k=>[['task',T('Zadanie')],['data',({vision:T('Zdjęcia puszek'),rag:T('Dokumenty firmy'),complaints:T('Zgłoszenia klientów'),forecast:T('Historia sprzedaży'),maint:T('Odczyty czujników')})[k]||T('Dane')],
- ['build',({vision:T('Polecenie i przykłady'),rag:T('Polecenie i wyszukiwanie'),complaints:T('Polecenie i przykłady')})[k]||T('Trenowanie modelu')],['experiment',T('Eksperymenty')],
- ['result',AI_TRACKS.includes(k)?T('Test końcowy'):k==='forecast'?T('Wynik na ukrytych miesiącach'):T('Wynik na nowych minutach')]];
-// Built: a model run exists (language-model tracks) or the model is trained on the current settings (forecast, machine failures); a saved experiment also counts.
+ ['build',({rag:T('Budowa bazy wiedzy'),complaints:T('Polecenie i przykłady')})[k]||T('Trenowanie modelu')],['experiment',T('Eksperymenty')],
+ ['result',Object.hasOwn(TEST_TRACKS,k)?T('Test końcowy'):k==='forecast'?T('Wynik na ukrytych miesiącach'):T('Wynik na nowych minutach')]];
+// Built: a model run exists (complaints), the knowledge base is built on the current settings (knowledge assistant, ragBuilt) or the model is trained on the current settings (vision, forecast, machine failures); a saved experiment also counts.
 function labBuilt(t,k){const L=t.lab;if(expOf(t,k)>0)return true;
- if(k==='vision')return L.vision.mruns.length>0;if(k==='complaints')return L.compl.runs.length>0;if(k==='rag')return!!L.rag.mrun;
+ if(k==='vision')return typeof visTrained==='function'&&visTrained(L.vision);if(k==='complaints')return L.compl.runs.length>0;if(k==='rag')return typeof ragBuilt==='function'&&ragBuilt(L.rag);
  if(k==='forecast')return typeof fcTrained==='function'&&fcTrained(L.fc);if(k==='maint')return typeof mtTrained==='function'&&mtTrained(L.mt);return false}
 // task: the lab is open; data: the data file, the data card or the room's data station was opened; experiment: MIN_EXPERIMENTS saved;
 // result: the final-test result is in the log (tracks with a hidden test), elsewhere the experiments themselves (their check is already on unseen data).
@@ -26,7 +26,7 @@ function renderLabSteps(k=S.sub.lab){const el=$('#labSteps');if(!el||!LAB_KEYS.i
  el.dataset.track=k;el.dataset.done=L5.filter(s=>st[s[0]]).length;el.setAttribute('aria-label',T('Kroki ćwiczenia'));
  if(setHTML(el,L5.map(([id,l],i)=>`<li data-step="${id}" data-done="${!!st[id]}"${id===cur?' aria-current="step"':''}><span class="ls-n">${st[id]?ic('check'):i+1}</span><span class="ls-t">${l}<span class="sr-only"> ${st[id]?T('(zrobione)'):id===cur?T('(teraz)'):''}</span></span></li>`).join('')))icons(el)}
 function vLab(){X.aiHook=null;const M=trMeta(),k=S.sub.lab,m=M[k],t=team(),tone=TONE[k],compact=!!(t.track&&t.track===k&&!X.showAllTracks);
- const trackNav=`<div class="tabs mt${compact?' tabs-compact':''}" id="trackTabs" role="navigation" aria-label="${T('Zadania')}">${LAB_KEYS.map(x=>`<button type="button" data-k="${x}" class="${k===x?'on':''}" ${k===x?'aria-current="true"':''}${compact&&x!==k?' hidden':''}>${ic(M[x].ic)}${M[x].title}${t.track===x?` <span class="edu-chip tone-ink">${T('wybrana')}</span>`:''}</button>`).join('')}${t.track&&t.track===k?`<button type="button" class="btn-ghost btn-sm track-toggle" id="trackTabsToggle" aria-expanded="${!compact}">${compact?T('Inne zadania (4)','Other tasks (4)'):T('Zwiń inne zadania','Hide other tasks')} ${ic(compact?'chevron-down':'chevron-up')}</button>`:t.track?`<button type="button" class="btn-ghost btn-sm track-toggle" id="backMyTrack">${ic('arrow-left')}${T(`Wróć do: ${M[t.track].title}`,`Back to: ${M[t.track].title}`)}</button>`:''}</div>`;
+ const trackNav=`<div class="tabs mt${compact?' tabs-compact':''}" id="trackTabs" role="navigation" aria-label="${T('Zadania')}">${LAB_KEYS.map(x=>`<button type="button" data-k="${x}" class="${k===x?'on':''}" ${k===x?'aria-current="true"':''}${compact&&x!==k?' hidden':''}>${ic(M[x].ic)}${M[x].title}${t.track===x?` <span class="edu-chip tone-ink">${T('wybrana')}</span>`:''}</button>`).join('')}${t.track&&t.track===k?`<button type="button" class="btn-ghost btn-sm track-toggle" id="trackTabsToggle" aria-expanded="${!compact}">${compact?T('Inne zadania (4)','Other tasks (4)'):T('Zwiń inne zadania','Hide other tasks')} ${ic(compact?'chevron-down':'chevron-up')}</button>`:t.track?`<button type="button" class="btn-ghost btn-sm track-toggle" id="backMyTrack">${ic('arrow-left')}${T(`Wróćcie do: ${M[t.track].title}`,`Back to: ${M[t.track].title}`)}</button>`:''}</div>`;
  mainEl.innerHTML=pageHead(nm('lab'),T('Zbudujcie rozwiązanie AI krok po kroku: obejrzyjcie dane, zbudujcie pierwszą wersję, przeprowadźcie co najmniej trzy eksperymenty i zapiszcie wynik.'),`${trackNav}${roomBar()}`)
  +`<section class="sec"><div class="wrap"><div class="group-hero tone-${tone} edu-block"><div><p class="edu-overline">${T('Zadanie')}</p><p class="gh-title">${m.title}</p><p>${m.inp} → ${m.proc} → ${m.out}</p><p class="mt" id="labIntro">${m.how} ${T('Idźcie po kolei przez pięć kroków: zadanie, dane, budowa, eksperymenty, wynik.')}</p><p class="row mt"><button type="button" class="btn-ghost btn-sm" id="pickTrack" aria-pressed="${t.track===k}">${ic(t.track===k?'check':'flag')}${t.track===k?T('To zadanie naszego zespołu'):T('Wybierzcie jako zadanie zespołu')}</button></p></div><div id="heroProg"></div></div><ol id="labSteps" class="lab-steps mt"></ol></div></section>`
  +jumpBar()+`<section class="sec" id="labData"><h2 class="sr-only">${T('Dane i budowa rozwiązania')}</h2><div class="wrap"><div class="grid2">${card('database',T('Krok 2 · Dane'),`<p>${T('Plik')}: <code>${m.data}</code></p><p>${T('Zanim cokolwiek zbudujecie, obejrzyjcie dane: co w nich jest, ile ich jest i czego brakuje.')}</p><p><button type="button" class="linkbtn" id="tod">${T('Zobaczcie kartę danych')}</button></p>`,{tone})}<div id="labMethod">${card('list-checks',T('Budowa: jak powstaje to rozwiązanie'),`<div class="grid3"><div><span class="edu-overline">${T('Wejście')}</span><p>${m.inp}</p></div><div><span class="edu-overline">${T('Przetwarzanie')}</span><p>${m.proc}</p></div><div><span class="edu-overline">${T('Wyjście')}</span><p>${m.out}</p></div></div><ol class="lab-build" id="labBuild">${m.build.map(x=>`<li>${glx(x)}</li>`).join('')}</ol>`,{tone})}</div></div>${k==='maint'?`<div class="mt">${personaQuote('anna','maint')}</div>`:''}</div></section>`
@@ -94,7 +94,7 @@ function roomSync(k){if(roomWant()&&!roomReady[k])roomFetch(k);if(!roomOk(k)){ro
  X.room={track:k,lang:S.lang,team:S.team,handle:h,data};
  // The 3D view failed after all (scripts half-loaded, a shader error): the page view with the notice.
  if(h.status==='fallback'){X.roomFail=true;roomDispose();render()}}
-// The language-model bar is shown on the three tracks built with the model.
+// The language-model bar is shown on the two tracks built with the language model.
 const aiWanted=k=>AI_TRACKS.includes(k);
 function syncAiBar(){const slot=$('#aiSlot');if(!slot)return;const want=aiWanted(S.sub.lab);
  if(want&&!$('#aiBar')){slot.innerHTML=aiBar();bindAiBar();icons(slot)}else if(!want&&slot.firstChild)slot.innerHTML=''}
@@ -112,12 +112,12 @@ function tryReveal(k,L,after){if(revealGate(k)){const msg=GATE_MSG(),gm=$('#gate
  if(!toastEl.hidden&&toastEl.dataset.reason==='experiment')hideToast();toggleReveal(L);save();after();syncRevealGate();renderLabSteps(k);renderPathBar()}
 // ─── Saved experiments of the track ───
 const OLD_RUN=()=>T('starszy zapis');
-// Entries from before the guided labs: rules runs on the model tracks and the forecast method table. They stay readable, nothing more.
-const legacyRun=l=>{const c=isObj(l)&&isObj(l.cfg)?l.cfg:{};return AI_TRACKS.includes(l.track)?c.mode!=='llm':l.track==='forecast'&&!('trend'in c)};
+// Entries from before the guided labs: rules runs on the model tracks, language-model and rules runs on vision (its model is trained now) and the forecast method table. They stay readable, nothing more.
+const legacyRun=l=>{const c=isObj(l)&&isObj(l.cfg)?l.cfg:{};return l.track==='vision'?c.mode!=='train':AI_TRACKS.includes(l.track)?c.mode!=='llm'||l.track==='rag'&&!('size'in c):l.track==='forecast'&&!('trend'in c)};
 // One line on an experiment's settings (the result is never part of it).
 function cfgText(l){const c=l.cfg||{};try{switch(l.track){
-  case'vision':return c.mode==='llm'?`prompt ${c.ver||'v1'}, ${cnt(c.shots,'example')}`:OLD_RUN();
-  case'rag':return c.mode==='llm'?`k=${c.k}, ${T('akapitów/fragment')}=${c.chunk}, min=${num(c.min,2)}${c.lang?', '+String(c.lang).toUpperCase():''}`:OLD_RUN();
+  case'vision':return c.mode==='train'?visCfgTxt(c):OLD_RUN();
+  case'rag':{if(legacyRun(l))return OLD_RUN();const ds=Array.isArray(c.docs)?c.docs:[];return T(`dokumenty: ${ds.length}${ds.some(x=>/^ARCH-/.test(x))?' (z wersją archiwalną)':''}, fragment do ${c.size} słów, zakładka ${c.overlap} zd., k=${c.k}, próg ${num(c.min,2)}, polecenie ${c.ins?'zmienione':'domyślne'}`,`documents: ${ds.length}${ds.some(x=>/^ARCH-/.test(x))?' (with the archived version)':''}, fragment up to ${c.size} words, overlap ${c.overlap} sent., k=${c.k}, threshold ${num(c.min,2)}, ${c.ins?'changed':'default'} instruction`)+(c.lang?', '+String(c.lang).toUpperCase():'')}
   case'complaints':return c.mode==='llm'?`prompt ${c.ver}, ${cnt(c.shots,'example')}`:OLD_RUN();
   case'forecast':{const p=PRODUCTS[c.p]?PRODUCTS[c.p][langIx()]:c.p;return legacyRun(l)?`${OLD_RUN()}: ${p}, h=${c.h}`:`${p}, ${T(`ukryte miesiące: ${c.h}`,`hidden months: ${c.h}`)}, ${T('model uczy się')}: ${[c.trend?T('trend'):'',c.season?T('sezonowość'):''].filter(Boolean).join(' + ')||T('tylko średni poziom')}`}
   case'maint':return mtCfgTxt(c)}}catch(e){}

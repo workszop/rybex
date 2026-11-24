@@ -10,6 +10,13 @@ enabled = true
 [vars]
 UPSTREAM_URL = "https://openrouter.ai/api/v1/chat/completions"
 ALLOWED_MODELS = "deepseek/deepseek-v4.1-flash,anthropic/claude-haiku-5.5"
+# Embeddings (POST /embed, the knowledge assistant's search): the model, the fixed vector size and the list price
+# used only when OpenRouter does not report the cost of a call. The app expects exactly this model and size.
+EMBED_URL = "https://openrouter.ai/api/v1/embeddings"
+EMBED_MODELS = "openai/text-embedding-3-small"
+EMBED_DIMENSIONS = "256"
+EMBED_USD_PER_MTOK = "0.02"
+EMBED_RESERVE_USD = "0.001"
 ALLOWED_ORIGINS = "https://workszop.github.io,https://rybex.warsztaty-ai.com,http://localhost:8794,http://127.0.0.1:8794,http://localhost:8000"
 TEAM_DAILY_USD = "1.00"
 TOTAL_DAILY_USD = "15.00"

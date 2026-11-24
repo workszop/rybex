@@ -2,14 +2,14 @@
 // A classic script: it shares one global scope with the other js/ files; the load order is in rybex-ai-workshop.html.
 // ─── AI client ───
 class AiError extends Error{constructor(kind,detail){super(kind);this.kind=kind;this.detail=detail||''}}
-const AI_FATAL=new Set(['example','nocode','bad_code','budget','network','not_configured','aborted']);
+const AI_FATAL=new Set(['example','nocode','bad_code','budget','network','not_configured','no_embed','aborted']);
 const usd=x=>'$'+num(x,x<1?4:2);
 function hashStr(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^h1>>>16,2246822507)^Math.imul(h2^h2>>>13,3266489909);h2=Math.imul(h2^h2>>>16,2246822507)^Math.imul(h1^h1>>>13,3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)}
 // Models sometimes wrap JSON in code fences or add a sentence around it: take the outermost {...}.
 function parseJsonLoose(t){if(typeof t!=='string')return null;const s=t.replace(/```(?:json)?/gi,''),a=s.indexOf('{'),b=s.lastIndexOf('}');if(a<0||b<=a)return null;try{const o=JSON.parse(s.slice(a,b+1));return isObj(o)?o:null}catch(e){return null}}
 const aiModel=k=>AI_MODELS[k]||AI_MODELS[S.ai.model]||AI_MODELS.deepseek;
 const aiModelName=id=>(Object.values(AI_MODELS).find(m=>m.id===id)||{name:id}).name;
-const aiErrText=k=>({example:T('W podglądzie przykładu model nie działa: nic nie zostanie wysłane ani doliczone do budżetu. Wróćcie do swojej pracy, aby uruchomić model.'),nocode:T('Wpiszcie kod zajęć, aby korzystać z modelu.'),bad_code:T('Nieprawidłowy kod zajęć.'),budget:T('Wyczerpano dzienny budżet na wywołania modelu. Nowych przebiegów modelu nie da się teraz uruchomić; zapisane wyniki zostają. Powiedzcie o tym prowadzącemu.'),network:T('Brak połączenia z serwerem modelu. Bez niego laboratorium pokazuje tylko nagrane odpowiedzi dla ustawień domyślnych, a dla tego przebiegu nagrania nie ma.'),not_configured:T('Serwer modelu nie jest jeszcze skonfigurowany (brak klucza API lub kodu zajęć).'),upstream:T('Dostawca modelu zwrócił błąd. Spróbujcie ponownie za chwilę.'),bad_request:T('Serwer odrzucił zapytanie (zbyt duże lub nieprawidłowe).'),parse:T('Model nie zwrócił poprawnego JSON.'),partial:T('Zbyt wiele wywołań nie powiodło się (zwykle limit zapytań u dostawcy). Przebieg nie został zapisany: spróbujcie ponownie za chwilę.'),aborted:T('Przerwano.'),timeout:T('Model nie odpowiedział w czasie. Spróbujcie ponownie.')})[k]||k;
+const aiErrText=k=>({example:T('W podglądzie przykładu model nie działa: nic nie zostanie wysłane ani doliczone do budżetu. Wróćcie do swojej pracy, aby uruchomić model.'),nocode:T('Wpiszcie kod zajęć, aby korzystać z modelu.'),bad_code:T('Nieprawidłowy kod zajęć.'),budget:T('Wyczerpano dzienny budżet na wywołania modelu. Nowych przebiegów modelu nie da się teraz uruchomić; zapisane wyniki zostają. Powiedzcie o tym prowadzącemu.'),network:T('Brak połączenia z serwerem modelu. Bez niego laboratorium pokazuje tylko nagrane odpowiedzi dla ustawień domyślnych, a dla tego przebiegu nagrania nie ma.'),not_configured:T('Serwer modelu nie jest jeszcze skonfigurowany (brak klucza API lub kodu zajęć).'),upstream:T('Dostawca modelu zwrócił błąd. Spróbujcie ponownie za chwilę.'),bad_request:T('Serwer odrzucił zapytanie (zbyt duże lub nieprawidłowe).'),parse:T('Model nie zwrócił poprawnego JSON.'),partial:T('Zbyt wiele wywołań nie powiodło się (zwykle limit zapytań u dostawcy). Przebieg nie został zapisany: spróbujcie ponownie za chwilę.'),no_embed:T('Serwer zajęć nie ma jeszcze funkcji zamiany tekstu na wektory (wymaga aktualizacji). Powiedzcie o tym prowadzącemu.'),aborted:T('Przerwano.'),timeout:T('Model nie odpowiedział w czasie. Spróbujcie ponownie.')})[k]||k;
 // One shared load of replay.json: parallel calls in a batch all wait for the same fetch.
 async function aiReplay(key){if(AIS.replay===undefined)AIS.replay=(async()=>{try{const r=await fetch('replay.json',{cache:'no-store'});if(r.ok){const o=await r.json();if(isObj(o))return o}}catch(e){}return null})();const rp=await AIS.replay;return rp&&isObj(rp[key])?rp[key]:null}
 const aiRecordedJSON=()=>JSON.stringify(Object.fromEntries(AIS.rec));
@@ -34,6 +34,31 @@ async function callModel({messages,maxTokens=300,json=true,signal,model}={}){if(
  if(!r.ok){const k=r.status===401?'bad_code':r.status===429?'budget':r.status===400?'bad_request':j&&j.error==='not_configured'?'not_configured':'upstream';if(k==='budget'&&j)AIS.teamSpend=numOr(j.teamSpend,AIS.teamSpend);if(AI_FATAL.has(k))aiSetErr(k);throw new AiError(k,j&&j.error)}
  if(!isObj(j)||!Array.isArray(j.choices))throw new AiError('upstream');
  const out=aiResult(j,m,Math.round(performance.now()-t0),key,json,false);AIS.rec.set(key,j);aiTally(out.usage,j);
+ if(AIS.state!=='ready'||AIS.replayed){AIS.state='ready';AIS.err='';AIS.replayed=false;renderAiState()}
+ return out}
+// ─── Embeddings: texts to vectors (the knowledge assistant's search) ───
+// The ready embedding model behind the class server: one fixed model and vector size (the Worker accepts no other). pin: USD per 1M tokens.
+const AI_EMBED={id:'openai/text-embedding-3-small',name:'text-embedding-3-small',dim:256,pin:.02,batch:16};
+// One embeddings call for up to AI_EMBED.batch texts. Resolves {vecs:[Float32Array],usage:{in,out:0,cost,paid},ms,cached,replayed,model,key};
+// rejects with AiError exactly as callModel does (code, budget, network with the replay lookup, timeout, cancel).
+async function embedTexts(texts,{signal}={}){if(S.example)throw new AiError('example');
+ const m=AI_EMBED,body={model:m.id,input:texts,dimensions:m.dim},key=hashStr(JSON.stringify(body));
+ if(!S.ai.code){aiSetErr('nocode');throw new AiError('nocode')}
+ if(signal&&signal.aborted)throw new AiError('aborted');
+ const read=(j,ms,replayed)=>{const rows=isObj(j)&&Array.isArray(j.data)?[...j.data].sort((a,b)=>(a.index||0)-(b.index||0)):[];
+  if(rows.length!==texts.length||rows.some(r=>!isObj(r)||!Array.isArray(r.embedding)||r.embedding.length!==m.dim))throw new AiError('upstream','embedding_shape');
+  const u=isObj(j.usage)?j.usage:{},cached=replayed||!!(isObj(j.rybex)&&j.rybex.cached),tin=numOr(u.prompt_tokens,0),cost=numOr(u.cost,tin*m.pin/1e6);
+  return{vecs:rows.map(r=>Float32Array.from(r.embedding)),usage:{in:tin,out:0,cost,paid:cached?0:cost},ms,cached,replayed,model:m.id,key}};
+ let timedOut=false;const ctl=new AbortController(),onAbort=()=>ctl.abort(),timer=setTimeout(()=>{timedOut=true;ctl.abort()},AIS.timeoutMs),t0=performance.now();
+ if(signal)signal.addEventListener('abort',onAbort,{once:true});
+ let r,j=null,stopped=()=>{if(signal&&signal.aborted)throw new AiError('aborted');if(timedOut)throw new AiError('timeout')};
+ try{try{r=await fetch(AI_URL+'/embed',{method:'POST',headers:{'Content-Type':'application/json','X-Class-Code':S.ai.code,'X-Team':String(S.team)},body:JSON.stringify(body),signal:ctl.signal})}
+  catch(e){stopped();const rp=await aiReplay(key);if(rp){const out=read(rp,0,true);aiTally(out.usage);if(!AIS.replayed){AIS.replayed=true;renderAiState()}return out}aiSetErr('network');throw new AiError('network')}
+  try{j=await r.json()}catch(e){stopped()}}
+ finally{clearTimeout(timer);if(signal)signal.removeEventListener('abort',onAbort)}
+ // A Worker deployed before the embeddings endpoint existed answers 404: say that the class server needs an update.
+ if(!r.ok){const k=r.status===401?'bad_code':r.status===429?'budget':r.status===404?'no_embed':r.status===400?'bad_request':j&&j.error==='not_configured'?'not_configured':'upstream';if(k==='budget'&&j)AIS.teamSpend=numOr(j.teamSpend,AIS.teamSpend);if(AI_FATAL.has(k))aiSetErr(k);throw new AiError(k,j&&j.error)}
+ const out=read(j,Math.round(performance.now()-t0),false);AIS.rec.set(key,j);aiTally(out.usage,j);
  if(AIS.state!=='ready'||AIS.replayed){AIS.state='ready';AIS.err='';AIS.replayed=false;renderAiState()}
  return out}
 // Run fn over items with limited concurrency. A fatal error (code, budget, network, cancel) stops the batch and rejects;
