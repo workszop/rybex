@@ -133,3 +133,17 @@
 .room-panel.is-wide .room-slot .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .room-icon.room-wide-btn[aria-pressed="true"] { background: var(--ink, #1C1917); color: var(--paper, #fff); border-color: var(--ink, #1C1917); }
 @media (max-width: 900px) { .room-panel { top: auto; } .room-panel.is-wide { width: 100%; } .room-wide-btn { display: none; } .room-root { padding-top: 46px; } .room-canvas { inset: 46px 0 0 0; } }
+
+/* Full-screen panel ("Otwórz"): the station's task over the whole window; moving on or Esc returns to the room. */
+.room-full-btn {
+  font: 700 var(--body-sm, 14px)/1.2 var(--font-sans, system-ui, sans-serif); cursor: pointer; height: 36px; padding: 0 16px;
+  color: var(--ink, #1C1917); background: var(--yellow, #FFD500); border: 1px solid var(--ink, #1C1917); border-radius: var(--r-pill, 999px);
+}
+.room-full-btn:hover { background: var(--paper-3, #EAE6E0); }
+.room-full-btn[aria-pressed="true"] { background: var(--surface, #fff); }
+.room-panel.is-full { position: fixed; inset: 0; top: var(--hdr-h, 0px); width: auto; z-index: 40; border: 0; border-radius: 0; animation: none; }
+.room-panel.is-full .room-wide-btn { display: none; }
+.room-panel.is-full .room-panel-head, .room-panel.is-full .room-panel-foot { border-radius: 0; }
+.room-panel.is-full .room-panel-head, .room-panel.is-full .room-panel-do, .room-panel.is-full .room-panel-body, .room-panel.is-full .room-panel-foot { padding-left: max(24px, calc((100% - 1240px) / 2)); padding-right: max(24px, calc((100% - 1240px) / 2)); }
+.room-panel.is-full .room-slot .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .room-full-btn { display: none; } }

@@ -27,8 +27,8 @@
   const EYE = 1.65, RADIUS = 0.3, SPEED = 3.2, PITCH_MAX = Math.PI / 3, LOOK_RATE = 0.005, PR_MAX = 1.5;
   const LABEL_PX = 34, LABEL_PX_FAR = 28; // station label height on screen (CSS px), near and far
   const TXT = {
-    pl: { bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', save: 'Zapisz plik', saveTitle: 'Pobierzcie plik zespołu', wide: 'Poszerz lub zwęź panel', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
-    en: { bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', save: 'Save file', saveTitle: 'Download the team file', wide: 'Widen or narrow panel', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
+    pl: { bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', save: 'Zapisz plik', saveTitle: 'Pobierzcie plik zespołu', wide: 'Poszerz lub zwęź panel', full: 'Otwórz', fullTitle: 'Otwórzcie panel na pełnym ekranie', back: 'Wróć do pokoju', backTitle: 'Zamknijcie pełny ekran i wróćcie do pokoju 3D', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
+    en: { bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', save: 'Save file', saveTitle: 'Download the team file', wide: 'Widen or narrow panel', full: 'Open', fullTitle: 'Open the panel full screen', back: 'Back to the room', backTitle: 'Leave full screen and return to the 3D room', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
   };
   // The walk through a room: five stations in a fixed order. The guide at the bottom names the next one, the panel
   // says what to do at this one (opts.steps overrides the lines per station: { brief: 'text' | { pl, en }, ... }).
@@ -915,6 +915,7 @@
     bar.append(exitBtn);
     const titleEl = el('h2', { class: 'room-panel-title', id: id + '-title', tabindex: '-1' });
     const wideBtn = el('button', { type: 'button', class: 'room-icon room-wide-btn', 'data-room-wide': true, 'aria-label': L.wide, 'aria-pressed': 'false', title: L.wide }, '↔');
+    const fullBtn = el('button', { type: 'button', class: 'room-full-btn', 'data-room-full': true, 'aria-pressed': 'false', title: L.fullTitle }, L.full);
     const prevBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-prev': true, 'aria-label': L.prev, title: L.prev }, '‹');
     const nextBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-next': true, 'aria-label': L.next, title: L.next }, '›');
     const closeBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-close': true, 'aria-label': L.close, title: L.close + ' (Esc)' }, '×');
@@ -922,7 +923,7 @@
     const body = el('div', { class: 'room-panel-body' });
     for (const s of STATIONS) { slots[s] = el('div', { class: 'room-slot', 'data-station': s, hidden: true }); body.append(slots[s]); }
     const stepEl = el('span', { class: 'room-step' }), doEl = el('p', { class: 'room-panel-do' });
-    const head = el('header', { class: 'room-panel-head' }, [el('div', { class: 'room-panel-heading' }, [stepEl, titleEl]), el('div', { class: 'room-panel-nav' }, [wideBtn, prevBtn, nextBtn, closeBtn])]);
+    const head = el('header', { class: 'room-panel-head' }, [el('div', { class: 'room-panel-heading' }, [stepEl, titleEl]), el('div', { class: 'room-panel-nav' }, [fullBtn, wideBtn, prevBtn, nextBtn, closeBtn])]);
     const onwardBtn = el('button', { type: 'button', class: 'room-onward', 'data-room-onward': true });
     const foot = el('footer', { class: 'room-panel-foot' }, onwardBtn);
     const panel = el('section', { class: 'room-panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': titleEl.id, hidden: true }, [head, doEl, body, foot]);
@@ -966,9 +967,17 @@
         onwardBtn.textContent = onwardTo ? `${G.next} ${numOf(onwardTo)}. ${titleOf(onwardTo)} \u2192` : G.finish;
       }
     }
+    // Full screen: the open panel covers the window so the task has room; any move to another station (the onward
+    // button, the arrows, the toolbar) and Esc bring the 3D room back with the panel beside it.
+    function setFull(v) {
+      v = !!v && station !== 'none'; if (panel.classList.contains('is-full') === v) return;
+      panel.classList.toggle('is-full', v); rootEl.dataset.roomPanel = v ? "full" : "side"; panel.setAttribute('aria-modal', String(v));
+      fullBtn.setAttribute('aria-pressed', String(v)); fullBtn.textContent = v ? L.back : L.full; fullBtn.title = v ? L.backTitle : L.fullTitle;
+    }
     function show(s) {
       clearTimeout(pendingOpen);
       if (!STATIONS.includes(s)) return;
+      if (s !== station) setFull(false);
       station = s; rootEl.dataset.roomStation = s; seen.add(s); progress(); body.scrollTop = 0;
       for (const k of STATIONS) { slots[k].hidden = k !== s; btns[k].setAttribute('aria-pressed', String(k === s)); }
       titleEl.textContent = titleOf(s);
@@ -990,6 +999,7 @@
     function close() {
       clearTimeout(pendingOpen);
       if (station === 'none') return;
+      setFull(false);
       const was = station, focusBack = panel.contains(document.activeElement) || document.activeElement === document.body;
       station = 'none'; rootEl.dataset.roomStation = 'none';
       panel.hidden = true; hint.classList.remove('is-gone');
@@ -1011,6 +1021,7 @@
     if (saveBtn) on(saveBtn, 'click', () => { if (opts.onSave) opts.onSave(); });
     on(exitBtn, 'click', () => { if (onExit2d) onExit2d(); });
     on(wideBtn, 'click', () => { const w = panel.classList.toggle('is-wide'); wideBtn.setAttribute('aria-pressed', String(w)); });
+    on(fullBtn, 'click', () => setFull(!panel.classList.contains('is-full')));
     on(prevBtn, 'click', () => step(-1));
     on(nextBtn, 'click', () => step(1));
     on(closeBtn, 'click', close);
@@ -1020,7 +1031,7 @@
       if (e.key !== 'Escape' || station === 'none' || e.defaultPrevented) return;
       const a = document.activeElement;
       if (a && a !== document.body && !rootEl.contains(a)) return;
-      e.preventDefault(); close();
+      e.preventDefault(); if (panel.classList.contains('is-full')) setFull(false); else close();
     });
 
     // ---- 3D ----
