@@ -125,6 +125,11 @@
 }
 .room-toolbar .room-btn { border: 0; padding: 6px 10px; }
 .room-toolbar .room-btn:hover { background: var(--paper-2, #F5F3F0); }
+.room-toolbar .room-btn.room-save { margin-left: auto; border: 1px solid var(--line-2, #C9C2B7); }
 .room-toolbar .room-btn.room-2d { margin-left: auto; border: 1px solid var(--line-strong, #857C69); }
+.room-toolbar .room-btn.room-save + .room-btn.room-2d { margin-left: 4px; }
 .room-panel { top: 62px; }
-@media (max-width: 900px) { .room-panel { top: auto; } .room-root { padding-top: 46px; } .room-canvas { inset: 46px 0 0 0; } }
+.room-panel.is-wide { width: min(960px, calc(100% - 24px)); }
+.room-panel.is-wide .room-slot .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.room-icon.room-wide-btn[aria-pressed="true"] { background: var(--ink, #1C1917); color: var(--paper, #fff); border-color: var(--ink, #1C1917); }
+@media (max-width: 900px) { .room-panel { top: auto; } .room-panel.is-wide { width: 100%; } .room-wide-btn { display: none; } .room-root { padding-top: 46px; } .room-canvas { inset: 46px 0 0 0; } }

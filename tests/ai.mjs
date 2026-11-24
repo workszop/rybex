@@ -31,8 +31,10 @@ async function fresh(hash = '#/lab/rag', q = '', vp = { width: 1440, height: 900
   await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
   return p;
 }
-// The AI bar is mounted only while the lab's method is the model (Task 7): switch to it through the lab's own control first.
-async function modelOn(p) { if (await p.$('#aiBar')) return; const b = p.locator('#ragGen button[data-g=llm], #visMethod button[data-m=llm], #cMethod button[data-m=llm]').first(); if (await b.count()) { await b.click(); await p.waitForSelector('#aiBar'); } }
+// The three model labs always show the language-model bar (there is no method switch any more).
+async function modelOn(p) { await p.waitForSelector('#aiBar'); }
+// A seeded practice-set vision run (the shape visRunLLM stores), for checks that need the result gallery without 60 calls.
+const seedVisRun = p => p.evaluate(() => { const L = lab().vision; L.mruns = [{ id: 'sv1', ts: '', ver: 'v1', model: 'deepseek', datasetKey: VIS.datasetKey, shots: 0, set: 'val', failed: 0, n: 60, m: { tp: 5, fp: 2, fn: 3, tn: 50, p: .7, r: .6, f1: .65, acc: .9 }, types: [['dent', 3, 4, 3], ['label', 1, 2, 1], ['code', 1, 2, 1]], sum: { model: 'deepseek', calls: 60, inTok: 1, outTok: 1, cost: 0, paid: 0, ms: 1, cached: 0 }, preds: Array.from({ length: 60 }, () => ({ d: 'ok', r: '', bad: false })) }]; L.vsel = 'sv1'; save(); render(); const b = document.querySelector('#visGal .gal-filter [data-gf=all]'); if (b) b.click(); });
 const aiState = async p => { await modelOn(p); return p.$eval('#aiBar', e => e.dataset.aiState); };
 async function connect(p, code = 'test-code') {
   await modelOn(p);
@@ -95,8 +97,7 @@ try {
     await mock('reset');
     let p = await fresh('#/lab/rag');
     await connect(p);
-    await p.click('#ragGen button[data-g=llm]');
-    ok('generation mode switch -> llm, persisted', await p.$eval('#ragGen button[data-g=llm]', b => b.getAttribute('aria-pressed')) === 'true' && await p.evaluate(() => lab().rag.gen) === 'llm');
+    ok('the assistant always answers with the language model: no generation switch', await p.evaluate(() => !document.querySelector('#ragGen') && lab().rag.gen === 'llm' && !!document.querySelector('#ragRun')));
     let c0 = (await mock('calls')).calls;
     await p.click('#proto .chip[data-i="0"]');
     await p.waitForFunction(() => document.querySelectorAll('#chat .msg.a').length >= 1 && !document.querySelector('#chat .msg.a.pending'));
@@ -135,10 +136,9 @@ try {
     ok('no page errors (rag)', !p.errs.length, p.errs.join(' | '));
     await p.close();
     p = await fresh('#/lab/rag');
-    await p.evaluate(() => { lab().rag.gen = 'llm'; save(); render(); });
-    await p.click('#proto .chip[data-i="0"]');
-    await p.waitForFunction(() => document.querySelectorAll('#chat .msg.a').length >= 1 && !document.querySelector('#chat .msg.a.pending'));
-    ok('no code -> extractive fallback with a note', /121/.test(await p.$eval('#chat .msg.a:last-child', e => e.textContent)) && /kod zajęć/i.test(await p.$eval('#chat .msg.a:last-child', e => e.textContent)));
+    await p.click('#proto .chip[data-i="0"]'); await p.waitForTimeout(500);
+    ok('no class code -> no answer is made up: nothing is added to the chat and the question is kept', await p.evaluate(() => lab().rag.msgs.length === 0 && document.querySelectorAll('#chat .msg.a:not(.pending)').length === 0 && !AIS.run), await p.evaluate(() => JSON.stringify([lab().rag.msgs.length, document.querySelector('#qi').value, document.activeElement.id, toastEl.textContent])));
+    ok('no class code -> the participant is told about the class code', await p.evaluate(() => /kod zajęć|kodu zajęć/i.test(toastEl.textContent + document.querySelector('#aiStatus').textContent) || document.activeElement.id === 'aiCode'), await p.evaluate(() => toastEl.textContent + ' | ' + document.querySelector('#aiStatus').textContent));
     ok('no page errors (rag, no code)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
@@ -146,12 +146,11 @@ try {
   if (run('compl')) {
     console.log('compl');
     await mock('reset?delay=5');
-    const p = await fresh('#/lab/complaints', '&trainer=1'); // reveals the test without a baseline
+    const p = await fresh('#/lab/complaints', '&trainer=1'); // trainer mode: the test opens without a saved experiment
     await connect(p);
     const nc = await p.evaluate(() => [normCategory('Damaged can'), normCategory('xyz'), normCategory(' SMELL '), normCategory('Dostawa / faktura'), normCategory(null)]);
     ok('normCategory maps names and synonyms, else other', JSON.stringify(nc) === JSON.stringify(['damage', 'other', 'smell', 'delivery', 'other']), JSON.stringify(nc));
-    await p.click('#cMethod button[data-m=llm]');
-    ok('method switch -> llm with default prompt mentioning PROCES-04', await p.evaluate(() => lab().compl.method) === 'llm' && /PROCES-04/.test(await p.$eval('#cPrompt', e => e.value)));
+    ok('no method switch; the default instruction mentions PROCES-04', await p.evaluate(() => !document.querySelector('#cMethod, [id^=kw_], #kwSafety, #cStats') && lab().compl.method === 'llm') && /PROCES-04/.test(await p.$eval('#cPrompt', e => e.value)));
     let c0 = (await mock('calls')).calls;
     await p.click('#cRun');
     await p.waitForSelector('#cRes[data-ai-run="done"]', { timeout: 20000 });
@@ -179,10 +178,7 @@ try {
     await p.click('#cCurve');
     await p.waitForSelector('#cCurveOut[data-points="5"]', { timeout: 30000 });
     ok('learning curve: 5 points x 16 complaints = 80 calls, chart drawn', (await mock('calls')).calls - c0 === 80 && !!(await p.$('#cCurveOut svg')));
-    await p.click('#cCmp');
-    await p.waitForSelector('#cCmpOut[data-rows="2"]', { timeout: 30000 });
-    const cmp = await p.$eval('#cCmpOut', e => e.textContent);
-    ok('compare models: DeepSeek and Haiku rows with cost per 1000', /DeepSeek/.test(cmp) && /Haiku/.test(cmp) && /1000/.test(cmp));
+    ok('no model-versus-model comparison in the lab', !(await p.$('#cCmp, #cCmpOut')) && !/Porównajcie modele|Compare models/.test(await p.$eval('#proto', e => e.textContent)));
     await p.fill('#expNote', 'llm complaints'); await p.click('#sv');
     const lg = await p.evaluate(() => { const l = team().log[team().log.length - 1]; return { mode: l.cfg.mode, txt: logText(l) }; });
     ok('save -> log entry readable with model and cost', lg.mode === 'llm' && /DeepSeek|Haiku/.test(lg.txt) && !/nieczytelny|unreadable/.test(lg.txt), lg.txt);
@@ -193,10 +189,9 @@ try {
     ok('test revealed -> run on 24 test complaints, view counted', d.n === '24' && await p.evaluate(() => lab().compl.testViews) === 1, JSON.stringify(d));
     ok('prompt editing locked while test visible', await p.$eval('#cPrompt', e => e.disabled));
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
-    ok('runs, versions and curve survive reload', await p.$$eval('#cHist tbody tr', t => t.length) >= 6 && await p.$$eval('#cVer option', o => o.length) === 2 && !!(await p.$('#cCurveOut svg')));
+    ok('runs, versions and curve survive reload', await p.$$eval('#cHist tbody tr', t => t.length) === 4 && await p.$$eval('#cVer option', o => o.length) === 2 && !!(await p.$('#cCurveOut svg')));
     await p.click('#rv');
-    await p.click('#cMethod button[data-m=rules]');
-    ok('back to rules: keyword inputs return', !!(await p.$('#kw_damage')) && await p.evaluate(() => lab().compl.method) === 'rules');
+    ok('after hiding the test the instruction is editable again; still no rules view', await p.evaluate(() => !lab().compl.revealed && !document.querySelector('#cPrompt').disabled && !document.querySelector('#kw_damage, #cMethod')));
     ok('no page errors (compl)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
@@ -204,12 +199,11 @@ try {
   if (run('vision')) {
     console.log('vision');
     await mock('reset?delay=5');
-    const p = await fresh('#/lab/vision', '&trainer=1'); // reveals the test without a baseline
+    const p = await fresh('#/lab/vision', '&trainer=1'); // trainer mode: the test opens without a saved experiment
     await connect(p);
     const nd = await p.evaluate(() => [normDefect('Dent'), normDefect('wgniecenie'), normDefect('none'), normDefect('smudged code'), normDefect('xyz'), normDefect(' Label shift')]);
     ok('normDefect maps synonyms, unknown -> null', JSON.stringify(nd) === JSON.stringify(['dent', 'dent', 'ok', 'code', null, 'label']), JSON.stringify(nd));
-    await p.click('#visMethod button[data-m=llm]');
-    ok('method switch -> llm', await p.evaluate(() => lab().vision.method) === 'llm');
+    ok('no method switch: the lab is built on the language model', await p.evaluate(() => !document.querySelector('#visMethod, #vd, #cal, #visRes') && lab().vision.method === 'llm'));
     let c0 = (await mock('calls')).calls;
     await p.click('#visRun');
     await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 20000 });
@@ -240,8 +234,7 @@ try {
     await p.reload(); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready') && document.body.dataset.visionStatus === 'ready');
     ok('model runs survive reload', await p.$eval('#visModelRes', e => e.dataset.aiRun) === 'done' && await p.$$eval('#visHist tbody tr', t => t.length) === 3);
     await p.click('#visRv');
-    await p.click('#visMethod button[data-m=rules]');
-    ok('back to rules: threshold sliders return', !!(await p.$('#vd')));
+    ok('after hiding the test the instruction is editable again; still no threshold sliders', await p.evaluate(() => !lab().vision.revealed && !document.querySelector('#vPrompt').disabled && !document.querySelector('#vd, #visMethod')));
     ok('no page errors (vision)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
@@ -251,24 +244,24 @@ try {
     await mock('reset?delay=5');
     const p = await fresh('#/lab/complaints');
     await connect(p);
-    await p.evaluate(() => { const L = lab().compl; L.method = 'llm'; L.shots = 2; L.kw.damage = 'custom'; save(); render(); });
+    await p.evaluate(() => { const L = lab().compl; L.shots = 2; L.kw.damage = 'custom'; save(); render(); });
     await p.click('#cRun'); await p.waitForSelector('#cRes[data-ai-run="done"]', { timeout: 20000 });
     await p.click('#sv');
-    await p.evaluate(() => { const L = lab().compl; L.method = 'rules'; L.shots = 0; save(); });
+    await p.evaluate(() => { const L = lab().compl; L.shots = 0; save(); });
     await p.click('#nav button[data-v=deliver]');
     await p.click('#logBox button[data-r]');
     let st = await p.evaluate(() => ({ m: lab().compl.method, s: lab().compl.shots, kw: lab().compl.kw.damage, view: S.view }));
-    ok('restore complaints model entry -> llm mode, 2 examples, keywords untouched', st.m === 'llm' && st.s === 2 && st.kw === 'custom' && st.view === 'lab', JSON.stringify(st));
+    ok('restore complaints model entry -> 2 examples again, stored keywords of older files untouched', st.m === 'llm' && st.s === 2 && st.kw === 'custom' && st.view === 'lab', JSON.stringify(st));
     await p.goto(APP() + '#/lab/vision'); await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'));
-    await p.evaluate(() => { const L = lab().vision; L.method = 'llm'; L.vshots = 4; L.th = { d: 1, s: 2, c: 3 }; save(); render(); });
+    await p.evaluate(() => { const L = lab().vision; L.vshots = 4; L.th = { d: 1, s: 2, c: 3 }; save(); render(); });
     await p.click('#visRun'); await p.waitForSelector('#visModelRes[data-ai-run="done"]', { timeout: 20000 });
     await p.click('#sv');
-    await p.evaluate(() => { const L = lab().vision; L.method = 'rules'; L.vshots = 0; save(); });
+    await p.evaluate(() => { const L = lab().vision; L.vshots = 0; save(); });
     await p.click('#nav button[data-v=deliver]');
     const n = await p.$$eval('#logBox button[data-r]', b => b.length);
     await p.click(`#logBox tr[data-log="${n - 1}"] button[data-r]`);
     st = await p.evaluate(() => ({ m: lab().vision.method, s: lab().vision.vshots, th: lab().vision.th }));
-    ok('restore vision model entry -> llm mode, 4 examples, thresholds untouched', st.m === 'llm' && st.s === 4 && st.th && st.th.d === 1, JSON.stringify(st));
+    ok('restore vision model entry -> 4 examples again, stored thresholds of older files untouched', st.m === 'llm' && st.s === 4 && st.th && st.th.d === 1, JSON.stringify(st));
     await p.click('#nav button[data-v=deliver]');
     const md = await p.evaluate(() => team().log.map(logLineMD).join('\n'));
     ok('report lines include model, calls and cost', /DeepSeek/.test(md) && /\$0/.test(md) && !/nieczytelny/.test(md));
@@ -288,14 +281,14 @@ try {
       const keys = Object.keys(C[0]);
       return { n: C.length, distinct: new Set(txt).size, transport: transport.length, transportOk: transport.every(c => c.category === 'delivery'), transportPool: transport.filter(c => c.id <= 20).length, transportEval: transport.filter(c => c.id > 20 && c.id <= 36).length,
         mixedSmell: mixedSmell.length && mixedSmell.every(c => c.category === 'smell' && c.hazard), mixedLQ: mixedLabelQuality.length && mixedLabelQuality.every(c => c.category === 'label'),
-        cats: Object.fromEntries(CK.map(k => [k, C.filter(c => c.category === k).length])), keys, safetyAll: cSafetyRecall(C, SAFETY_KW), trap: C.filter(c => /pachniało normalnie/i.test(c.text)).every(c => !c.hazard && !cHazard(c.text, SAFETY_KW)),
-        ruleDev: cEval(C.slice(0, 36), KW).acc, guide: typeof COMPL_GUIDE === 'function' && /transpor/i.test(COMPL_GUIDE()) };
+        cats: Object.fromEntries(CK.map(k => [k, C.filter(c => c.category === k).length])), keys, hazards: [C.slice(0, 36), C.slice(36)].map(s => s.filter(c => c.hazard).length), trap: C.filter(c => /pachniało normalnie/i.test(c.text)).length > 0 && C.filter(c => /pachniało normalnie/i.test(c.text)).every(c => !c.hazard),
+        engine: ['cSafetyRecall', 'cHazard', 'cEval'].filter(n => { try { return typeof (0, eval)(n) !== 'undefined'; } catch (e) { return false; } }), guide: typeof COMPL_GUIDE === 'function' && /transpor/i.test(COMPL_GUIDE()) };
     });
     ok('60 distinct complaints in 5 categories', d.n === 60 && d.distinct === 60 && Object.values(d.cats).every(v => v >= 8), JSON.stringify(d.cats));
     ok('transport damage labelled delivery, present in examples pool and dev 21-36', d.transportOk && d.transportPool >= 2 && d.transportEval >= 2, JSON.stringify(d));
     ok('mixed complaints follow the priority rule', d.mixedSmell && d.mixedLQ);
-    ok('default safety keywords still catch every hazard; "smelled normal" is no hazard', d.safetyAll === 1 && d.trap);
-    ok('keyword rules no longer near-perfect on dev (< 75%)', d.ruleDev < .75, d.ruleDev);
+    ok('food-safety complaints in both parts (9 practice, 6 final test); "smelled normal" is no hazard', d.hazards.join() === '9,6' && d.trap, JSON.stringify(d.hazards));
+    ok('the keyword-rule engine is gone', d.engine.length === 0, d.engine.join());
     ok('hidden fields not exported (id, product, text, category only)', JSON.stringify(d.keys) === JSON.stringify(['id', 'product', 'text', 'category']));
     ok('labelling guideline available and shown in the lab', d.guide && /transpor/i.test(await p.$eval('#proto', e => e.textContent)));
     await p.close();
@@ -305,18 +298,17 @@ try {
     console.log('fixes');
     await mock('reset?delay=5');
     let p = await fresh('#/lab/complaints');
-    for (const [track, sel] of [['complaints', '#cMethod'], ['vision', '#visMethod']]) {
+    for (const track of ['complaints', 'vision']) {
       await p.click(`#trackTabs button[data-k=${track}]`);
-      await p.click(`${sel} button[data-m=llm]`); await p.click(`${sel} button[data-m=rules]`);
-      // Rules mode has no AI bar now: connect the way #aiConnect does, while the rules view is active.
+      // Connect the way #aiConnect does, from the lab's own bar.
       await p.evaluate(() => { S.ai.code = 'test-code'; save(); aiCheck(); });
       await p.waitForTimeout(500);
-      ok(`${track}: model -> rules, then connect -> ready, no errors`, await aiState(p) === 'ready' && !p.errs.length, (await aiState(p)) + ' ' + p.errs.join(' | '));
+      ok(`${track}: connect -> ready, no errors`, await aiState(p) === 'ready' && !p.errs.length, (await aiState(p)) + ' ' + p.errs.join(' | '));
     }
     // failed calls are retried once, then left out of the metrics
     await mock('reset?delay=5&fail=' + encodeURIComponent('opóźnieniem'));
     await p.click('#trackTabs button[data-k=complaints]');
-    await p.evaluate(() => { const L = lab().compl; L.method = 'llm'; L.shots = 0; L.revealed = false; save(); render(); });
+    await p.evaluate(() => { const L = lab().compl; L.shots = 0; L.revealed = false; save(); render(); });
     const nFail = await p.evaluate(() => DATA.compl.slice(0, 36).filter(r => r.text.includes('opóźnieniem')).length);
     let c0 = (await mock('calls')).calls;
     await p.click('#cRun'); await p.waitForSelector('#cRes[data-ai-run="done"]', { timeout: 20000 });
@@ -336,7 +328,7 @@ try {
     // RAG: moving a slider mid-run does not mix settings
     await mock('reset?delay=300');
     await p.click('#trackTabs button[data-k=rag]');
-    await p.evaluate(() => { const L = lab().rag; L.gen = 'llm'; L.k = 2; L.judge = false; L.revealed = false; save(); render(); });
+    await p.evaluate(() => { const L = lab().rag; L.k = 2; L.judge = false; L.revealed = false; save(); render(); });
     await p.click('#ragRun'); await p.waitForTimeout(100);
     await p.$eval('#rk', e => { e.value = '5'; e.dispatchEvent(new Event('input', { bubbles: true })); });
     await p.waitForSelector('#ragModelRes[data-ai-run="done"]', { timeout: 20000 });
@@ -345,32 +337,27 @@ try {
     ok('no page errors (fixes)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
-  // ─── Pixel rules on the photographs ───
+  // ─── The photographs the vision lab sends to the model ───
   if (run('photo')) {
     console.log('photo');
     await mock('reset?delay=5');
     const p = await fresh('#/lab/vision');
     await p.evaluate(() => { const L = lab().vision; L.th = { d: 1, s: 2, c: 3 }; save(); });
     await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
-    const r = await p.evaluate(() => {
-      const th = visTh(), recall = (set, t) => { const x = set.filter(i => i.type === t); return x.filter(i => visPred(i.f, th)).length + '/' + x.length; };
-      return { src: VIS.featureSource, contract: document.documentElement.dataset.visionFeatures, th, f1: { train: visEval(VIS.train, th).f1, val: visEval(VIS.val, th).f1 },
-        val: { dent: recall(VIS.val, 'dent'), code: recall(VIS.val, 'code'), label: recall(VIS.val, 'label') },
-        finite: [...VIS.train, ...VIS.val, ...VIS.test].every(i => ['dent', 'shift', 'code'].every(k => Number.isFinite(i.f[k]))) };
-    });
-    ok('all photos loaded -> rules measure the photos (DOM contract says so)', r.src === 'photo' && r.contract === 'photo' && r.finite, JSON.stringify(r));
-    ok('thresholds saved for the old drawn-image features are dropped', r.th.d !== 1 && r.th.s !== 2 && r.th.c !== 3, JSON.stringify(r.th));
-    ok('calibrated photo rules beat the "all defective" baseline on validation (F1 > 0.6)', r.f1.val > 0.6, JSON.stringify(r.f1));
-    ok('borderline photos leave room for tuning (validation F1 below 1)', r.f1.val < 0.99, JSON.stringify(r.f1));
-    ok('photo rules catch every dent and smudged code on validation', r.val.dent === '6/6' && r.val.code === '6/6', JSON.stringify(r.val));
+    const r = await p.evaluate(() => { const all = [...VIS.train, ...VIS.val, ...VIS.test], cnt = (set, t) => set.filter(i => i.type === t).length;
+      return { src: VIS.featureSource, contract: document.documentElement.dataset.visionFeatures, n: VIS.photoCount, sets: [VIS.train, VIS.val, VIS.test].map(s => s.length).join(), urls: all.every(i => /^data:image\//.test(i.url)), big: /^data:image\/jpeg/.test(visBig(VIS.val[0])),
+        val: ['dent', 'label', 'code', 'ok'].map(t => cnt(VIS.val, t)), test: ['dent', 'label', 'code', 'ok'].map(t => cnt(VIS.test, t)), bad: VIS.val.every(i => i.bad === (i.type !== 'ok')),
+        engine: ['visTh', 'visPred', 'visEval', 'visCalib', 'visRanges', 'visSens', 'visThFromSens', 'photoFeatureRaw', 'photoPixels'].filter(n => { try { return typeof (0, eval)(n) !== 'undefined'; } catch (e) { return false; } }), rng: 'rng' in VIS || 'calib' in VIS, pf: all.some(i => 'pf' in i) }; });
+    ok('all 210 photos loaded as data URLs (DOM contract says so)', r.src === 'photo' && r.contract === 'photo' && r.n === 210 && r.sets === '90,60,60' && r.urls, JSON.stringify(r));
+    ok('the photo sent to the model is a JPEG data URL', r.big);
+    ok('practice set and final test hold every defect type and good cans', r.val.every(n => n >= 2) && r.test.every(n => n >= 2) && r.bad, JSON.stringify([r.val, r.test]));
+    ok('the pixel-rules engine is gone', r.engine.length === 0 && !r.rng && !r.pf, JSON.stringify([r.engine, r.rng, r.pf]));
     const txt = await p.$eval('#proto', e => e.textContent);
-    ok('lab text no longer says the rules use the synthetic image', !/syntetycznego obrazu|synthetic image/i.test(txt), txt.match(/.{0,60}syntetycz.{0,60}/)?.[0] || '');
-    await p.evaluate(() => { const b = document.querySelector('#visRes .gal-filter [data-gf=all]'); if (b) b.click(); }); await p.click('#visRes .thumb[data-i="0"]');
-    ok('inspector shows photo feature names', /odstające|outlier/i.test(await p.textContent('#insp')));
-    await p.keyboard.press('Escape');
-    await p.$eval('#vd', e => { e.value = e.max; e.dispatchEvent(new Event('input', { bubbles: true })); });
+    ok('lab text has no rules, thresholds or synthetic-image wording', !/syntetycznego obrazu|synthetic image|suwak|reguły pikseli|próg czułości/i.test(txt), txt.match(/.{0,60}(syntetycz|suwak|reguły pikseli|próg czułości).{0,60}/)?.[0] || '');
+    await seedVisRun(p); await p.click('#visGal .thumb[data-i="0"]');
+    ok('a clicked thumbnail shows the photo, the true label and the model answer', await p.evaluate(() => { const d = document.querySelector('#visDetail'); return /^data:image\//.test(d.querySelector('img').src) && /Fakt/.test(d.textContent) && /Model/.test(d.textContent); }));
     await p.reload(); await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 30000 });
-    ok('a sensitivity set on the photo features survives reload', await p.evaluate(() => Math.abs(visTh().d - VIS.rng.dent[0]) < 1e-9));
+    ok('the run and its gallery survive a reload; old stored thresholds do no harm', await p.evaluate(() => document.querySelector('#visModelRes').dataset.aiRun === 'done' && document.querySelectorAll('#visGal .thumb').length === 60));
     ok('no page errors (photo)', !p.errs.length, p.errs.join(' | '));
     await p.close();
   }
@@ -379,7 +366,7 @@ try {
     console.log('file');
     const ROOT_DIR = path.join(HERE, '..');
     const visState = () => ({ status: document.body.dataset.visionStatus, src: VIS.featureSource, n: VIS.photoCount, key: VIS.datasetKey, reason: VIS.fallbackReason,
-      f1: visEval(VIS.val, visTh()).f1, broken: [...VIS.train, ...VIS.val, ...VIS.test].filter(i => !String(i.url).startsWith('data:image/')).length });
+      sets: [VIS.train, VIS.val, VIS.test].map(s => s.length).join(), broken: [...VIS.train, ...VIS.val, ...VIS.test].filter(i => !String(i.url).startsWith('data:image/')).length });
     const openVision = async url => {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage(); p.errs = [];
       p.on('pageerror', e => p.errs.push(e.message));
@@ -390,11 +377,10 @@ try {
     const h = await openVision(APP()); const viaHttp = await h.evaluate(visState); await h.close();
     const p = await openVision(pathToFileURL(path.join(ROOT_DIR, 'rybex-ai-workshop.html')).href);
     const viaFile = await p.evaluate(visState);
-    ok('file:// loads all 210 photos and measures them', viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
+    ok('file:// loads all 210 photos', viaFile.sets === '90,60,60' && viaFile.src === 'photo' && viaFile.n === 210 && viaFile.broken === 0, JSON.stringify(viaFile));
     ok('file:// photos are the same bytes as the served images (bundle up to date)', viaFile.key === viaHttp.key && viaHttp.src === 'photo', `${viaFile.key} vs ${viaHttp.key}`);
-    ok('file:// rules score the same as over HTTP', Math.abs(viaFile.f1 - viaHttp.f1) < 1e-9, `${viaFile.f1} vs ${viaHttp.f1}`);
-    await p.evaluate(() => { const b = document.querySelector('#visRes .gal-filter [data-gf=all]'); if (b) b.click(); }); await p.click('#visRes .thumb[data-i="0"]');
-    ok('file:// inspector shows the photo', /^data:image\/(jpeg|webp)/.test(await p.$eval('#insp img', e => e.src).catch(() => '')));
+    await seedVisRun(p); await p.click('#visGal .thumb[data-i="0"]');
+    ok('file:// the result gallery and the photo detail show the photo', /^data:image\/(jpeg|webp)/.test(await p.$eval('#visDetail img', e => e.src).catch(() => '')) && await p.$$eval('#visGal .thumb img', e => e.length === 60 && e.every(i => /^data:image\//.test(i.src))));
     ok('no page errors (file)', !p.errs.length, p.errs.join(' | '));
     await p.close();
     // Without the bundle next to it, the page falls back to drawn cans and says how to fix it.
@@ -418,12 +404,12 @@ try {
       const t = team(); t.track = 'complaints'; t.log = [];
       const mk = (id, set, acc, ver, views) => ({ id, ts: new Date().toISOString(), track: 'complaints', note: '', testViews: views,
         cfg: { mode: 'llm', model: 'deepseek/deepseek-v4.1-flash', ver, shots: 0, set, prompt: 'h' + ver },
-        res: { acc, macro: acc, safety: 1, safetyFalse: 0, base: .5, test: set === 'test' ? acc : null, primary: { m: set === 'test' ? 'trafność modelu (test)' : 'trafność modelu (dev)', v: acc, base: .5, hi: true, test: set === 'test' } } });
+        res: { acc, macro: acc, safety: 1, safetyFalse: 0, test: set === 'test' ? acc : null, primary: { m: set === 'test' ? 'trafność modelu (test)' : 'trafność modelu (dev)', v: acc, hi: true, test: set === 'test' } } });
       t.log.push(mk('a', 'dev', .9, 'v1', 0), mk('b', 'dev', .7, 'v2', 0), mk('c', 'test', .95, 'v2', 1), mk('d', 'test', .8, 'v1', 2));
       return reportFacts().bestTxt;
     });
     ok('report picks the best run by dev (90% = 32 of 36) and adds that configuration\'s test score (80% = 19 of 24, viewed 2×)', /kategorie 32 z 36/.test(best) && /kategorie 19 z 24/.test(best) && !/23 z 24/.test(best) && /2×/.test(best), best);
-    const task = await p.evaluate(() => { const t = team(); t.track = null; t.log = [{ id: 'f', ts: '', track: 'forecast', note: '', testViews: 0, cfg: { p: 0, h: 6, w: 3 }, res: { mape: {}, best: 'mean', primary: { m: 'MAPE', v: .1, base: .2, hi: false } } }]; return reportFacts().trackTxt; });
+    const task = await p.evaluate(() => { const t = team(); t.track = null; t.log = [{ id: 'f', ts: '', track: 'forecast', note: '', testViews: 0, cfg: { p: 0, h: 6, trend: 1, season: 1 }, res: { mape: .1, mae: 5, slope: 1, trained: true, primary: { m: 'MAPE', v: .1, hi: false, test: true } } }]; return reportFacts().trackTxt; });
     ok('report task stays empty until the team picks one', /nie wybrano|not chosen/.test(task), task);
     const hdr = await p.evaluate(() => { const t = team(); t.track = 'forecast'; t.log.push({ id: 'r', ts: '', track: 'rag', note: '', testViews: 0, cfg: { k: 2 }, res: {} }); save(); render(); return document.querySelector('#tbProg').textContent; });
     ok('header counts experiments of the chosen task (1/3), not all labs', /1\/3/.test(hdr), hdr);
@@ -450,21 +436,20 @@ try {
     await p.evaluate(() => go('demos', 'tok')); await p.waitForSelector('#tokOut .stat');
     const tk = await p.$$eval('#tokOut .stat', s => s.map(x => [x.querySelector('b').textContent, x.querySelector('span').textContent]));
     ok('token demo shows characters per token', tk.some(([v, l]) => /znaków na token/.test(l) && !/%/.test(v)), JSON.stringify(tk));
-    await p.evaluate(() => go('lab', 'maint')); await p.click('#runBase'); await p.waitForSelector('#proto .conf', { state: 'attached' }); // scores show once the baseline ran; // folded in details.more-metrics
+    await p.evaluate(() => go('lab', 'maint')); await p.click('#mtTrain'); await p.waitForSelector('#proto .conf', { state: 'attached' }); // scores show once the model is trained; folded in details.more-metrics
     const cm = await p.$$eval('#proto .conf', e => e.map(x => x.textContent).join(' '));
     ok('maintenance confusion matrix says failure, not defect', /awari/i.test(cm) && !/wada/i.test(cm), cm.slice(0, 160));
     const jl = await p.$$eval('#labJump button', b => b.map(x => x.textContent.trim()));
-    ok('lab has jump links Dane / Metoda / Prototyp / Eksperymenty', JSON.stringify(jl) === JSON.stringify(['Dane', 'Metoda', 'Prototyp', 'Eksperymenty']), JSON.stringify(jl));
+    ok('lab has jump links Dane / Budowa / Eksperyment / Wyniki', JSON.stringify(jl) === JSON.stringify(['Dane', 'Budowa', 'Eksperyment', 'Wyniki']), JSON.stringify(jl));
     await p.click('#labJump button[data-j="labMethod"]'); await p.waitForTimeout(700);
     const top = await p.$eval('#labMethod', e => e.getBoundingClientRect().top);
     ok('jump link brings the section just below the sticky bars', top >= 0 && top < 260, String(top));
-    await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cStats');
+    await p.evaluate(() => go('lab', 'rag')); await p.waitForSelector('#ragRun');
     const gl = await p.$$eval('.gloss', g => g.map(x => x.dataset.term));
-    ok('glossary tips for baseline, macro-F1 and dev', ['baseline', 'macro-f1', 'dev'].every(t => gl.includes(t)), JSON.stringify(gl));
-    await p.$eval('#cStats details.more-metrics', d => { d.open = true; }); // macro-F1 now sits in the folded metrics
-    await p.focus('.gloss[data-term="macro-f1"]');
-    ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="macro-f1"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
-    await p.click('#cMethod button[data-m=llm]');
+    ok('glossary tips for the practice set and the final test; none for a baseline', ['dev', 'test-set'].every(t => gl.includes(t)) && !gl.includes('baseline'), JSON.stringify(gl));
+    await p.focus('.gloss[data-term="dev"]');
+    ok('glossary tip shows on keyboard focus', await p.$eval('.gloss[data-term="dev"] .gloss-tip', e => getComputedStyle(e).display !== 'none' && e.textContent.length > 20));
+    await p.evaluate(() => go('lab', 'complaints')); await p.waitForSelector('#cRun');
     ok('few-shot has a glossary tip', await p.$$eval('.gloss[data-term="few-shot"]', g => g.length) > 0);
     ok('no page errors (audit UI)', !p.errs.length, p.errs.join(' | '));
     await p.close();
@@ -477,7 +462,6 @@ try {
 
     await mock('reset?delay=800'); // 36 calls / 4 in parallel ≈ 7 s: long enough for the interruptions below
     p = await fresh('#/lab/complaints'); await connect(p);
-    await p.click('#cMethod button[data-m=llm]');
     await p.click('#cRun'); await p.waitForTimeout(400);
     await p.click('#langSeg button[data-l=en]');
     ok('language switch during a run asks instead of cancelling', await p.evaluate(() => !!AIS.run && S.lang === 'pl') && !(await p.$eval('#toast', e => e.hidden)));
@@ -507,27 +491,26 @@ try {
   if (run('record')) {
     console.log('record');
     await mock('reset');
-    // Each lab opens on its rules view, which has no AI bar; the lab's own control switches to the model view, which has one.
-    for (const [k, sw, runBtn] of [['rag', '#ragGen button[data-g=llm]', '#ragRun'], ['complaints', '#cMethod button[data-m=llm]', '#cRun'], ['vision', '#visMethod button[data-m=llm]', '#visRun']]) {
+    // Each model lab opens with the AI bar and its run button: the tool needs no switch.
+    for (const [k, runBtn] of [['rag', '#ragRun'], ['complaints', '#cRun'], ['vision', '#visRun']]) {
       const p = await fresh('#/lab/' + k);
       await p.evaluate(() => { S.team = 8; S.lang = 'pl'; save(); render(); });
-      ok(`record ${k}: no code field before the switch`, !(await p.$('#aiCode')));
-      await p.click(sw); await p.waitForSelector('#aiBar');
+      ok(`record ${k}: the code field is there from the start, no method switch`, !!(await p.$('#aiBar #aiCode')) && !(await p.$('#ragGen, #cMethod, #visMethod')));
       await p.fill('#aiCode', 'test-code');
-      ok(`record ${k}: after the switch the code field takes input and connect is enabled`, await p.$eval('#aiCode', e => e.value) === 'test-code' && await p.$eval('#aiConnect', e => !e.disabled), k);
+      ok(`record ${k}: the code field takes input and connect is enabled`, await p.$eval('#aiCode', e => e.value) === 'test-code' && await p.$eval('#aiConnect', e => !e.disabled), k);
       await p.click('#aiConnect');
       await p.waitForFunction(() => document.querySelector('#aiBar').dataset.aiState === 'ready', null, { timeout: 5000 }).catch(() => {});
       ok(`record ${k}: connect -> ready, run control present`, await p.$eval('#aiBar', e => e.dataset.aiState) === 'ready' && !!(await p.$(runBtn)), await p.$eval('#aiBar', e => e.dataset.aiState));
       ok(`record ${k}: #aiModel is a select offering both models`, await p.$eval('#aiModel', e => e.tagName === 'SELECT' && ['deepseek', 'haiku'].every(v => [...e.options].some(o => o.value === v))));
-      if (k === 'complaints') ok('record complaints: learning-curve and model-comparison controls exist', !!(await p.$('#cCurve')) && !!(await p.$('#cCmp')));
+      if (k === 'complaints') ok('record complaints: the learning-curve control exists, the model comparison is gone', !!(await p.$('#cCurve')) && !(await p.$('#cCmp')));
       ok(`record ${k}: no page errors`, !p.errs.length, p.errs.join(' | '));
       await p.close();
     }
-    // The tool sets later labs' model method in state and re-renders: the AI bar and the run button come with it.
+    // A re-render and a lab change keep the AI bar and the run button.
     const p = await fresh('#/lab/complaints');
-    await p.evaluate(() => { const L = lab().compl; L.method = 'llm'; save(); render(); });
-    ok('record: model method set in state renders the AI bar and #cRun', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#cRun')));
-    await p.evaluate(() => { go('lab', 'vision'); const L = lab().vision; L.method = 'llm'; save(); render(); });
+    await p.evaluate(() => { const L = lab().compl; save(); render(); });
+    ok('record: a re-render keeps the AI bar and #cRun', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#cRun')));
+    await p.evaluate(() => { go('lab', 'vision'); const L = lab().vision; save(); render(); });
     ok('record: same for vision (#visRun)', !!(await p.$('#aiBar #aiCode')) && !!(await p.$('#visRun')));
     await p.close();
     // The tool's guards: a dry run (AI set) must name an OUT outside the repo's replay.json, and the app must really use AI.

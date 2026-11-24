@@ -121,7 +121,7 @@ try {
     const o = await p.evaluate(() => { const slots = [...document.querySelectorAll('.room-slot')]; const panel = document.querySelector('.room-panel'); return { vis: slots.filter(s => !s.hidden).map(s => s.dataset.station), hidden: slots.filter(s => s.hidden).length, focus: panel.contains(document.activeElement), role: panel.getAttribute('role'), lab: !!document.getElementById(panel.getAttribute('aria-labelledby')), live: (document.querySelector('.room-live') || {}).textContent || '' }; });
     ok('engine.open toolbar opens the station', opened);
     ok('engine.open only its slot visible, focus inside the dialog', o.vis.join() === 'method' && o.hidden === 4 && o.focus && o.role === 'dialog' && o.lab, JSON.stringify(o));
-    ok('engine.open live region names the station', /Method|Metoda/.test(o.live), o.live);
+    ok('engine.open live region names the station', /Build|Budowa/.test(o.live), o.live);
     await p.keyboard.press('Escape');
     const c = await p.evaluate(() => ({ st: document.querySelector('.room-root').dataset.roomStation, f: document.activeElement && document.activeElement.dataset.station, hid: document.querySelector('.room-panel').hidden }));
     ok('engine.open Esc closes, focus back on the toolbar button', c.st === 'none' && c.f === 'method' && c.hid, JSON.stringify(c));
@@ -338,9 +338,12 @@ try {
         ok(`integration.mount ${k}: room in #roomHost`, ready && await p.evaluate(k => document.querySelectorAll('#roomHost .room-root').length === 1 && document.querySelector('#roomHost .room-root').dataset.roomTrack === k && !document.querySelector('#main .room-root'), k));
         if (!ready) continue;
         ok(`integration.panels ${k}: brief holds #pickTrack`, await inSlot(p, 'brief', '#pickTrack'));
-        ok(`integration.panels ${k}: method holds #methWhy`, await inSlot(p, 'method', '#methWhy'));
-        ok(`integration.panels ${k}: experiment holds #proto and #runBase`, await inSlot(p, 'experiment', '#proto') && await inSlot(p, 'experiment', '#runBase'));
-        ok(`integration.panels ${k}: results holds #cmpList`, await inSlot(p, 'results', '#cmpList'));
+        ok(`integration.panels ${k}: brief holds the five lab steps`, await inSlot(p, 'brief', '#labSteps li[data-step=task]') && await p.evaluate(() => document.querySelectorAll('#roomHost #labSteps li').length === 5));
+        ok(`integration.panels ${k}: the build station holds the build card and no choice to make`, await inSlot(p, 'method', '#labBuild li') && !(await inSlot(p, 'method', 'input, textarea, select')));
+        ok(`integration.panels ${k}: experiment holds #proto with its build control and the save button`, await inSlot(p, 'experiment', '#proto') && await inSlot(p, 'experiment', '#sv') && await inSlot(p, 'experiment', { vision: '#visRun', rag: '#ragRun', complaints: '#cRun', forecast: '#fcTrain', maint: '#mtTrain' }[k]));
+        ok(`integration.panels ${k}: results holds the saved experiments`, await inSlot(p, 'results', '#labLog'));
+        ok(`integration.panels ${k}: nothing of the baseline, the method choice or the comparison in the room`, await p.evaluate(() => !document.querySelector('#runBase, #saveBase, #baseOut, #baseBanner, #methWhy, input[name=meth], #cmpList, #cmpGo') && !/odniesieni|baseline|Porównajcie dwa przebiegi|Compare two runs|Wybór metody/i.test(document.querySelector('#roomHost').textContent + document.querySelector('#main').textContent)));
+        ok(`integration.panels ${k}: the station is named Budowa`, await p.evaluate(() => /Budowa/.test(document.querySelector('#roomHost .room-toolbar [data-station=method]').textContent) && !/Metoda/.test(document.querySelector('#roomHost .room-toolbar').textContent)), await p.evaluate(() => document.querySelector('#roomHost .room-toolbar').textContent));
         const data = await p.evaluate(() => { const s = document.querySelector('#roomHost .room-slot[data-station="data"]'); return { thumbs: s.querySelectorAll('.gal .thumb').length, txt: s.textContent, table: !!s.querySelector('table') }; });
         ok(`integration.panels ${k}: data shows the track file`, { vision: data.thumbs >= 200, rag: /PROCES-01/.test(data.txt) && /§1/.test(data.txt), complaints: data.table, forecast: data.table, maint: data.table }[k], JSON.stringify({ ...data, txt: data.txt.slice(0, 80) }));
         const d = await dupIds(p);
@@ -398,41 +401,41 @@ try {
       await p.screenshot({ path: path.join(SHOTS, 'app-vision-photos-data.png') });
       await p.close();
 
-      // integration.baseline: same score in the room and on the 2D page.
-      const baseOf = async q => {
-        const b = await app('#/lab/vision', q);
-        await seedTeam(b, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'vision'); });
-        if (!q) { await roomReady(b, 'vision'); await openSt(b, 'experiment'); }
-        // The baseline is scored on VIS.val: wait for the photo set, or the room and the plain page
-        // compare a synthetic fallback against photos and legitimately disagree.
-        await b.waitForFunction(() => VIS.initialized && !VIS.loading, null, { timeout: 90000 });
-        await b.click('#runBase');
-        await b.waitForSelector('#baseOut:not([hidden])', { timeout: 5000 }).catch(() => {});
-        const r = await b.evaluate(() => { const o = document.querySelector('#baseOut'); return o ? { v: o.dataset.v, vis: !o.hidden && o.getBoundingClientRect().height > 0, txt: o.innerText.replace(/\s+/g, ' ').trim(), st: (document.querySelector('#roomHost .room-root') || { dataset: {} }).dataset.roomStation } : null; });
-        await b.close(); return r;
+      // integration.result: a trained model gives the same result in the room and on the 2D page.
+      const resOf = async q => {
+        const b = await app('#/lab/forecast', q);
+        await seedTeam(b, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'forecast'); });
+        if (!q) { await roomReady(b, 'forecast'); await openSt(b, 'experiment'); }
+        const before = await b.evaluate(() => ({ trained: document.querySelector('#fcRes').dataset.trained, recap: !!document.querySelector('#fcRes .recap') }));
+        await b.click('#fcTrain');
+        await b.waitForSelector('#fcRes[data-trained="true"] .recap', { timeout: 5000 }).catch(() => {});
+        const r = await b.evaluate(() => { const o = document.querySelector('#fcRes'); return o ? { v: o.dataset.mape, vis: o.getBoundingClientRect().height > 0, txt: o.querySelector('.recap') ? o.querySelector('.recap').innerText.replace(/\s+/g, ' ').trim() : '', learned: !!document.querySelector('#fcLearnedBox'), steps: [...document.querySelectorAll('#labSteps li')].map(l => l.dataset.done === 'true' ? 1 : 0).join(''), st: (document.querySelector('#roomHost .room-root') || { dataset: {} }).dataset.roomStation } : null; });
+        await b.close(); return { ...r, before };
       };
-      const b3 = await baseOf(''), b2 = await baseOf('&rooms=0');
-      ok('integration.baseline output visible in the experiment station', b3 && b3.vis && b3.st === 'experiment', JSON.stringify(b3));
-      ok('integration.baseline score identical to the 2D page', b3 && b2 && b3.v === b2.v && b3.txt === b2.txt, `${b3 && b3.v} vs ${b2 && b2.v}`);
+      const b3 = await resOf(''), b2 = await resOf('&rooms=0');
+      ok('integration.result nothing is shown before the training, in the room as on the page', b3 && b2 && b3.before.trained === 'false' && !b3.before.recap && b2.before.trained === 'false' && !b2.before.recap, JSON.stringify([b3 && b3.before, b2 && b2.before]));
+      ok('integration.result training in the experiment station shows the result there', b3 && b3.vis && b3.st === 'experiment' && b3.learned && Number(b3.v) > 0, JSON.stringify(b3));
+      ok('integration.result identical to the 2D page', b3 && b2 && b3.v === b2.v && b3.txt === b2.txt && b3.txt.length > 20, `${b3 && b3.v} vs ${b2 && b2.v}`);
+      ok('integration.result the lab steps follow the training in the room too', b3 && b2 && b3.steps === b2.steps && b3.steps[2] === '1', `${b3 && b3.steps} vs ${b2 && b2.steps}`);
 
       // integration.rerender + integration.typing
       p = await app('#/lab/vision');
       await roomReady(p, 'vision');
       await p.evaluate(() => { window.__cv = document.querySelector('#roomHost canvas'); });
-      await p.click('#roomHost .room-toolbar [data-station="method"]');
-      await p.waitForFunction(() => document.querySelector('#roomHost .room-root').dataset.roomStation === 'method', null, { timeout: PICK_MS }).catch(() => {});
-      await p.check('#roomHost input[name=meth][value="0"]');
-      await p.fill('#methWhy', 'Reguły są tanie i wystarczą na start.');
+      await readyPhotos(p);
+      await p.click('#roomHost .room-toolbar [data-station="experiment"]');
+      await p.waitForFunction(() => document.querySelector('#roomHost .room-root').dataset.roomStation === 'experiment', null, { timeout: PICK_MS }).catch(() => {});
+      await p.fill('#vPrompt', 'Oceń puszkę. Odpowiedz JSON.');
       const pos0 = await p.evaluate(() => X.room.handle._debug.cameraPos());
-      await p.focus('#methWhy'); await p.keyboard.press('End'); await p.keyboard.type(' wasd'); await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(400);
+      await p.focus('#vPrompt'); await p.keyboard.press('Control+End'); await p.keyboard.type(' wasd'); await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(400);
       const pos1 = await p.evaluate(() => X.room.handle._debug.cameraPos());
-      ok('integration.typing WASD in #methWhy does not move the camera', JSON.stringify(pos0) === JSON.stringify(pos1) && (await p.inputValue('#methWhy')).endsWith(' wasd'), JSON.stringify([pos0, pos1]));
+      ok('integration.typing WASD in the instruction field does not move the camera', JSON.stringify(pos0) === JSON.stringify(pos1) && (await p.inputValue('#vPrompt')).endsWith(' wasd'), JSON.stringify([pos0, pos1]));
       // A full re-render (choosing the team's task re-renders the page) keeps the room, the station and the typed text.
-      await p.click('#roomHost #pickTrack').catch(() => {});
+      await p.evaluate(() => { const b = document.querySelector('#roomHost #pickTrack'); if (b) b.click(); });
       await p.evaluate(() => render());
-      const rr = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, same: document.querySelector('#roomHost canvas') === window.__cv, canv: document.querySelectorAll('#roomHost canvas').length, why: document.querySelector('#methWhy').value, saved: team().decision.vision && team().decision.vision.why, m: team().decision.vision && team().decision.vision.m, inSlot: !!document.querySelector('#roomHost .room-slot[data-station="method"] #methWhy') }));
-      ok('integration.rerender station, canvas and justification kept', rr.st === 'method' && rr.same && rr.canv === 1 && rr.inSlot && rr.why === 'Reguły są tanie i wystarczą na start. wasd', JSON.stringify(rr));
-      ok('integration.rerender justification and method saved', rr.saved === rr.why && rr.m === 0, JSON.stringify(rr));
+      const rr = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, same: document.querySelector('#roomHost canvas') === window.__cv, canv: document.querySelectorAll('#roomHost canvas').length, txt: document.querySelector('#vPrompt').value, saved: lab().vision.draft, track: team().track, inSlot: !!document.querySelector('#roomHost .room-slot[data-station="experiment"] #vPrompt') }));
+      ok('integration.rerender station, canvas and the typed instruction kept', rr.st === 'experiment' && rr.same && rr.canv === 1 && rr.inSlot && rr.txt === 'Oceń puszkę. Odpowiedz JSON. wasd', JSON.stringify(rr));
+      ok('integration.rerender the instruction draft and the task choice saved', rr.saved === rr.txt && rr.track === 'vision', JSON.stringify(rr));
       const rd = await dupIds(p);
       ok('integration.rerender no duplicate ids', rd.length === 0, rd.join());
       await p.close();
@@ -440,7 +443,7 @@ try {
       // integration.airun: a model run survives closing and reopening the panel.
       await fetch(IMOCK + '/reset?delay=350');
       p = await app('#/lab/vision');
-      await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
+      await seedTeam(p, () => { S.ai.code = 'test-code'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const a0 = aborted.length;
       await readyPhotos(p);
@@ -478,24 +481,20 @@ try {
       const sd = await dupIds(p);
       ok('integration.switch no duplicate ids', sd.length === 0, sd.join());
 
-      // integration.jump: links that target the method section open the method station and focus the target.
+      // integration.jump: an action that targets a control inside a closed station opens that station first.
       await p.evaluate(() => X.room.handle.close());
-      await seedTeam(p, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'forecast'); t.decision = {}; });
-      await p.evaluate(() => go('deliver'));
-      await p.waitForSelector('#delivGaps [data-gap="meth"], #delivGaps [data-gap="why"]', { timeout: 5000 }).catch(() => {});
-      await p.click('#delivGaps [data-gap="meth"], #delivGaps [data-gap="why"]').catch(() => {});
-      await roomReady(p, 'forecast');
-      const jp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, focus: a && (a.id || a.name), inMeth: !!a && !!a.closest('#roomHost .room-slot[data-station="method"]') }; });
-      ok('integration.jump gaps link opens the method station and focuses its field', jp.st === 'method' && jp.inMeth, JSON.stringify(jp));
-      // The reveal gate (vision, no method chosen) sends the focus to the method choice: that station opens.
-      await seedTeam(p, () => { const t = team(); setTrack(t, 'vision'); t.decision = {}; });
-      await p.evaluate(() => go('lab', 'vision')); await roomReady(p, 'vision'); await openSt(p, 'experiment');
-      // Baseline run and saved, so the gate's next need is the method choice.
-      await p.click('#runBase'); await p.click('#saveBase').catch(() => {});
-      const rv = await p.$('#roomHost [data-reveal="vision"]');
-      if (rv) await rv.click();
-      const gp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, inMeth: !!a && !!a.closest('#roomHost .room-slot[data-station="method"]'), id: a && (a.id || a.name) }; });
-      ok('integration.jump reveal gate opens the method station', !!rv && gp.inMeth && gp.st === 'method', JSON.stringify(gp));
+      await seedTeam(p, () => { const t = team(); t.name = 'Szprot'; setTrack(t, 'forecast'); t.log = []; t.lab.fc.fit = null; });
+      await p.evaluate(() => go('lab', 'forecast')); await roomReady(p, 'forecast'); await openSt(p, 'results');
+      // The path bar's action on step 6 presses the training button, which sits in the experiment station.
+      await p.evaluate(() => pathFocus('build')); await p.waitForTimeout(200);
+      const jp = await p.evaluate(() => ({ st: document.querySelector('#roomHost .room-root').dataset.roomStation, trained: fcTrained(), res: document.querySelector('#roomHost .room-slot[data-station="experiment"] #fcRes').dataset.trained }));
+      ok('integration.jump the path action on the build step opens the experiment station and trains the model', jp.st === 'experiment' && jp.trained && jp.res === 'true', JSON.stringify(jp));
+      // The reveal gate (vision, no saved experiment yet) sends the focus to the save button: its station opens.
+      await seedTeam(p, () => { const t = team(); setTrack(t, 'vision'); t.log = []; });
+      await p.evaluate(() => go('lab', 'vision')); await roomReady(p, 'vision'); await openSt(p, 'results');
+      await p.evaluate(() => tryReveal('vision', lab().vision, () => {})); await p.waitForTimeout(200);
+      const gp = await p.evaluate(() => { const a = document.activeElement; return { st: document.querySelector('#roomHost .room-root').dataset.roomStation, inExp: !!a && !!a.closest('#roomHost .room-slot[data-station="experiment"]'), id: a && (a.id || a.name), revealed: lab().vision.revealed, views: lab().vision.testViews, msg: document.querySelector('#gateMsg').textContent }; });
+      ok('integration.jump a blocked reveal opens the experiment station on the save button and reveals nothing', gp.inExp && gp.st === 'experiment' && gp.id === 'sv' && !gp.revealed && gp.views === 0 && /zapiszcie wynik w dzienniku/.test(gp.msg), JSON.stringify(gp));
       await p.close();
 
       // integration.chrome: in the room the team bar, the page title and the footer are out of the way; the page view has them back.
@@ -510,8 +509,8 @@ try {
         await c.close();
       }
 
-      // integration.guide: past the first walk the guide follows the lab's own progress: the baseline, then every
-      // experiment up to the minimum, each one named.
+      // integration.guide: past the first walk the guide follows the lab's own progress: every experiment up to the
+      // minimum, each one named.
       {
         const c = await app('#/lab/forecast'); await roomReady(c, 'forecast');
         const gs = () => c.evaluate(() => { const r = document.querySelector('#roomHost .room-root'), q = s => r.querySelector(s); return { next: r.dataset.roomNext, guide: q('.room-guide-text').textContent, todo: q('.room-panel-do').textContent, foot: !q('.room-panel-foot').hidden, onward: q('.room-onward').textContent, tag: q('[data-station=experiment] .room-tag').textContent }; });
@@ -519,23 +518,23 @@ try {
         ok('integration.guide start: the first station is next, the experiment button counts 0/3', g0.next === 'brief' && g0.tag === '0/3', JSON.stringify(g0));
         for (const s of ['brief', 'data', 'method', 'experiment']) await openSt(c, s);
         const g1 = await gs();
-        ok('integration.guide experiment station: baseline first, no onward button while work is left here', g1.next === 'experiment' && /odniesienia/.test(g1.todo) && !g1.foot, JSON.stringify(g1));
-        await c.click('#runBase'); await c.click('#saveBase');
+        ok('integration.guide experiment station: experiment 1 of 3 first, no onward button while work is left here', g1.next === 'experiment' && /Eksperyment 1 z 3/.test(g1.todo) && !/odniesieni/.test(g1.todo + g1.guide) && !g1.foot, JSON.stringify(g1));
+        await c.click('#fcTrain'); await c.click('#sv');
         const g2 = await gs();
-        ok('integration.guide baseline saved: experiment 1 of 3', g2.next === 'experiment' && /Eksperyment 1 z 3/.test(g2.todo) && g2.todo === g2.guide, JSON.stringify(g2));
-        await c.evaluate(() => { const t = team(), e = t.log[0]; t.log.push({ ...e, id: 'gx1', base: undefined, cfg: { p: 0, h: 6, w: 3 } }); save(); renderPathBar(); });
+        ok('integration.guide first experiment saved: experiment 2 of 3, count 1/3', g2.next === 'experiment' && /Eksperyment 2 z 3/.test(g2.todo) && g2.todo === g2.guide && g2.tag === '1/3', JSON.stringify(g2));
+        await c.evaluate(() => { const t = team(), e = t.log[0]; t.log.push({ ...e, id: 'gx1', cfg: { ...e.cfg, h: 9 } }); save(); renderPathBar(); });
         const g3 = await gs();
-        ok('integration.guide one experiment saved: experiment 2 of 3, count 1/3', /Eksperyment 2 z 3/.test(g3.todo) && g3.tag === '1/3', JSON.stringify(g3));
+        ok('integration.guide two experiments saved: experiment 3 of 3, count 2/3', /Eksperyment 3 z 3/.test(g3.todo) && g3.tag === '2/3', JSON.stringify(g3));
         // The walk is kept in the team: a language switch, a reload and a team switch each mount the room again.
         const ws = () => c.evaluate(() => { const r = document.querySelector('#roomHost .room-root'); return { next: r.dataset.roomNext, guide: r.querySelector('.room-guide-text').textContent, done: [...r.querySelectorAll('.room-toolbar .is-done')].map(b => b.dataset.station).join() }; });
         const setTeamSel = async t => { await c.evaluate(t => { const s = document.querySelector('#teamSel'); s.value = t; s.dispatchEvent(new Event('change', { bubbles: true })); }, t); await roomReady(c, 'forecast'); };
         await c.click('#langSeg button[data-l="en"]'); await roomReady(c, 'forecast');
         const w1 = await ws();
-        ok('integration.guide language switch: the walk goes on (experiment 2 of 3, three stations done)', w1.next === 'experiment' && /Experiment 2 of 3/.test(w1.guide) && w1.done === 'brief,data,method', JSON.stringify(w1));
+        ok('integration.guide language switch: the walk goes on (experiment 3 of 3, three stations done)', w1.next === 'experiment' && /Experiment 3 of 3/.test(w1.guide) && w1.done === 'brief,data,method', JSON.stringify(w1));
         await c.click('#langSeg button[data-l="pl"]'); await roomReady(c, 'forecast');
         await c.reload(); await c.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 15000 }); await roomReady(c, 'forecast');
         const w2 = await ws();
-        ok('integration.guide reload: the walk goes on', w2.next === 'experiment' && /Eksperyment 2 z 3/.test(w2.guide) && w2.done === 'brief,data,method', JSON.stringify(w2));
+        ok('integration.guide reload: the walk goes on', w2.next === 'experiment' && /Eksperyment 3 z 3/.test(w2.guide) && w2.done === 'brief,data,method', JSON.stringify(w2));
         await setTeamSel('2');
         const w3 = await ws();
         ok('integration.guide another team starts its own walk', w3.next === 'brief' && w3.done === '', JSON.stringify(w3));
@@ -581,7 +580,7 @@ try {
       const setRange = (p, sel, v) => p.$eval(sel, (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }, v);
       p = await app('#/lab/maint');
       if (await roomReady(p, 'maint')) {
-        await openSt(p, 'experiment'); await p.click('#runBase');
+        await openSt(p, 'experiment'); await p.click('#mtTrain');
         await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 2.5); await p.waitForTimeout(50);
         ok('integration.moremetrics stays open across a redraw in the room', await p.$eval('#roomHost #proto details.more-metrics', e => e.open));
         await p.click('#proto details.more-metrics > summary'); await p.waitForTimeout(50); await setRange(p, '#mt', 3); await p.waitForTimeout(50);
@@ -592,7 +591,7 @@ try {
       // integration.aistop: a run survives closing the panel, and the stop control on the reopened station ends it.
       await fetch(IMOCK + '/reset?delay=400');
       p = await app('#/lab/vision');
-      await seedTeam(p, () => { S.ai.code = 'test-code'; lab().vision.method = 'llm'; });
+      await seedTeam(p, () => { S.ai.code = 'test-code'; });
       await roomReady(p, 'vision'); await openSt(p, 'experiment');
       const s0 = aborted.length;
       await readyPhotos(p);

@@ -142,14 +142,14 @@
       let x = 14, y = 226;
       list.forEach((t, i) => { c.font = '600 16px Raleway, system-ui'; const tw = c.measureText(t).width + 22; if (x + tw > w - 10) { x = 14; y += 40; } c.fillStyle = '#fff'; c.strokeStyle = CAT_COL[i % CAT_COL.length]; c.lineWidth = 3; c.fillRect(x, y, tw, 30); c.strokeRect(x, y, tw, 30); c.fillStyle = '#1c1917'; c.fillText(t, x + 11, y + 21); x += tw + 8; });
     };
-    const drawRules = (c, w, h) => {
-      c.fillStyle = '#1e2226'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '700 22px ui-monospace, monospace'; c.fillText(tx('reguły.txt', 'rules.txt'), 14, 30);
+    const drawPrompt = (c, w, h) => {
+      c.fillStyle = '#1e2226'; c.fillRect(0, 0, w, h); c.fillStyle = '#ffd500'; c.font = '700 22px ui-monospace, monospace'; c.fillText(tx('polecenie.txt', 'instruction.txt'), 14, 30);
       c.font = '500 17px ui-monospace, monospace';
       const list = cats.length ? cats : ['…'];
       list.forEach((t, i) => { c.fillStyle = CAT_COL[i % CAT_COL.length]; c.fillText(`${t}:`, 14, 66 + i * 34); c.fillStyle = '#7f8b93'; c.fillRect(24 + Math.min(220, c.measureText(t).width + 16), 56 + i * 34, 140, 8); });
     };
     kit.prop.monitor(cls, cDark, [-0.33, 0.75, -0.18], 0.12, drawCls, [0.56, 0.36]);
-    kit.prop.monitor(cls, cDark, [0.33, 0.75, -0.18], -0.12, drawRules, [0.52, 0.33]);
+    kit.prop.monitor(cls, cDark, [0.33, 0.75, -0.18], -0.12, drawPrompt, [0.52, 0.33]);
     cDark.box([0.44, 0.02, 0.14], [0, 0.76, 0.12]);
     const clsAnchor = kit.frameAt(CX, CZ, -0.3)(-0.33, 1.1, -0.16);                        // the classifier screen
     cDesk.done(); cDark.done(); cGrey.done();

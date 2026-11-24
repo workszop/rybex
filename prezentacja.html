@@ -336,7 +336,7 @@ html, body { background: var(--paper); }
       <li data-track="forecast"><b>Prognozowanie popytu</b><span>miesięczna historia sprzedaży → prognoza na kolejne miesiące</span></li>
       <li data-track="maint"><b>Przewidywanie awarii maszyn</b><span>odczyty czujników: temperatura, ciśnienie, drgania → alarm anomalii</span></li>
     </ul>
-    <aside class="notes">Zadanie wybieracie w kroku 3. Strzałka pokazuje, co system dostaje na wejściu i co ma oddać. W wizji, asystencie wiedzy i reklamacjach możecie użyć prawdziwego modelu językowego, w pozostałych dwóch laboratorium działa bez niego. Niezależnie od wyboru przechodzicie te same dziewięć kroków.</aside>
+    <aside class="notes">Zadanie wybieracie w kroku 3. Strzałka pokazuje, co system dostaje na wejściu i co ma oddać. W wizji, asystencie wiedzy i reklamacjach budujecie rozwiązanie na gotowym modelu językowym, którego nie trenujecie. W prognozie popytu i awariach maszyn trenujecie własny model w przeglądarce. Niezależnie od wyboru przechodzicie te same dziewięć kroków.</aside>
   </section>
 
   <section data-slide="memos">
@@ -365,7 +365,7 @@ html, body { background: var(--paper); }
       <li data-path-step="task" data-min="10"><span class="n">3</span><span class="lb">Wybór zadania</span><span class="mn"><span class="bar" style="width:20px"></span>10 min</span></li>
       <li data-path-step="data" data-min="15"><span class="n">4</span><span class="lb">Dane zadania</span><span class="mn"><span class="bar" style="width:30px"></span>15 min</span></li>
       <li data-path-step="demos" data-min="20"><span class="n">5</span><span class="lb">Demonstracje</span><span class="mn"><span class="bar" style="width:40px"></span>20 min</span></li>
-      <li data-path-step="base" data-min="25"><span class="n">6</span><span class="lb">Laboratorium, runda 1</span><span class="mn"><span class="bar" style="width:50px"></span>25 min</span></li>
+      <li data-path-step="build" data-min="25"><span class="n">6</span><span class="lb">Laboratorium, runda 1</span><span class="mn"><span class="bar" style="width:50px"></span>25 min</span></li>
       <li data-path-step="iterate" data-min="30"><span class="n">7</span><span class="lb">Rundy 2–3 i test</span><span class="mn"><span class="bar" style="width:60px"></span>30 min</span></li>
       <li data-path-step="risk" data-min="20"><span class="n">8</span><span class="lb">Ryzyka i wdrożenie</span><span class="mn"><span class="bar" style="width:40px"></span>20 min</span></li>
       <li data-path-step="report" data-min="15"><span class="n">9</span><span class="lb">Raport i wystąpienie</span><span class="mn"><span class="bar" style="width:30px"></span>15 min</span></li>
@@ -423,24 +423,24 @@ html, body { background: var(--paper); }
     <p class="eyebrow">Krok 5 z 9 · ok. 20 min</p>
     <h2>Krok 5 – Demonstracje</h2>
     <p class="where"><span><b>Gdzie</b>Demonstracje, zakładki oznaczone „do zrobienia”</span><span><b>Gotowe, gdy</b>pytania pod demonstracjami waszego zadania są zaliczone</span></p>
-    <div class="shots"><figure><img data-shot="demos" src="assets/presentation/demos.webp" alt="Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek." loading="eager"></figure></div>
+    <div class="shots"><figure><img data-shot="demos" src="assets/presentation/demos.webp" alt="Demonstracja miar jakości modelu: suwak progu decyzji, suwak odsetka wadliwych puszek i wykres." loading="eager"></figure></div>
     <aside class="notes">Każde zadanie wymaga trochę innych demonstracji. Wszystkie mają podział danych i miary jakości, w zadaniach z modelem językowym dochodzą „Tokeny i koszt”, a asystent wiedzy ma jeszcze „Jak działa RAG”. Po każdej demonstracji są dwa pytania. Tu uczycie się pojęć potrzebnych w laboratorium, ta prezentacja ich nie tłumaczy. Zrzut pokazuje demonstrację miar jakości z suwakiem progu.</aside>
   </section>
 
-  <section data-slide="base" data-step="base" data-min="25">
+  <section data-slide="base" data-step="build" data-min="25">
     <p class="eyebrow">Krok 6 z 9 · ok. 25 min</p>
     <h2>Krok 6 – Laboratorium, runda 1</h2>
-    <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>metoda odniesienia jest zapisana w dzienniku</span></p>
-    <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami." loading="eager"></figure></div>
-    <aside class="notes">W laboratorium zaczynacie od metody odniesienia, czyli najprostszej metody, która w ogóle rozwiązuje zadanie. Klikacie „Uruchomcie metodę odniesienia”, a potem zapisujecie wynik w dzienniku. Wynik ma dwie główne liczby i krótkie omówienie, pozostałe miary są pod „Więcej miar”. Ten wynik pochodzi z asystenta wiedzy firmowej, a jego metoda odniesienia to wyszukiwanie dosłowne. Z tym wynikiem porównujecie każdy następny eksperyment.</aside>
+    <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>pierwsza wersja rozwiązania jest uruchomiona, a wynik zapisany w dzienniku</span></p>
+    <div class="shots"><figure><img data-shot="baseline" src="assets/presentation/baseline.webp" alt="Laboratorium asystenta wiedzy firmowej: pasek pięciu kroków (Zadanie, Dokumenty firmy, Polecenie i wyszukiwanie, Eksperymenty, Test końcowy), karta „Krok 2 · Dane” i karta „Budowa: jak powstaje to rozwiązanie”." loading="eager"></figure></div>
+    <aside class="notes">Każde laboratorium to ćwiczenie w pięciu krokach: Zadanie, Dane, Budowa, Eksperyment, Wynik. Pasek kroków na górze laboratorium pokazuje, co już zrobiliście. W tym kroku ścieżki budujecie pierwszą wersję rozwiązania, uruchamiacie ją i zapisujecie wynik w dzienniku. Pierwsza wersja może zostać przy ustawieniach startowych. W wizji i reklamacjach piszecie polecenie dla modelu językowego i pokazujecie mu oznaczone przykłady, a w asystencie wiedzy ustawiacie, które fragmenty dokumentów model czyta. Tego modelu nie trenujecie. W prognozie popytu i awariach maszyn klikacie „Wytrenujcie model”: aplikacja uczy model na danych w przeglądarce i pokazuje, czego się nauczył. Wynik ma dwie główne liczby i krótkie omówienie, pozostałe miary są pod „Więcej miar”. Laboratorium otwiera się jako pokój 3D z pięcioma stanowiskami, po jednym na krok; przycisk „Widok 2D” pokazuje zwykłą stronę. Na zrzucie widok 2D laboratorium asystenta wiedzy firmowej: pasek pięciu kroków i karta „Budowa: jak powstaje to rozwiązanie”.</aside>
   </section>
 
   <section data-slide="iterate" data-step="iterate" data-min="30">
     <p class="eyebrow">Krok 7 z 9 · ok. 30 min</p>
     <h2>Krok 7 – Rundy 2–3 i test</h2>
     <p class="where"><span><b>Gdzie</b>Laboratorium</span><span><b>Gotowe, gdy</b>są co najmniej 3 eksperymenty; w wizji, asystencie wiedzy i reklamacjach także wynik testu w dzienniku</span></p>
-    <div class="shots"><figure><img data-shot="test-reveal" src="assets/presentation/test-reveal.webp" alt="Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody." loading="eager"></figure></div>
-    <aside class="notes">Teraz próbujecie pobić metodę odniesienia. Zmieniajcie jedną rzecz naraz i zapiszcie co najmniej trzy eksperymenty. W wizji, asystencie wiedzy i reklamacjach jest ukryty zbiór testowy: odsłonicie go dopiero po zapisaniu metody odniesienia, zaznaczeniu metody w tabeli i krótkim uzasadnieniu wyboru. Odsłaniacie go raz, na końcu, i od razu zapisujecie wynik, bo samo odsłonięcie nie zalicza kroku. Prognoza popytu i awarie maszyn nie mają ukrytego testu, więc tam krok kończą trzy zapisane eksperymenty. Na zrzucie laboratorium reklamacji tuż po odsłonięciu testu.</aside>
+    <div class="shots"><figure><img data-shot="test-reveal" src="assets/presentation/test-reveal.webp" alt="Laboratorium analizy reklamacji po odsłonięciu testu końcowego: polecenie i liczba przykładów są zablokowane, test służy tylko do oceny końcowej." loading="eager"></figure></div>
+    <aside class="notes">Teraz poprawiacie pierwszą wersję. Uruchomcie rozwiązanie na zestawie ćwiczeniowym, obejrzyjcie pomyłki, zmieńcie jedną rzecz i uruchomcie ponownie. Zapiszcie co najmniej trzy eksperymenty. W wizji, asystencie wiedzy i reklamacjach jest ukryty test końcowy: da się go odsłonić, gdy w dzienniku jest już jeden eksperyment na zestawie ćwiczeniowym. Odsłaniacie go raz, na końcu, uruchamiacie na nim model i od razu zapisujecie wynik, bo samo odsłonięcie nie zalicza kroku. Gdy test jest widoczny, ustawienia rozwiązania są zablokowane. Prognoza popytu i awarie maszyn nie mają ukrytego testu: tam każdy eksperyment jest od razu sprawdzany na miesiącach albo minutach, których model nie widział, więc krok kończą trzy zapisane eksperymenty. Na zrzucie laboratorium reklamacji tuż po odsłonięciu testu końcowego.</aside>
   </section>
 
   <section data-slide="model">
@@ -450,7 +450,7 @@ html, body { background: var(--paper); }
       <figure><img data-shot="ai-bar" src="assets/presentation/ai-bar.webp" alt="Karta „Model językowy przez API” ze stanem „połączono”, liczbą tokenów, kosztem i czasem odpowiedzi." loading="eager"></figure>
       <figure class="grow"><img data-shot="ai-run" src="assets/presentation/ai-run.webp" alt="Laboratorium analizy reklamacji po jednym przebiegu modelu na zestawie deweloperskim: trafność, wykrywanie zagrożeń, koszt i czas." loading="eager"></figure>
     </div>
-    <aside class="notes">W wizji, asystencie wiedzy i reklamacjach możecie wywołać prawdziwy model językowy. Łączycie się w karcie „Model językowy przez API” kodem zajęć, który podam na sali. Wywołania idą przez serwer zajęć, więc klucz API nie trafia do przeglądarki. Każdy przebieg pokazuje tokeny, koszt i średni czas odpowiedzi. Na dole jeden przebieg na zestawie deweloperskim reklamacji, z promptem zmienionym przez zespół. Bez połączenia laboratorium działa na regułach.</aside>
+    <aside class="notes">W wizji, asystencie wiedzy i reklamacjach rozwiązanie budujecie na gotowym modelu językowym. Łączycie się w karcie modelu językowego kodem zajęć, który podam na sali. Za wywołania nie płacicie, a limit na zespół jest ustawiony z góry. Wywołania idą przez serwer zajęć, więc klucz API nie trafia do przeglądarki. Każdy przebieg pokazuje tokeny, koszt i średni czas odpowiedzi. Na dole jeden przebieg modelu na reklamacjach, z poleceniem zmienionym przez zespół. Bez połączenia z serwerem zajęć modelu nie uruchomicie: gdy serwer jest niedostępny, laboratorium pokazuje najwyżej nagrane odpowiedzi dla ustawień domyślnych. Oba zrzuty pochodzą ze starszej wersji aplikacji: zestaw ćwiczeniowy nazywa się na nich „deweloperski”, a przycisku „Porównajcie modele” i zdania o pracy bez połączenia w tej postaci już w aplikacji nie ma.</aside>
   </section>
 
   <section data-slide="risk" data-step="risk" data-min="20">
@@ -483,7 +483,7 @@ html, body { background: var(--paper); }
     <p class="eyebrow">Krok 9 z 9 · ok. 15 min</p>
     <h2>Krok 9 – Raport i wystąpienie</h2>
     <p class="where"><span><b>Gdzie</b>Wyniki i raport</span><span><b>Gotowe, gdy</b>raport jest wyeksportowany (HTML albo Markdown)</span></p>
-    <div class="shots push"><figure><img data-shot="report-gaps" src="assets/presentation/report-gaps.webp" alt="Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem." loading="eager"></figure></div>
+    <div class="shots push"><figure><img data-shot="report-gaps" src="assets/presentation/report-gaps.webp" alt="Lista „W raporcie brakuje jeszcze”: nazwa zespołu, zapisany wynik z laboratorium, schemat architektury, decyzje wdrożeniowe, karty ryzyk i nieodhaczone pozycje, każda z odnośnikiem." loading="eager"></figure></div>
     <ul class="under pull">
       <li>lista kontrolna i notatki do każdej części</li>
       <li>„W raporcie brakuje jeszcze”: odnośniki do pustych miejsc</li>
@@ -499,19 +499,19 @@ html, body { background: var(--paper); }
     <p class="eyebrow">Zasady</p>
     <h2>Zasady uczciwego eksperymentu</h2>
     <ul class="pts">
-      <li>Najpierw metoda odniesienia, potem eksperymenty.</li>
-      <li>Zbiór testowy odsłaniacie raz, na końcu. Każde odsłonięcie się liczy.</li>
+      <li>Najpierw pierwsza wersja, potem eksperymenty: zmieniacie jedną rzecz naraz.</li>
+      <li>Test końcowy odsłaniacie raz, na końcu. Każde odsłonięcie się liczy.</li>
       <li>Od trzeciego eksperymentu zapis w dzienniku wymaga jednozdaniowego wniosku.</li>
-      <li>„Porównajcie dwa przebiegi”: zaznaczcie dwa zapisy i zobaczcie, co się zmieniło i o ile.</li>
+      <li>Przed każdą zmianą obejrzyjcie pomyłki: one podpowiadają, co poprawić.</li>
     </ul>
-    <aside class="notes">Tych zasad pilnuje aplikacja. Licznik „Test oglądany” pokazuje, ile razy zespół zajrzał do testu, i ta liczba trafia do raportu. Wnioski z eksperymentów też idą do raportu, więc piszcie je tak, żeby zrozumiał je ktoś z firmy. Porównanie dwóch przebiegów działa dla zapisów z tego samego zadania.</aside>
+    <aside class="notes">To rytm pracy w laboratorium: zbudować, sprawdzić pomyłki, zmienić jedną rzecz. Testu i wniosków pilnuje aplikacja. Licznik „Test końcowy oglądany” pokazuje, ile razy zespół zajrzał do testu, i ta liczba trafia do raportu. Wnioski z eksperymentów też idą do raportu, więc piszcie je tak, żeby zrozumiał je ktoś z firmy. Każdy wynik oglądacie osobno: ile przypadków się udało i gdzie są pomyłki.</aside>
   </section>
 
   <section data-slide="badges">
     <p class="eyebrow">Odznaki</p>
-    <h2>9 odznak i jedno wyzwanie na zadanie</h2>
-    <div class="shots"><figure><img data-shot="badges" src="assets/presentation/badges.webp" alt="Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić." loading="eager"></figure></div>
-    <aside class="notes">Odznaki to kamienie milowe projektu. Aplikacja przyznaje je sama na podstawie tego, co zrobiliście, na przykład za zapisaną metodę odniesienia, za wynik lepszy od niej albo za uczciwy test. Przy brakujących widać, co jeszcze trzeba zrobić. Do tego w każdym zadaniu czeka jedno wyzwanie, na przykład „Najtrudniejsze puszki” w wizji albo pytanie spoza dokumentów w asystencie wiedzy. Zdobyte odznaki trafiają do raportu.</aside>
+    <h2>7 odznak i jedno wyzwanie na zadanie</h2>
+    <div class="shots"><figure><img data-shot="badges" src="assets/presentation/badges.webp" alt="Sześć odznak zadania „Analiza reklamacji”: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić." loading="eager"></figure></div>
+    <aside class="notes">Odznaki to kamienie milowe projektu. Aplikacja przyznaje je sama na podstawie tego, co zrobiliście, na przykład za trzy zapisane eksperymenty, za uczciwy test albo za wyeksportowany raport. Odznak jest siedem, ale aplikacja pokazuje tylko te, które da się zdobyć w waszym zadaniu: sześć w wizji i reklamacjach, siedem w asystencie wiedzy (jedna z nich jest nieobowiązkowa) i pięć w prognozie popytu i awariach maszyn. Na zrzucie sześć odznak zadania reklamacji. Przy brakujących widać, co jeszcze trzeba zrobić. Do tego w każdym zadaniu czeka jedno wyzwanie, na przykład „Najtrudniejsze puszki” w wizji albo pytanie spoza dokumentów w asystencie wiedzy. Zdobyte odznaki trafiają do raportu.</aside>
   </section>
 
   <section data-slide="teamfile" class="tight">
@@ -533,7 +533,7 @@ html, body { background: var(--paper); }
     <p class="callout key push"><span class="fill">[uzupełnij: gdzie, w jakiej formie i do kiedy oddajecie raport]</span></p>
     <ul class="pts pull">
       <li>Raport z aplikacji: HTML albo Markdown, ze strony Wyniki i raport.</li>
-      <li>Na górze: zadanie, kryterium sukcesu, wybrana metoda z uzasadnieniem, najlepszy wynik, zbiór testowy, odznaki.</li>
+      <li>Na górze: zadanie, opis budowy rozwiązania, kryterium sukcesu, wynik, test końcowy, odznaki.</li>
       <li>Dalej: lista kontrolna z notatkami, schemat architektury, decyzje wdrożeniowe, ryzyka i dziennik eksperymentów.</li>
     </ul>
     <aside class="notes">Raport robi aplikacja, wy dbacie o to, żeby nie miał pustych miejsc. Podsumowanie na górze bierze się z tego, co zapisaliście w laboratorium i w Opisie projektu. Schemat architektury jest wklejony w raport jako obrazek. Szczegóły oddania podam teraz, a w udostępnionej wersji są w żółtym polu.</aside>
@@ -551,8 +551,8 @@ html, body { background: var(--paper); }
     <h2>Wystąpienie na koniec</h2>
     <ul class="pts">
       <li>Czas na zespół: <span class="fill">[uzupełnij: czas wystąpienia jednego zespołu]</span></li>
-      <li>Idziecie za raportem: problem i kryterium sukcesu, dane, metoda i architektura.</li>
-      <li>Potem wyniki: metoda odniesienia, najlepszy eksperyment, wynik testu.</li>
+      <li>Idziecie za raportem: problem i kryterium sukcesu, dane, budowa rozwiązania i architektura.</li>
+      <li>Potem wyniki: pierwsza wersja, co zmieniliście w eksperymentach, wynik końcowy.</li>
       <li>Kończycie odpowiedzią na pytanie z notatki: czy taki system może działać w zakładzie?</li>
     </ul>
     <aside class="notes">Opierajcie wystąpienie na raporcie, wtedy niczego nie zgubicie. Mówcie o liczbach, które zapisaliście, i o tym, czego system jeszcze nie umie. Notatka z kroku 3 prosiła o uczciwą ocenę, więc „jeszcze nie” też jest dobrą odpowiedzią, jeśli umiecie ją uzasadnić.</aside>
@@ -562,8 +562,8 @@ html, body { background: var(--paper); }
     <p class="eyebrow">Efekt</p>
     <h2>Z czym wyjdziecie z warsztatów</h2>
     <ul class="pts">
-      <li>Kryterium sukcesu i metoda wybrana z uzasadnieniem.</li>
-      <li>Metoda odniesienia, eksperymenty i uczciwy test na odłożonych danych.</li>
+      <li>Kryterium sukcesu i rozwiązanie AI zbudowane krok po kroku.</li>
+      <li>Eksperymenty z wnioskami i uczciwy test na danych, których model nie widział.</li>
       <li>Schemat architektury, ryzyka i cztery decyzje przed wdrożeniem.</li>
       <li>Raport, który pokazuje to wszystko komuś z firmy.</li>
     </ul>
@@ -592,8 +592,8 @@ html, body { background: var(--paper); }
       <li><b>Wybór zadania</b> · wybierzcie zadanie i wpiszcie kryterium sukcesu</li>
       <li><b>Dane zadania</b> · otwórzcie dane wybranego zadania</li>
       <li><b>Demonstracje</b> · obejrzyjcie demonstracje wymagane dla waszego zadania</li>
-      <li><b>Laboratorium, runda 1</b> · uruchomcie metodę odniesienia i zapiszcie wynik</li>
-      <li><b>Rundy 2–3 i test</b> · zapiszcie co najmniej 3 eksperymenty, zmieniając jedną rzecz naraz; w wizji, asystencie wiedzy i reklamacjach odsłońcie test raz i zapiszcie wynik</li>
+      <li><b>Laboratorium, runda 1</b> · zbudujcie pierwszą wersję rozwiązania, uruchomcie ją i zapiszcie wynik w dzienniku</li>
+      <li><b>Rundy 2–3 i test</b> · zapiszcie co najmniej 3 eksperymenty, zmieniając jedną rzecz naraz; w wizji, asystencie wiedzy i reklamacjach odsłońcie test końcowy raz i zapiszcie wynik</li>
       <li><b>Ryzyka i wdrożenie</b> · odpowiedzcie na co najmniej cztery karty ryzyk i podejmijcie cztery decyzje wdrożeniowe</li>
       <li><b>Raport i wystąpienie</b> · uzupełnijcie listę i wyeksportujcie raport</li>
     </ol>

@@ -27,8 +27,8 @@
   const EYE = 1.65, RADIUS = 0.3, SPEED = 3.2, PITCH_MAX = Math.PI / 3, LOOK_RATE = 0.005, PR_MAX = 1.5;
   const LABEL_PX = 34, LABEL_PX_FAR = 28; // station label height on screen (CSS px), near and far
   const TXT = {
-    pl: { bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
-    en: { bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
+    pl: { bar: 'Stanowiska', exit: 'Widok 2D', exitTitle: 'Przełączcie na zwykły widok strony', save: 'Zapisz plik', saveTitle: 'Pobierzcie plik zespołu', wide: 'Poszerz lub zwęź panel', close: 'Zamknij', prev: 'Poprzednie stanowisko', next: 'Następne stanowisko', canvas: 'Pokój 3D. Stanowiska są też dostępne z paska przycisków.', opened: 'Otwarte stanowisko: ' },
+    en: { bar: 'Stations', exit: '2D view', exitTitle: 'Switch to the plain page view', save: 'Save file', saveTitle: 'Download the team file', wide: 'Widen or narrow panel', close: 'Close', prev: 'Previous station', next: 'Next station', canvas: '3D room. The stations are also available from the button bar.', opened: 'Station opened: ' },
   };
   // The walk through a room: five stations in a fixed order. The guide at the bottom names the next one, the panel
   // says what to do at this one (opts.steps overrides the lines per station: { brief: 'text' | { pl, en }, ... }).
@@ -37,13 +37,13 @@
       step: (n, t) => `Krok ${n} z ${t}`, start: 'Przejdźcie pięć stanowisk po kolei. Zacznijcie od pierwszego.', next: 'Dalej:', go: 'Otwórzcie', finish: 'Zamknijcie',
       done: 'Wszystkie stanowiska odwiedzone. Wrócicie do każdego z paska u góry.', seen: 'odwiedzone', nextMark: 'następne',
       tip: 'Możecie też chodzić: WASD / strzałki, przeciągnijcie, żeby się rozejrzeć.',
-      steps: { brief: 'Przeczytajcie zadanie: co system ma robić i na jakich danych.', data: 'Obejrzyjcie dane, na których pracuje system.', method: 'Wybierzcie metodę i sprawdźcie, jak działa.', experiment: 'Uruchomcie metodę odniesienia, potem własne eksperymenty.', results: 'Porównajcie przebiegi i zobaczcie, który wypadł najlepiej.' },
+      steps: { brief: 'Przeczytajcie zadanie: co system ma robić i na jakich danych.', data: 'Obejrzyjcie dane, na których pracuje system.', method: 'Zobaczcie, jak powstaje rozwiązanie: z czego je zbudujecie.', experiment: 'Zbudujcie pierwszą wersję, uruchomcie ją i zapiszcie wynik. Potem zmieniajcie po jednej rzeczy.', results: 'Obejrzyjcie zapisane eksperymenty i wynik końcowy.' },
     },
     en: {
       step: (n, t) => `Step ${n} of ${t}`, start: 'Go through the five stations in order. Start with the first one.', next: 'Next:', go: 'Open', finish: 'Close',
       done: 'All stations visited. You can return to any of them from the bar at the top.', seen: 'visited', nextMark: 'next',
       tip: 'You can also walk: WASD / arrows, drag to look around.',
-      steps: { brief: 'Read the brief: what the system should do and on what data.', data: 'Look at the data the system works on.', method: 'Choose a method and see how it works.', experiment: 'Run the baseline, then your own experiments.', results: 'Compare the runs and see which one did best.' },
+      steps: { brief: 'Read the brief: what the system should do and on what data.', data: 'Look at the data the system works on.', method: 'See how the solution is built: what you will make it from.', experiment: 'Build the first version, run it and save the result. Then change one thing at a time.', results: 'Look at your saved experiments and the final result.' },
     },
   };
   const builders = {};
@@ -909,9 +909,12 @@
       btns[s] = el('button', { type: 'button', class: 'room-btn', 'data-station': s }, [el('span', { class: 'room-n' }, String(numOf(s))), btnText[s], el('span', { class: 'room-tag', hidden: true }), el('span', { class: 'room-sr room-btn-state' })]);
       bar.append(btns[s]);
     }
+    const saveBtn = opts.onSave ? el('button', { type: 'button', class: 'room-btn room-save', 'data-room-save': true, title: L.saveTitle }, L.save) : null;
+    if (saveBtn) bar.append(saveBtn);
     const exitBtn = el('button', { type: 'button', class: 'room-btn room-2d', 'data-room-2d': true, title: L.exitTitle }, L.exit);
     bar.append(exitBtn);
     const titleEl = el('h2', { class: 'room-panel-title', id: id + '-title', tabindex: '-1' });
+    const wideBtn = el('button', { type: 'button', class: 'room-icon room-wide-btn', 'data-room-wide': true, 'aria-label': L.wide, 'aria-pressed': 'false', title: L.wide }, '↔');
     const prevBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-prev': true, 'aria-label': L.prev, title: L.prev }, '‹');
     const nextBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-next': true, 'aria-label': L.next, title: L.next }, '›');
     const closeBtn = el('button', { type: 'button', class: 'room-icon', 'data-room-close': true, 'aria-label': L.close, title: L.close + ' (Esc)' }, '×');
@@ -919,7 +922,7 @@
     const body = el('div', { class: 'room-panel-body' });
     for (const s of STATIONS) { slots[s] = el('div', { class: 'room-slot', 'data-station': s, hidden: true }); body.append(slots[s]); }
     const stepEl = el('span', { class: 'room-step' }), doEl = el('p', { class: 'room-panel-do' });
-    const head = el('header', { class: 'room-panel-head' }, [el('div', { class: 'room-panel-heading' }, [stepEl, titleEl]), el('div', { class: 'room-panel-nav' }, [prevBtn, nextBtn, closeBtn])]);
+    const head = el('header', { class: 'room-panel-head' }, [el('div', { class: 'room-panel-heading' }, [stepEl, titleEl]), el('div', { class: 'room-panel-nav' }, [wideBtn, prevBtn, nextBtn, closeBtn])]);
     const onwardBtn = el('button', { type: 'button', class: 'room-onward', 'data-room-onward': true });
     const foot = el('footer', { class: 'room-panel-foot' }, onwardBtn);
     const panel = el('section', { class: 'room-panel', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': titleEl.id, hidden: true }, [head, doEl, body, foot]);
@@ -1005,7 +1008,9 @@
     const domOff = [];
     const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); domOff.push(() => t.removeEventListener(ev, fn, o)); };
     for (const s of STATIONS) on(btns[s], 'click', () => visit(s));
+    if (saveBtn) on(saveBtn, 'click', () => { if (opts.onSave) opts.onSave(); });
     on(exitBtn, 'click', () => { if (onExit2d) onExit2d(); });
+    on(wideBtn, 'click', () => { const w = panel.classList.toggle('is-wide'); wideBtn.setAttribute('aria-pressed', String(w)); });
     on(prevBtn, 'click', () => step(-1));
     on(nextBtn, 'click', () => step(1));
     on(closeBtn, 'click', close);

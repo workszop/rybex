@@ -201,7 +201,7 @@ if (run('facts')) {
   // Every fact on a slide comes from the app: step names and minutes, task names, badge count, memo senders.
   const { spawn, execFileSync } = await import('node:child_process');
   const { chromium } = await import('./node_modules/playwright/index.mjs');
-  const PORT = 8794, BASE = `http://127.0.0.1:${PORT}`;
+  const PORT = +process.env.FACTS_PORT || 8794, BASE = `http://127.0.0.1:${PORT}`; // FACTS_PORT=<port> when 8794 is taken (the UX regression server uses it)
   const srv = await startServer(spawn, PORT);
   let browser;
   try {

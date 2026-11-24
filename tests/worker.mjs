@@ -1,5 +1,5 @@
 // Worker contract checks: runs `wrangler dev` against a local mock of OpenRouter.
-// Usage: cd tests && node worker.mjs
+// Usage: cd tests && node worker.mjs   (W_PORT=<port> UP_PORT=<port> move the Worker and the mock upstream when 8787 or 8799 is taken)
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WORKER_DIR = path.join(HERE, '..', 'worker');
-const UP_PORT = 8799, W_PORT = 8787, W = `http://127.0.0.1:${W_PORT}`;
+const UP_PORT = +process.env.UP_PORT || 8799, W_PORT = +process.env.W_PORT || 8787, W = `http://127.0.0.1:${W_PORT}`;
 const CODE = 'test-code';
 let pass = 0, fail = 0;
 const ok = (id, cond, detail = '') => { if (cond) { pass++; console.log('  PASS', id); } else { fail++; console.log('  FAIL', id, detail); } };

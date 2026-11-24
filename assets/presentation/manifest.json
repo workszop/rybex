@@ -1,5 +1,5 @@
 {
- "commit": "5b92faa",
+ "commit": "0c7953f",
  "shots": [
   {
    "id": "site-home",
@@ -71,7 +71,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek."
+   "alt": "Demonstracja miar jakości modelu: suwak progu decyzji, suwak odsetka wadliwych puszek i wykres."
   },
   {
    "id": "baseline",
@@ -80,7 +80,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami."
+   "alt": "Laboratorium asystenta wiedzy firmowej: pasek pięciu kroków (Zadanie, Dokumenty firmy, Polecenie i wyszukiwanie, Eksperymenty, Test końcowy), karta „Krok 2 · Dane” i karta „Budowa: jak powstaje to rozwiązanie”."
   },
   {
    "id": "test-reveal",
@@ -89,7 +89,7 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody."
+   "alt": "Laboratorium analizy reklamacji po odsłonięciu testu końcowego: polecenie i liczba przykładów są zablokowane, test służy tylko do oceny końcowej."
   },
   {
    "id": "risk",
@@ -104,7 +104,7 @@
    "id": "golive",
    "file": "golive.webp",
    "w": 2652,
-   "h": 2234,
+   "h": 2286,
    "ai": false,
    "full": false,
    "alt": "Cztery decyzje przed uruchomieniem na linii dla zadania „Awarie maszyn”, wszystkie z odpowiedzią i widoczną konsekwencją."
@@ -122,19 +122,19 @@
    "id": "report-gaps",
    "file": "report-gaps.webp",
    "w": 2652,
-   "h": 522,
+   "h": 476,
    "ai": false,
    "full": false,
-   "alt": "Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem."
+   "alt": "Lista „W raporcie brakuje jeszcze”: nazwa zespołu, zapisany wynik z laboratorium, schemat architektury, decyzje wdrożeniowe, karty ryzyk i nieodhaczone pozycje, każda z odnośnikiem."
   },
   {
    "id": "badges",
    "file": "badges.webp",
    "w": 2652,
-   "h": 868,
+   "h": 576,
    "ai": false,
    "full": false,
-   "alt": "Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić."
+   "alt": "Sześć odznak zadania „Analiza reklamacji”: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić."
   },
   {
    "id": "example",
@@ -143,13 +143,13 @@
    "h": 1800,
    "ai": false,
    "full": true,
-   "alt": "Podgląd przykładowego, nieidealnego projektu prognozy popytu z baneru „To podgląd” i raportem."
+   "alt": "Podgląd przykładowego, nieidealnego projektu prognozy popytu z banerem „To podgląd” i raportem."
   },
   {
    "id": "team-file",
    "file": "team-file.webp",
    "w": 2880,
-   "h": 278,
+   "h": 200,
    "ai": false,
    "full": false,
    "alt": "Pasek zespołu z nazwą „Zespół Szprot”, postępem i przyciskami pobierania i wczytywania pliku zespołu."

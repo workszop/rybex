@@ -14,7 +14,8 @@ import { redact, fillSecret, maskSecretField, assertMasked } from './shot-secret
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'assets', 'presentation');
 const PORT = 8796, BASE = `http://127.0.0.1:${PORT}`, MOCK = `${BASE}/mock`;
-const APP = `${BASE}/rybex-ai-workshop.html?ai=${encodeURIComponent(MOCK)}`;
+// rooms=0: the plain lab page (the walk-in 3D room would hide the lab controls the shots click and show).
+const APP = `${BASE}/rybex-ai-workshop.html?rooms=0&ai=${encodeURIComponent(MOCK)}`;
 const VP = { width: 1440, height: 900 };
 
 // In-page helpers, passed as source so that every shot seeds the app through its own globals (S, normTeam, save, render ...).
@@ -30,19 +31,18 @@ const lab = (p, key) => p.evaluate(k => { go('lab', k); }, key);
 
 const GOAL = {
   complaints: 'Poprawnie rozpoznać kategorię co najmniej 8 na 10 reklamacji, w tym wszystkie sprawy o bezpieczeństwie.',
-  forecast: 'Błąd prognozy popytu niższy niż średnia historyczna.',
+  forecast: 'Prognoza popytu myli się średnio o mniej niż 10%.',
   rag: 'Odpowiedzi asystenta zawsze ze wskazaniem dokumentu, a pytania spoza dokumentów odrzucane.',
   maint: 'Ostrzec przed awarią zamykarki, zanim linia stanie, przy niewielu fałszywych alarmach.',
   vision: 'Wykryć wadliwe puszki bez fałszywych alarmów na linii.',
 };
 
-// Saves the baseline in the open lab, picks the first method and writes a justification (the test-set gate).
-const baselineAndGate = async (p, runSel = '#runBase') => {
-  await p.click(runSel); await p.click('#saveBase');
-  await p.evaluate(() => document.querySelectorAll('#labMethod details').forEach(d => { d.open = true; }));
-  await p.locator('input[name=meth]').first().check();
-  await p.fill('#methWhy', 'Reguły są tanie i wyjaśnialne, a danych jest niewiele.');
-};
+// The final test opens once the track has one saved experiment on the practice set (revealGate in js/lab-core.js).
+// The base shots make no model run, so the team is seeded with one saved practice-set entry; its numbers are an example
+// and appear in no shot that uses it (test-reveal shows the reveal card, badges the badge list).
+const SAVED_EXPERIMENT = { id: 'shot1', ts: '2026-11-13T09:00:00.000Z', track: 'complaints', note: 'Pierwsza wersja polecenia: model myli uszkodzenia w transporcie z uszkodzeniem puszki.', testViews: 0,
+  cfg: { mode: 'llm', model: 'deepseek/deepseek-v4.1-flash', ver: 'v1', shots: 0, set: 'dev' },
+  res: { acc: 0.75, macro: 0.72, safety: 1, safetyFalse: 1, test: null, primary: { m: 'trafność modelu (zestaw ćwiczeniowy)', v: 0.75, hi: true, test: false } } };
 
 // id, hash, seed, el (null = the whole 1440x900 viewport at 2x), alt (Polish, describes what the picture shows)
 const SHOTS = [
@@ -70,15 +70,17 @@ const SHOTS = [
     alt: 'Strona danych zadania „Awarie maszyn”: lista plików i karta danych z odczytami czujników.' },
   { id: 'demos', hash: '#/demos/metr', ai: false, el: null,
     seed: p => seedTeam(p, { track: 'forecast', goal: GOAL.forecast, site: { newsRead: true } }, ['life', 'split']),
-    alt: 'Demonstracja miar jakości modelu z suwakiem progu i macierzą pomyłek.' },
+    alt: 'Demonstracja miar jakości modelu: suwak progu decyzji, suwak odsetka wadliwych puszek i wykres.' },
+  // The id stays 'baseline' (the deck and the manifest refer to the file); the labs have no baseline any more, so the shot
+  // shows the lab's five-step strip and the "Budowa" card.
   { id: 'baseline', hash: '#/lab/rag', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'rag', goal: GOAL.rag, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok', 'rag']);
-      await p.click('#runBase'); await settle(p); await p.evaluate(() => document.querySelector('#baseOut').scrollIntoView({ block: 'start' })); },
-    alt: 'Laboratorium asystenta wiedzy firmowej: wynik metody odniesienia (wyszukiwanie dosłowne) z dwiema głównymi liczbami.' },
+      await settle(p); await p.evaluate(() => { document.querySelector('#labSteps').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
+    alt: 'Laboratorium asystenta wiedzy firmowej: pasek pięciu kroków (Zadanie, Dokumenty firmy, Polecenie i wyszukiwanie, Eksperymenty, Test końcowy), karta „Krok 2 · Dane” i karta „Budowa: jak powstaje to rozwiązanie”.' },
   { id: 'test-reveal', hash: '#/lab/complaints', ai: false, el: null,
-    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok']);
-      await baselineAndGate(p); await p.click('#rv'); await settle(p); await p.evaluate(() => { document.querySelector('#rv').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
-    alt: 'Laboratorium analizy reklamacji po odsłonięciu zbioru testowego: zapisana metoda odniesienia i uzasadnienie wyboru metody.' },
+    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true }, log: [SAVED_EXPERIMENT] }, ['life', 'split', 'metr', 'tok']);
+      await p.click('#rv'); await settle(p); await p.evaluate(() => { document.querySelector('#rv').closest('.card').scrollIntoView({ block: 'start' }); scrollBy(0, -150); }); },
+    alt: 'Laboratorium analizy reklamacji po odsłonięciu testu końcowego: polecenie i liczba przykładów są zablokowane, test służy tylko do oceny końcowej.' },
   { id: 'risk', hash: '#/demos/risk', ai: false, el: null,
     seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok']);
       for (const id of ['privacy', 'hallucination']) await p.click(`#riskDemo [data-r="${id}"] [data-o="0"]`);
@@ -94,12 +96,12 @@ const SHOTS = [
     alt: 'Schemat blokowy architektury rozwiązania złożony z wybranych komponentów.' },
   { id: 'report-gaps', hash: '#/deliver', ai: false, el: '#delivGaps',
     seed: p => seedTeam(p, { name: '', track: 'complaints', goal: GOAL.complaints, site: { newsRead: true } }, ['life']),
-    alt: 'Lista braków, które pokazałby raport: nazwa zespołu, metoda, diagram i nieodhaczone pozycje, każda z odnośnikiem.' },
+    alt: 'Lista „W raporcie brakuje jeszcze”: nazwa zespołu, zapisany wynik z laboratorium, schemat architektury, decyzje wdrożeniowe, karty ryzyk i nieodhaczone pozycje, każda z odnośnikiem.' },
   { id: 'badges', hash: '#/deliver', ai: false, el: '#badgeList',
-    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }, ['life', 'split', 'metr', 'tok']);
-      await lab(p, 'complaints'); await settle(p); await baselineAndGate(p); await p.click('#rv'); await settle(p);
+    seed: async p => { await seedTeam(p, { track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true }, log: [SAVED_EXPERIMENT] }, ['life', 'split', 'metr', 'tok']);
+      await lab(p, 'complaints'); await settle(p); await p.click('#rv'); await settle(p);
       await p.evaluate(() => go('deliver')); await settle(p); },
-    alt: 'Dziewięć odznak projektu: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić.' },
+    alt: 'Sześć odznak zadania „Analiza reklamacji”: zdobyte i brakujące, z opisem, co jeszcze trzeba zrobić.' },
   { id: 'example', hash: '#/home', ai: false, el: null,
     seed: async p => { await seedTeam(p, { name: 'Moja praca', track: 'vision', site: { newsRead: true } }); await p.click('#showExample'); await settle(p); },
     alt: 'Podgląd przykładowego, nieidealnego projektu prognozy popytu z banerem „To podgląd” i raportem.' },
@@ -129,7 +131,7 @@ if (!todo.length) { console.log(`No shots to take in mode "${mode}".`); process.
 
 // One real model run against the class Worker (no ?ai: the app uses its default server). Nothing is written unless everything worked.
 async function aiShots(wanted) {
-  const REAL = `${BASE}/rybex-ai-workshop.html`;
+  const REAL = `${BASE}/rybex-ai-workshop.html?rooms=0`;
   const ctx = await browser.newContext({ viewport: VP, deviceScaleFactor: 2 });
   try {
     const p = await ctx.newPage(); const errs = [];
@@ -138,11 +140,10 @@ async function aiShots(wanted) {
     await p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 10000 });
     await p.waitForLoadState('networkidle');
     await p.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}' });
-    // Team slot 8, complaints track, model method (shows the AI card), default model (left as the app has it).
+    // Team slot 8, complaints track (the lab shows the AI card), default model (left as the app has it).
     await p.evaluate(([o]) => {
       S.lang = 'pl'; S.team = 8;
       const t = normTeam({ name: 'Zespół Szprot', onboardedAt: '2026-11-13T08:00:00.000Z', ...o });
-      t.lab.compl.method = 'llm';
       S.teams[8] = t; S.ai.code = ''; save(); render(); go('lab', 'complaints');
     }, [{ track: 'complaints', goal: GOAL.complaints, site: { newsRead: true }, seen: { data: true } }]);
     await p.waitForSelector('#aiBar', { timeout: 10000 });

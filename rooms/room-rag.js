@@ -290,7 +290,7 @@
       [tx('Poprawne odpowiedzi', 'Correct answers'), tx('Ze źródłem PROCES', 'With a PROCES source'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = 24 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 96, 310, 118); c.fillStyle = '#6b6a66'; c.font = '600 22px Raleway, system-ui'; c.fillText(t, x + 16, 132); c.fillStyle = '#c9d1d6'; c.font = '700 50px Raleway, system-ui'; c.fillText('–', x + 16, 194); });
       c.fillStyle = '#fff'; c.fillRect(24, 232, w - 48, h - 256);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(80, 254); c.lineTo(80, h - 60); c.lineTo(w - 50, h - 60); c.stroke();
-      c.fillStyle = '#6b6a66'; c.font = '500 24px Raleway, system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 110, h - 110);
+      c.fillStyle = '#6b6a66'; c.font = '500 24px Raleway, system-ui'; c.fillText(tx('Zapisane eksperymenty i wynik końcowy: stanowisko Wyniki.', 'Saved experiments and the final result: the Results station.'), 110, h - 110);
     };
     const tvScreen = new T.Mesh(new T.PlaneGeometry(1.42, 0.8), new T.MeshBasicMaterial({ map: tex.screen(drawRes, { w: 1024, h: 576 }), toneMapped: false }));
     tvScreen.position.set(0, 0, 0.026); tvBody.add(tvScreen);

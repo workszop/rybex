@@ -35,8 +35,7 @@ const SEC=()=>[
 {id:5,t:T('Ocena działania'),items:[
  T('Miary dobrane do zadania (P/R/F1, błąd prognozy, poprawność odpowiedzi, czas, koszt)'),
  T('Przykłady poprawnego działania i błędów'),
- T('Ograniczenia rozwiązania i wnioski'),
- T('Porównanie z prostą metodą odniesienia (reguły / średnia historyczna)')]},
+ T('Ograniczenia rozwiązania i wnioski')]},
 {id:6,t:T('Rezultaty części technologicznej'),items:[
  T('Dokumentacja danych, technologii i architektury'),
  T('Prototyp wraz z instrukcją uruchomienia'),
@@ -105,4 +104,4 @@ function buildComplaints(){const r=rng(21);return C_PLAN.map((k,i)=>{const[c,h,t
 const DATA={sales:buildSales(),sensors:buildSensors(),compl:buildComplaints()};
 
 // Knowledge-assistant corpus: current procedures, a workstation instruction, a quality FAQ, a change memo and one archived procedure version (ARCH-01)
-// Kept in folder (alphabetical) order: the literal baseline and TF-IDF give ties to the earlier document, so reordering changes the results
+// Kept in folder (alphabetical) order: the TF-IDF search gives ties to the earlier document, so reordering changes the results

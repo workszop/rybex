@@ -4,19 +4,18 @@
 // The room's progress without a backend: the eight local slots of this browser and team files imported from the
 // participants' laptops (kept in memory only, never written to a slot). No test-set score is shown; the class code never appears.
 // The in-app measures of spec 7.2 for the team passed in; never reads team().
-function teamSummary(t){const k=t.track,ps=pathState(t),tl=k?testLabOf(t,k):null,vd=k?baseVerdict(t,k):null,Q=QUIZZES(),
+function teamSummary(t){const k=t.track,ps=pathState(t),tl=k?testLabOf(t,k):null,Q=QUIZZES(),
   fr=Object.values(t.quizzes).flatMap(z=>Object.values(z.first)),right=fr.filter(Boolean).length;
- return{name:t.name.trim(),track:k,steps:ps.doneCount,stepsOf:ps.steps.length,baseline:!!k&&hasBaseline(t,k),beaten:vd&&vd.best!=null&&vd.pb!=null?vd.beaten:null,why:!!k&&whyOk(t,k),
-  experiments:k?expOf(t,k):0,testViews:tl?tl.testViews:null,quizFirst:fr.length?right/fr.length:null,quizRight:right,quizAnswered:fr.length,
+ return{name:t.name.trim(),track:k,steps:ps.doneCount,stepsOf:ps.steps.length,
+  experiments:k?expOf(t,k):0,testViews:tl?tl.testViews:null,finalSaved:tl?finalSaved(t,k):null,quizFirst:fr.length?right/fr.length:null,quizRight:right,quizAnswered:fr.length,
   quizDone:Object.keys(Q).filter(q=>quizDone(t,q)).length,quizOf:Object.keys(Q).length,risks:riskCount(t),risksOf:RISK_SCENARIOS().length,
   decisions:goLiveCount(t),decisionsOf:GO_LIVE_DECISIONS(t).length,noteCount:t.log.filter(l=>typeof l.note==='string'&&l.note.trim()).length,newsRead:!!t.site.newsRead,intranetOpened:!!t.site.intranetOpened,contactSent:!!t.site.contactSent}}
 // Column key, header, cell text; booleans carry data-v. Shared by the tables and the CSV.
 // csv: counts read as text "3 z 9" (Excel turns 3/9 into a date).
 function trCols(csv){const yn=v=>v==null?'–':v?T('tak'):T('nie'),of=(a,b)=>csv?T(`${a} z ${b}`,`${a} of ${b}`):`${a}/${b}`;return[
  ['track',T('Zadanie'),s=>s.track?trackName(s.track):'–'],['steps',T('Kroki ścieżki'),s=>of(s.steps,s.stepsOf)],
- ['baseline',T('Baseline zapisany'),s=>yn(s.baseline),1],['beaten',T('Baseline pobity (zestaw ćwiczeniowy)'),s=>yn(s.beaten),1],
- ['why',T('Uzasadnienie'),s=>yn(s.why),1],['experiments',T('Eksperymenty'),s=>String(s.experiments)],
- ['testViews',T('Odsłony testu'),s=>s.testViews==null?'–':String(s.testViews)],
+ ['experiments',T('Eksperymenty'),s=>String(s.experiments)],
+ ['testViews',T('Odsłony testu'),s=>s.testViews==null?'–':String(s.testViews)],['finalSaved',T('Wynik testu zapisany'),s=>yn(s.finalSaved),1],
  ['quizFirst',T('Quizy: dobrze za 1. razem'),s=>s.quizFirst==null?'–':`${Math.round(s.quizFirst*100)}% (${of(s.quizRight,s.quizAnswered)})`],
  ['quizDone',T('Quizy ukończone'),s=>of(s.quizDone,s.quizOf)],['risks',T('Karty ryzyk'),s=>of(s.risks,s.risksOf)],
  ['decisions',T('Decyzje wdrożeniowe'),s=>of(s.decisions,s.decisionsOf)],['noteCount',T('Notatki'),s=>String(s.noteCount)],
@@ -49,15 +48,15 @@ function trPaintFiles(){if(S.view!=='trainer'||!$('#trFilesBox'))return;$('#trFi
 // Team slots saved in this browser (what "Clear all teams" would remove).
 function storedTeamCount(){try{const x=readStore();return x&&isObj(x.teams)?Object.keys(x.teams).length:0}catch(e){return 0}}
 // Trainer: removes all team slots from this browser after a confirmation; language, class code and model stay.
-// One undo restores the exact stored state. Transient per-slot state (baseline shown, open panels) is dropped.
+// One undo restores the exact stored state. Transient per-slot state (open panels) is dropped.
 function trWipeAll(){toast(T('Usunąć pracę wszystkich zespołów (sloty 1–8) z tej przeglądarki? Zespoły, które nie pobrały pliku zespołu, stracą swoją pracę.'),{reason:'wipe',action:[T('Usuń wszystkie zespoły'),()=>guardRun(()=>{
   let raw=null,ok=true;try{raw=localStorage.getItem(STORE_KEY);const cur=raw?JSON.parse(raw):{};localStorage.setItem(STORE_KEY,JSON.stringify({...cur,team:1,teams:{}}))}catch(e){ok=false}
   if(!ok){toast(T('Nie udało się wyczyścić danych w tej przeglądarce. Nic nie zmieniono.'));return}
-  S.teams={};S.team=1;badgeQ=[];['baseOn','moreOpen','cmpSel','methOpen','rc','ragLastMsgs','ragPending'].forEach(k=>delete X[k]);render();
+  S.teams={};S.team=1;badgeQ=[];['moreOpen','rc','ragLastMsgs','ragPending'].forEach(k=>delete X[k]);render();
   toast(T('Usunięto pracę wszystkich zespołów z tej przeglądarki.'),{reason:'wiped',action:[T('Cofnij'),()=>{try{if(raw)localStorage.setItem(STORE_KEY,raw);else localStorage.removeItem(STORE_KEY)}catch(e){return}
    const x=raw?JSON.parse(raw):{};S.teams=normTeams(x.teams);S.team=clampInt(x.team,1,TEAM_COUNT,1);render();announce(T('Cofnięto'))}]})})]})}
 function vTrainer(){const fn=X.trFiles||[];
- mainEl.innerHTML=pageHead(T('Tryb prowadzącego'),'',`<p class="edu-lead" id="trIntro">${T('Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, kto zrobił baseline, ile razy oglądano test i czy uzupełniono uzasadnienie. Nie porównujemy surowego F1 na teście na forum grupy.')}</p>`)
+ mainEl.innerHTML=pageHead(T('Tryb prowadzącego'),'',`<p class="edu-lead" id="trIntro">${T('Tryb prowadzącego: wczytaj pliki zespołów, żeby zobaczyć, ile eksperymentów zapisał każdy zespół, ile razy oglądano test i czy wynik testu końcowego jest w dzienniku. Wyników zespołów nie zestawiamy na forum grupy.')}</p>`)
   +`<section class="sec"><h2 class="sr-only">${T('Postęp zespołów')}</h2><div class="wrap">`+card('users',T('Zespoły na tej przeglądarce (sloty 1–8)'),trTable('trSlots',T('Zespół'),trSlotRows(),''),{tone:'blue',foot:`<p class="hint" style="margin:0">${T('Po zajęciach: najpierw niech zespoły pobiorą pliki zespołu, potem wyczyść sloty dla następnej grupy.')}</p><button type="button" class="btn-ghost btn-sm" id="trWipe"${storedTeamCount()?'':' disabled'}>${ic('trash-2')}${T('Wyczyść wszystkie zespoły')}</button>`})
   +`<div class="mt">${card('upload',T('Wczytane pliki zespołów'),`<p class="edu-small">${T('Wybierz kilka plików JSON naraz. Pliki zostają tylko w pamięci tej karty: nie trafiają do żadnego slotu i znikają po zamknięciu strony. Ten sam plik wczytany ponownie zastępuje swój wiersz.')}</p>
  <div class="field mt"><label for="trImport">${T('Pliki zespołów (JSON)')}</label><input type="file" id="trImport" class="input" accept="application/json,.json" multiple></div>

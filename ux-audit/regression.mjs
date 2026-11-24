@@ -22,13 +22,16 @@ async function fresh(vp = { width: 1440, height: 900 }, hash = '', lang) {
   if (lang === 'en') await p.click('#langSeg button[data-l=en]');
   return p;
 }
-// Trainer mode skips the baseline gate (spec 4.7); only for sections that reveal a test set on a fresh team.
+// Trainer mode skips the final-test gate (one saved practice-set experiment); only for sections that reveal a test set on a fresh team.
 const TRAINER = '?trainer=1';
 const ready = p => p.waitForFunction(() => document.documentElement.classList.contains('app-ready'), null, { timeout: 8000 });
 const nav = (p, v) => p.click(`#nav button[data-v=${v}]`);
 const track = (p, k) => p.click(`#trackTabs button[data-k=${k}]`);
-// Change one setting first: saving the lab's starting settings is refused as "not a new experiment" (simplify round 1).
-const tweak = (p, k) => p.evaluate(k => { const L = lab(); if (k === 'maint') L.mt.thr += 0.5; if (k === 'rag') L.rag.k += 1; if (k === 'forecast') L.fc.w += 1; if (k === 'vision') { const c = VIS.calib; L.vision.th = { d: c.d * 1.05, s: c.s, c: c.c, fk: VIS.featureSource }; } }, k);
+// Guided labs (branch simple): forecast and machine failures save only a trained model, so tweak changes one setting and marks the
+// model as trained on it (what "Wytrenujcie model" does). The three model tracks need a model run before a save: tweak leaves them alone.
+// NOTE: sections UX-005, 006, 007, 009, 012 and 013 below still drive the removed rules views (#visRes, #vd, #cal, #cStats, #kw_*,
+// #kwSafety, #fcChips, #runBase, input[name=meth], #methWhy) and need a rewrite against the model labs; they were not adapted.
+const tweak = (p, k) => p.evaluate(k => { const L = lab(); if (k === 'maint') { L.mt.thr += 0.5; L.mt.fit = mtSig(L.mt); } if (k === 'rag') L.rag.k += 1; if (k === 'forecast') { L.fc.h = L.fc.h >= 9 ? 3 : L.fc.h + 1; L.fc.fit = fcSig(L.fc); } }, k);
 const sub = p => p.evaluate(() => S.sub.lab);
 const val = (p, s) => p.$eval(s, e => e.value);
 const shot = async (p, n, full = true) => { if (EV) await p.screenshot({ path: `${EV}/after-${n}.png`, fullPage: full }); };

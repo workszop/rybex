@@ -67,7 +67,7 @@
     return { scene: g, bounds: { x0: -5, z0: -5, x1: 5, z1: 5 }, colliders: window.__fxColliders, spawn: { pos: [0, 1.65, 4], yaw: 0 }, stations, fog: { color: 0xdfe3e6, near: 8, far: 22 }, background: 0xdfe3e6 };
   });
 
-  const TITLES = { pl: { brief: 'Zadanie', data: 'Dane', method: 'Metoda', experiment: 'Eksperyment', results: 'Wyniki' }, en: { brief: 'Brief', data: 'Data', method: 'Method', experiment: 'Experiment', results: 'Results' } };
+  const TITLES = { pl: { brief: 'Zadanie', data: 'Dane', method: 'Budowa', experiment: 'Eksperyment', results: 'Wyniki' }, en: { brief: 'Brief', data: 'Data', method: 'Build', experiment: 'Experiment', results: 'Results' } };
   const PANELS = Object.fromEntries([...document.querySelectorAll('#fxPanels [data-fx]')].map(e => [e.dataset.fx, e]));
   const titles = () => { if (!i18n) return TITLES[lang]; const t = { ...TITLES[lang], brief: { pl: TITLES.pl.brief, en: TITLES.en.brief } }; delete t.data; return t; };
   // Fake room data, as the app will pass it (?nodata=1: none at all).

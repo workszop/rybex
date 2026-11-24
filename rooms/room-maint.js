@@ -344,7 +344,7 @@
       c.fillStyle = '#f2f5f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2d5f8f'; c.fillRect(0, 0, w, 42);
       c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText(tx('UTRZYMANIE RUCHU · PLAN', 'MAINTENANCE · PLAN'), 12, 28);
       c.fillStyle = '#1c1917'; c.font = '600 19px Raleway, system-ui';
-      [tx('Które czujniki?', 'Which sensors?'), tx('Jaki próg alarmu?', 'Which alarm threshold?'), tx('Ile minut wcześniej?', 'How many minutes ahead?')].forEach((t, i) => { c.fillStyle = '#dfe6ec'; c.fillRect(12, 58 + i * 64, w - 24, 52); c.fillStyle = '#1c1917'; c.fillText(t, 24, 90 + i * 64); });
+      [tx('Które czujniki?', 'Which sensors?'), tx('Jaki próg alarmu?', 'Which alarm threshold?'), tx('Ile minut wygładzania?', 'How many minutes of smoothing?')].forEach((t, i) => { c.fillStyle = '#dfe6ec'; c.fillRect(12, 58 + i * 64, w - 24, 52); c.fillStyle = '#1c1917'; c.fillText(t, 24, 90 + i * 64); });
     };
     const engScreen = new T.Mesh(new T.PlaneGeometry(0.56, 0.34), new T.MeshBasicMaterial({ map: tex.screen(drawEng, { w: 560, h: 340 }), toneMapped: false }));
     engScreen.position.set(0, 0, 0.021); deskMon.add(engScreen);

@@ -297,8 +297,8 @@
       pen('#1c1917', 4); c.beginPath(); [[60, 250], [110, 220], [160, 240], [210, 190], [260, 210], [310, 170], [360, 200], [410, 150], [460, 175], [510, 140]].forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
       pen('#c0221c', 4); c.setLineDash([14, 12]); c.beginPath(); c.moveTo(510, 140); c.lineTo(w - 70, 140); c.stroke(); c.setLineDash([]); word('?', w - 64, 154, 56);
       word(tx('grudzień!', 'December!'), w - 260, 110, 26);
-      pen('#1f3f8f', 3); word(tx('trend? sezon? średnia?', 'trend? season? average?'), 60, 360, 28);
-      pen('#2f7f3f', 3); word(tx('porównać z metodą odniesienia', 'compare with a baseline'), 60, 410, 24);
+      pen('#1f3f8f', 3); word(tx('trend? sezon?', 'trend? season?'), 60, 360, 28);
+      pen('#2f7f3f', 3); word(tx('ukryć ostatnie miesiące i sprawdzić', 'hide the last months and check'), 60, 410, 24);
       c.fillStyle = '#ffe66b'; c.fillRect(w - 230, 330, 170, 120); c.fillStyle = '#3a3a3a'; word(tx('np. błąd < 10%?', 'e.g. error < 10%?'), w - 220, 390, 22);
     };
     kit.plane(wb, [1.8, 1.1], [0, 1.45, 0.022], [0, 0, 0], kit.mat(0xffffff, { map: tex.screen(drawWb, { w: 860, h: 526 }), rough: 0.3 })).castShadow = false;
@@ -345,7 +345,7 @@
       c.fillStyle = '#f3f6f4'; c.fillRect(0, 0, w, h);
       c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 74); c.fillStyle = '#fff'; c.font = '800 40px Raleway, system-ui'; c.fillText(tx('PROGNOZA POPYTU · WYNIKI', 'DEMAND FORECAST · RESULTS'), 28, 50);
       // empty KPI tiles: filled by the experiments, never invented here
-      [tx('Błąd prognozy (MAPE)', 'Forecast error (MAPE)'), tx('Metoda odniesienia', 'Baseline'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = w - 3 * 290 - 10 + i * 290; c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(x, 10, 270, 54); c.fillStyle = '#d9efe0'; c.font = '600 17px Raleway, system-ui'; c.fillText(t, x + 12, 31); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText('–', x + 12, 57); });
+      [tx('Błąd prognozy (MAPE)', 'Forecast error (MAPE)'), tx('Średnia pomyłka w miesiącu', 'Average miss per month'), tx('Eksperymenty', 'Experiments')].forEach((t, i) => { const x = w - 3 * 290 - 10 + i * 290; c.fillStyle = 'rgba(255,255,255,.14)'; c.fillRect(x, 10, 270, 54); c.fillStyle = '#d9efe0'; c.font = '600 17px Raleway, system-ui'; c.fillText(t, x + 12, 31); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText('–', x + 12, 57); });
       const x0 = 90, x1 = w - 40, y0 = h - 60, y1 = 110, months = Math.max(monthly.length, 12), total = months + 6, sx = (x1 - x0) / (total - 1);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, y1); c.lineTo(x0, y0); c.lineTo(x1, y0); c.stroke();
       // the forecast window: 6 empty months

@@ -437,7 +437,7 @@
     const drawHmi = (c, w, h) => {
       c.fillStyle = '#eef2f4'; c.fillRect(0, 0, w, h); c.fillStyle = '#1f6fb2'; c.fillRect(0, 0, w, 48);
       c.fillStyle = '#fff'; c.font = '700 26px Raleway, system-ui'; c.fillText(tx('KAMERA 1 · USTAWIENIA', 'CAMERA 1 · SETTINGS'), 16, 33);
-      const rows = [[tx('Ekspozycja', 'Exposure'), 0.55], [tx('Oświetlenie', 'Lighting'), 0.7], [tx('Próg odrzutu', 'Reject threshold'), 0.4]];
+      const rows = [[tx('Ekspozycja', 'Exposure'), 0.55], [tx('Oświetlenie', 'Lighting'), 0.7], [tx('Ostrość', 'Focus'), 0.4]];
       rows.forEach(([k, val], i) => { const y = 92 + i * 62; c.fillStyle = '#1c1917'; c.font = '600 22px Raleway, system-ui'; c.fillText(k, 16, y); c.fillStyle = '#c9d1d6'; c.fillRect(16, y + 14, w - 32, 10); c.fillStyle = '#1f6fb2'; c.fillRect(16, y + 14, (w - 32) * val, 10); c.beginPath(); c.arc(16 + (w - 32) * val, y + 19, 12, 0, Math.PI * 2); c.fill(); });
       c.fillStyle = '#2f8f47'; c.fillRect(16, h - 62, 160, 46); c.fillStyle = '#fff'; c.font = '700 22px Raleway, system-ui'; c.fillText('START', 56, h - 32);
       c.fillStyle = '#6b6a66'; c.fillRect(w - 176, h - 62, 160, 46); c.fillStyle = '#fff'; c.fillText(tx('TEST', 'TEST'), w - 126, h - 32);
@@ -464,7 +464,7 @@
       c.fillStyle = '#f4f6f7'; c.fillRect(0, 0, w, h); c.fillStyle = '#2f8f47'; c.fillRect(0, 0, w, 44);
       c.fillStyle = '#fff'; c.font = '700 24px Raleway, system-ui'; c.fillText(tx('KONTROLA JAKOŚCI · L2', 'QUALITY CONTROL · L2'), 14, 30);
       c.fillStyle = '#1c1917'; c.font = '600 20px Raleway, system-ui';
-      [tx('Metoda kontroli', 'Inspection method'), tx('Cechy obrazu', 'Image features'), tx('Reguła decyzji', 'Decision rule')].forEach((t, i) => { c.fillStyle = '#dfe5e8'; c.fillRect(14, 64 + i * 70, w - 28, 56); c.fillStyle = '#1c1917'; c.fillText(t, 28, 98 + i * 70); });
+      [tx('Polecenie dla modelu', 'Instruction for the model'), tx('Przykłady zdjęć', 'Example photos'), tx('Format odpowiedzi', 'Answer format')].forEach((t, i) => { c.fillStyle = '#dfe5e8'; c.fillRect(14, 64 + i * 70, w - 28, 56); c.fillStyle = '#1c1917'; c.fillText(t, 28, 98 + i * 70); });
     };
     const qaScreen = new T.Mesh(new T.PlaneGeometry(0.54, 0.32), new T.MeshBasicMaterial({ map: tex.screen(drawQa, { w: 540, h: 320 }), toneMapped: false }));
     qaScreen.position.set(0, 0, 0.021); qaMon.add(qaScreen);
@@ -491,14 +491,14 @@
       c.fillStyle = '#1c1917'; c.font = '800 34px Raleway, system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(brand, 96, 48); c.textAlign = 'left';
       c.fillStyle = '#fff'; c.font = '700 40px Raleway, system-ui'; c.fillText(tx('Linia 2 · kontrola wizyjna', 'Line 2 · vision inspection'), 190, 48);
       c.textBaseline = 'alphabetic';
-      // three empty KPI tiles and an empty comparison chart: filled by the experiments, never invented here
+      // three empty KPI tiles and an empty chart: filled by the experiments, never invented here
       const tiles = [tx('Odrzucone wadliwe', 'Bad cans rejected'), tx('Fałszywe odrzuty', 'False rejects'), tx('Eksperymenty', 'Experiments')];
       tiles.forEach((t, i) => { const x = 30 + i * 330; c.fillStyle = '#fff'; c.fillRect(x, 120, 310, 130); c.fillStyle = '#6b6a66'; c.font = '600 24px Raleway, system-ui'; c.fillText(t, x + 18, 160); c.fillStyle = '#c9d1d6'; c.font = '700 56px Raleway, system-ui'; c.fillText('–', x + 18, 228); });
       c.fillStyle = '#fff'; c.fillRect(30, 272, w - 60, h - 300);
       c.strokeStyle = '#9aa5ad'; c.lineWidth = 3; c.beginPath(); c.moveTo(90, 300); c.lineTo(90, h - 60); c.lineTo(w - 60, h - 60); c.stroke();
       c.setLineDash([12, 10]); c.strokeStyle = '#2f8f47'; c.beginPath(); c.moveTo(90, 340); c.lineTo(w - 60, 340); c.stroke(); c.setLineDash([]);
       c.fillStyle = '#2f8f47'; c.font = '600 24px Raleway, system-ui'; c.fillText(tx('np. cel: 9 z 10 wadliwych', 'e.g. goal: 9 of 10 bad cans'), w - 330, 330);
-      c.fillStyle = '#6b6a66'; c.font = '500 26px Raleway, system-ui'; c.fillText(tx('Porównanie przebiegów: otwórzcie stanowisko Wyniki.', 'Run comparison: open the Results station.'), 120, h - 120);
+      c.fillStyle = '#6b6a66'; c.font = '500 26px Raleway, system-ui'; c.fillText(tx('Zapisane eksperymenty i wynik końcowy: stanowisko Wyniki.', 'Saved experiments and the final result: the Results station.'), 120, h - 120);
     };
     const resScreen = new T.Mesh(new T.PlaneGeometry(2.32, 1.29), new T.MeshBasicMaterial({ map: tex.screen(drawRes, { w: 1024, h: 572 }), toneMapped: false }));
     resScreen.position.set(0, 0, 0.051); scrFrame.add(resScreen);

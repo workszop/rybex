@@ -5,6 +5,7 @@
 // Options (environment):
 //   AI=<url>   Worker URL passed to the app as ?ai= (the app accepts only localhost); default: the app's real Worker.
 //              The tool checks after loading that the app really uses this URL and stops before any call if not.
+//   PORT=<n>   port of the local app server the tool starts (tests/mock-server.mjs); default 8800.
 //   OUT=<path> where to write the recording; default: replay.json in the repo root.
 //              Required when AI is set, and it may not be the repo's replay.json: a recording from another Worker
 //              (the mock) must never replace the real answers the app falls back to.
@@ -18,9 +19,10 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (!process.env.CC) { console.error('Set the class code: CC=... node tools/record-replay.mjs'); process.exit(1); }
-const PORT = 8800;
+const PORT = +process.env.PORT || 8800;
 const AI = process.env.AI || '', REPLAY = path.join(ROOT, 'replay.json');
-const Q = AI ? '?ai=' + encodeURIComponent(AI) : '';
+// rooms=0: the plain lab page, so the controls are there without the 3D room.
+const Q = '?rooms=0' + (AI ? '&ai=' + encodeURIComponent(AI) : '');
 const OUT = path.resolve(process.env.OUT || REPLAY);
 // Same file even through symlinks or relative paths (OUT may not exist yet: compare its resolved directory).
 const real = f => { try { return fs.realpathSync(f); } catch { try { return path.join(fs.realpathSync(path.dirname(f)), path.basename(f)); } catch { return path.resolve(f); } } };
@@ -36,9 +38,8 @@ try {
   if (AI) { const used = await p.evaluate(() => AI_URL), want = AI.replace(/\/+$/, '');
     if (used !== want) throw Object.assign(new Error(`The app ignored AI=${AI} and would call ${used} (it accepts only a localhost URL). Nothing was run.`), { code: 'AI_IGNORED' }); }
   await p.evaluate(() => { S.team = 8; S.lang = 'pl'; save(); render(); });
-  // The AI bar exists only in a lab's model view: switch the knowledge assistant to the model with its own control first.
-  // The runs below set each lab's model method in its state before rendering, so the bar is there for them too.
-  await p.click('#ragGen button[data-g=llm]'); await p.waitForSelector('#aiBar');
+  // Every language-model lab shows the AI bar; the knowledge assistant is open already.
+  await p.waitForSelector('#aiBar');
   await p.fill('#aiCode', process.env.CC); await p.click('#aiConnect');
   await p.waitForFunction(() => document.querySelector('#aiBar').dataset.aiState === 'ready', null, { timeout: 20000 });
   const run = async (sel, what) => {
@@ -52,19 +53,18 @@ try {
   await p.waitForFunction(() => document.body.dataset.visionStatus === 'ready', null, { timeout: 60000 });
   for (const model of ['deepseek', 'haiku']) {
     await lab('rag'); await p.selectOption('#aiModel', model);
-    await p.evaluate(() => { const L = lab().rag; L.gen = 'llm'; L.judge = true; L.revealed = false; save(); render(); });
+    await p.evaluate(() => { const L = lab().rag; L.judge = true; L.revealed = false; save(); render(); });
     await run('#ragRun', model + ' rag dev');
     await p.evaluate(() => { lab().rag.revealed = true; save(); render(); }); await run('#ragRun', model + ' rag test');
     await p.evaluate(() => { lab().rag.revealed = false; save(); });
     await lab('complaints');
-    await p.evaluate(() => { const L = lab().compl; L.method = 'llm'; L.shots = 0; L.revealed = false; L.active = 'v1'; L.draft = null; save(); render(); });
+    await p.evaluate(() => { const L = lab().compl; L.shots = 0; L.revealed = false; L.active = 'v1'; L.draft = null; save(); render(); });
     await run('#cRun', model + ' compl dev');
     await run('#cCurve', model + ' compl curve');
-    if (model === 'deepseek') await run('#cCmp', 'compl compare');
     await p.evaluate(() => { lab().compl.revealed = true; save(); render(); }); await run('#cRun', model + ' compl test');
     await p.evaluate(() => { lab().compl.revealed = false; save(); });
     await lab('vision');
-    for (const s of [0, 4, 8]) { await p.evaluate(s => { const L = lab().vision; L.method = 'llm'; L.vshots = s; L.revealed = false; save(); render(); }, s); await run('#visRun', `${model} vision val ${s}`); }
+    for (const s of [0, 4, 8]) { await p.evaluate(s => { const L = lab().vision; L.vshots = s; L.revealed = false; save(); render(); }, s); await run('#visRun', `${model} vision val ${s}`); }
     await p.evaluate(() => { const L = lab().vision; L.vshots = 0; L.revealed = true; save(); render(); }); await run('#visRun', model + ' vision test');
     await p.evaluate(() => { lab().vision.revealed = false; save(); });
   }
