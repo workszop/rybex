@@ -17,10 +17,15 @@ p{margin:6px 0}
 .brand{display:flex;align-items:center;gap:0;color:inherit;text-decoration:none}
 .edu-logo{width:64px;height:64px;display:block;margin-right:-6px}
 .edu-wordmark{font-family:var(--font-display);font-weight:700;font-size:22px;letter-spacing:-.02em;color:var(--ink)}
+.edu-app-title{margin:0 0 0 14px;padding-left:14px;border-left:1px solid var(--line-2,#d9d3c7);font-family:var(--font-display);font-weight:600;font-size:19px;letter-spacing:-.01em;line-height:1.2;color:var(--ink-2,#4a4540);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .nav{display:flex;gap:4px;flex:1;min-width:0;flex-wrap:wrap}
 .nav button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--ink-2);padding:8px 12px;border-radius:var(--r-pill);cursor:pointer;font-weight:500;font-size:15px;white-space:nowrap;transition:background-color .15s}
 .nav button:hover{background:var(--paper-2)}
 .nav button.on{background:var(--yellow);color:var(--yellow-ink);font-weight:600}
+/* The step nav is wide: from 1360px the bar stays on one row (nav icons give way up to 1600px, the title ellipsizes); below that the title hides and the nav wraps as before */
+@media (min-width:1360px){.edu-header-inner{flex-wrap:nowrap}.nav{flex:1 0 auto;flex-wrap:nowrap}}
+@media (min-width:1360px) and (max-width:1599px){.nav button .ic,.nav button svg{display:none}}
+@media (max-width:1359px){.edu-app-title{display:none}}
 .edu-seg{display:inline-flex;gap:2px;padding:3px;background:var(--paper-2);border-radius:var(--r-pill)}
 .edu-seg button{border:0;background:transparent;padding:6px 12px;border-radius:var(--r-pill);font-weight:600;color:var(--ink-2);cursor:pointer;min-width:42px}
 .edu-seg button.on{background:var(--yellow);color:var(--yellow-ink)}
